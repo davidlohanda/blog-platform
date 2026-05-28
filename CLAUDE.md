@@ -64,7 +64,11 @@ blog-platform/
 ### Frontend (Next.js 16)
 - **Default Server Component** — tambah `'use client'` hanya jika perlu interaksi/hooks/browser API
 - **Caching:** `'use cache'` + `cacheTag()` + `cacheLife()` — bukan `revalidate` lama
-- **Routing middleware:** `proxy.ts` di root — BUKAN `middleware.ts`
+- **Routing middleware:** `proxy.ts` di root — BUKAN `middleware.ts` (deprecated di Next.js 16)
+  - Fungsi wajib bernama `proxy()`, BUKAN `middleware()`
+  - Runtime adalah **Node.js saja** — edge runtime tidak didukung di `proxy.ts`
+  - Jika perlu edge runtime, tetap pakai `middleware.ts` (tapi hindari untuk project ini)
+  - Ref: [Next.js 16 upgrade guide](https://nextjs.org/docs/app/guides/upgrading/version-16)
 - **params/searchParams:** wajib di-`await` sebelum diakses
 - **Gambar:** selalu `next/image` — tidak pernah `<img>`
 - **Form:** React Hook Form + Zod + shadcn/ui `<Form>` wrapper
@@ -103,7 +107,8 @@ blog-platform/
 - Hardcode nilai yang seharusnya di `.env`
 - Query tanpa `publicationId` di repository layer
 - Gunakan `bcrypt` — pakai Argon2
-- Gunakan `middleware.ts` — pakai `proxy.ts`
+- Gunakan `middleware.ts` — pakai `proxy.ts` (deprecated di Next.js 16)
+- Beri nama fungsi `middleware()` di proxy.ts — wajib bernama `proxy()`
 - Simpan access token di localStorage atau cookie biasa
 - Gunakan `<img>` — pakai `next/image`
 - Commit file `.env` atau `.env.local`
