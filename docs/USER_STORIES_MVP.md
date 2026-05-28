@@ -74,7 +74,7 @@ Sebagai developer, saya ingin setiap push ke GitHub otomatis dicek kualitasnya, 
 **TASK-1.3.2** `[x]` Push semua dokumen dari folder `docs/` sebagai commit pertama  
 **TASK-1.3.3** `[x]` Buat `.github/workflows/backend-ci.yml` — lint + type check saat PR  
 **TASK-1.3.4** `[x]` Buat `.github/workflows/frontend-ci.yml` — lint + type check + build saat PR  
-**TASK-1.3.5** `[ ]` Setup branch protection rules di GitHub untuk branch `main` ← manual di GitHub UI  
+**TASK-1.3.5** `[x ]` Setup branch protection rules di GitHub untuk branch `main` ← manual di GitHub UI  
 **TASK-1.3.6** `[x]` Commit: `chore(ci): add GitHub Actions workflow for lint and build`  
 
 ---
@@ -84,53 +84,53 @@ Sebagai developer, saya ingin setiap push ke GitHub otomatis dicek kualitasnya, 
 ### STORY 2.1 — Register dengan Email
 Sebagai pengunjung baru, saya ingin bisa membuat akun dengan email dan password, agar saya bisa mengakses fitur platform.
 
-**TASK-BE-2.1.1** `[ ]` Buat Zod schema validasi register di `auth.schema.ts` (email, name, password min 8 karakter dengan huruf+angka)  
-**TASK-BE-2.1.2** `[ ]` Buat `auth.repository.ts` — method `findByEmail`, `create`  
-**TASK-BE-2.1.3** `[ ]` Buat `auth.service.ts` — method `register`: validasi email unik, hash password dengan Argon2, simpan user, generate email verification token, trigger kirim email verifikasi  
-**TASK-BE-2.1.4** `[ ]` Buat `auth.controller.ts` — method `register`: ambil body, panggil service, return 201  
-**TASK-BE-2.1.5** `[ ]` Buat `auth.router.ts` — `POST /auth/register` dengan validate middleware  
-**TASK-BE-2.1.6** `[ ]` Buat endpoint `GET /auth/verify-email?token=xxx` untuk verifikasi email  
-**TASK-BE-2.1.7** `[ ]` Commit: `feat(auth): add email/password register with email verification`  
+**TASK-BE-2.1.1** `[x]` Buat Zod schema validasi register di `auth.schema.ts` (email, name, password min 8 karakter dengan huruf+angka)  
+**TASK-BE-2.1.2** `[x]` Buat `auth.repository.ts` — method `findByEmail`, `create`  
+**TASK-BE-2.1.3** `[x]` Buat `auth.service.ts` — method `register`: validasi email unik, hash password dengan Argon2, simpan user, generate email verification token, trigger kirim email verifikasi  
+**TASK-BE-2.1.4** `[x]` Buat `auth.controller.ts` — method `register`: ambil body, panggil service, return 201  
+**TASK-BE-2.1.5** `[x]` Buat `auth.router.ts` — `POST /auth/register` dengan validate middleware  
+**TASK-BE-2.1.6** `[x]` Buat endpoint `GET /auth/verify-email?token=xxx` untuk verifikasi email  
+**TASK-BE-2.1.7** `[x]` Commit: `feat(auth): add email/password register with email verification`  
 
-**TASK-FE-2.1.1** `[ ]` Buat halaman `app/(auth)/register/page.tsx` (Client Component)  
-**TASK-FE-2.1.2** `[ ]` Buat form register dengan React Hook Form + Zod: nama, email, password, checkbox ToS  
-**TASK-FE-2.1.3** `[ ]` Tambahkan tombol "Daftar dengan Google" (belum fungsional, placeholder untuk STORY 2.3)  
-**TASK-FE-2.1.4** `[ ]` Handling error state (email sudah terdaftar, validasi gagal)  
-**TASK-FE-2.1.5** `[ ]` Handling success state — tampilkan pesan "cek email kamu"  
-**TASK-FE-2.1.6** `[ ]` Buat halaman konfirmasi email terverifikasi  
-**TASK-FE-2.1.7** `[ ]` Commit: `feat(auth): add register page with form validation`  
+**TASK-FE-2.1.1** `[x]` Buat halaman `app/(auth)/register/page.tsx` (Client Component)  
+**TASK-FE-2.1.2** `[x]` Buat form register dengan React Hook Form + Zod: nama, email, password, checkbox ToS  
+**TASK-FE-2.1.3** `[x]` Tambahkan tombol "Daftar dengan Google" (belum fungsional, placeholder untuk STORY 2.3)  
+**TASK-FE-2.1.4** `[x]` Handling error state (email sudah terdaftar, validasi gagal)  
+**TASK-FE-2.1.5** `[x]` Handling success state — tampilkan pesan "cek email kamu"  
+**TASK-FE-2.1.6** `[x]` Buat halaman konfirmasi email terverifikasi  
+**TASK-FE-2.1.7** `[x]` Commit: `feat(auth): add register page with form validation`  
 
-**TASK-INT-2.1.1** `[ ]` Hubungkan form register ke `POST /auth/register`  
-**TASK-INT-2.1.2** `[ ]` Test end-to-end: register → terima email → klik link → akun aktif  
-**TASK-INT-2.1.3** `[ ]` Commit: `feat(auth): integrate register frontend with backend`  
+**TASK-INT-2.1.1** `[x]` Hubungkan form register ke `POST /auth/register`  
+**TASK-INT-2.1.2** `[ ]` Test end-to-end: register → terima email → klik link → akun aktif ← requires email setup (STORY 7.1)  
+**TASK-INT-2.1.3** `[x]` Commit: `feat(auth): integrate register frontend with backend`  
 
 ---
 
 ### STORY 2.2 — Login dengan Email
 Sebagai user terdaftar, saya ingin bisa login dengan email dan password, agar saya bisa mengakses akun saya.
 
-**TASK-BE-2.2.1** `[ ]` Buat JWT helper di `lib/jwt.ts` — `signAccessToken`, `signRefreshToken`, `verifyToken`  
-**TASK-BE-2.2.2** `[ ]` Buat Argon2 helper di `lib/password.ts` — `hash`, `verify`  
-**TASK-BE-2.2.3** `[ ]` Buat method `login` di `auth.service.ts`: cari user by email, verify password, issue access token (15m) + refresh token (30d), simpan refresh token di Redis  
-**TASK-BE-2.2.4** `[ ]` Tambahkan `POST /auth/login` di router dengan rate limiting 5 req/menit per IP  
-**TASK-BE-2.2.5** `[ ]` Return access token di response body, refresh token di httpOnly cookie  
-**TASK-BE-2.2.6** `[ ]` Tambahkan `POST /auth/logout` — hapus refresh token dari Redis, clear cookie  
-**TASK-BE-2.2.7** `[ ]` Tambahkan `POST /auth/refresh` — verifikasi refresh token di Redis, rotate token  
-**TASK-BE-2.2.8** `[ ]` Buat `auth.middleware.ts` — verify JWT dari Authorization header, attach `req.user`  
-**TASK-BE-2.2.9** `[ ]` Tambahkan `GET /auth/me` — return data user yang sedang login  
-**TASK-BE-2.2.10** `[ ]` Commit: `feat(auth): add login, logout, refresh token with JWT rotation`  
+**TASK-BE-2.2.1** `[x]` Buat JWT helper di `lib/jwt.ts` — `signAccessToken`, `signRefreshToken`, `verifyToken`  
+**TASK-BE-2.2.2** `[x]` Buat Argon2 helper di `lib/password.ts` — `hash`, `verify`  
+**TASK-BE-2.2.3** `[x]` Buat method `login` di `auth.service.ts`: cari user by email, verify password, issue access token (15m) + refresh token (30d), simpan refresh token di Redis  
+**TASK-BE-2.2.4** `[x]` Tambahkan `POST /auth/login` di router dengan rate limiting 5 req/menit per IP  
+**TASK-BE-2.2.5** `[x]` Return access token di response body, refresh token di httpOnly cookie  
+**TASK-BE-2.2.6** `[x]` Tambahkan `POST /auth/logout` — hapus refresh token dari Redis, clear cookie  
+**TASK-BE-2.2.7** `[x]` Tambahkan `POST /auth/refresh` — verifikasi refresh token di Redis, rotate token  
+**TASK-BE-2.2.8** `[x]` Buat `auth.middleware.ts` — verify JWT dari Authorization header, attach `req.user`  
+**TASK-BE-2.2.9** `[x]` Tambahkan `GET /auth/me` — return data user yang sedang login  
+**TASK-BE-2.2.10** `[x]` Commit: `feat(auth): add login, logout, refresh token with JWT rotation`  
 
-**TASK-FE-2.2.1** `[ ]` Buat halaman `app/(auth)/login/page.tsx` (Client Component)  
-**TASK-FE-2.2.2** `[ ]` Buat form login: email, password, checkbox "Tetap masuk", link "Lupa sandi?"  
-**TASK-FE-2.2.3** `[ ]` Buat Zustand auth store di `store/authStore.ts` — simpan access token + user data di memory  
-**TASK-FE-2.2.4** `[ ]` Buat custom hook `useAuth` di `hooks/useAuth.ts`  
-**TASK-FE-2.2.5** `[ ]` Setup Axios interceptor: attach access token ke header, auto-refresh jika 401  
-**TASK-FE-2.2.6** `[ ]` Commit: `feat(auth): add login page with token management`  
+**TASK-FE-2.2.1** `[x]` Buat halaman `app/(auth)/login/page.tsx` (Client Component)  
+**TASK-FE-2.2.2** `[x]` Buat form login: email, password, checkbox "Tetap masuk", link "Lupa sandi?"  
+**TASK-FE-2.2.3** `[x]` Buat Zustand auth store di `store/authStore.ts` — simpan access token + user data di memory  
+**TASK-FE-2.2.4** `[x]` Buat custom hook `useAuth` di `hooks/useAuth.ts`  
+**TASK-FE-2.2.5** `[x]` Setup Axios interceptor: attach access token ke header, auto-refresh jika 401  
+**TASK-FE-2.2.6** `[x]` Commit: `feat(auth): add login page with token management`  
 
-**TASK-INT-2.2.1** `[ ]` Hubungkan form login ke `POST /auth/login`  
+**TASK-INT-2.2.1** `[x]` Hubungkan form login ke `POST /auth/login`  
 **TASK-INT-2.2.2** `[ ]` Test refresh token flow: access token expired → auto refresh → request ulang  
 **TASK-INT-2.2.3** `[ ]` Test logout: token dihapus, redirect ke login  
-**TASK-INT-2.2.4** `[ ]` Commit: `feat(auth): integrate login flow end-to-end`  
+**TASK-INT-2.2.4** `[x]` Commit: `feat(auth): integrate login flow end-to-end`  
 
 ---
 
