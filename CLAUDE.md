@@ -132,6 +132,17 @@ Saat implementasi halaman frontend:
 
 ---
 
+## Referensi Desain Frontend
+
+Hasil desain UI ada di `frontend/design-references/`.
+Saat implementasi halaman frontend, WAJIB:
+1. Baca `frontend/design-references/index.html` untuk overview semua halaman
+2. Lihat `frontend/design-references/screens/` untuk screenshot per halaman
+3. Implementasikan shadcn/ui + Tailwind CSS mengacu ke desain tersebut
+4. Jangan implementasi UI tanpa melihat referensi desain terlebih dahulu
+
+---
+
 ## Cara Jalankan Lokal
 
 ```bash
