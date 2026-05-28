@@ -35,7 +35,8 @@ export const authService = {
 
   async verifyEmail(token: string) {
     const record = await authRepository.findEmailVerificationToken(token);
-    if (!record) throw AppError.badRequest('Token tidak valid atau sudah kedaluwarsa', 'INVALID_TOKEN');
+    if (!record)
+      throw AppError.badRequest('Token tidak valid atau sudah kedaluwarsa', 'INVALID_TOKEN');
     if (record.expiresAt < new Date()) {
       await authRepository.deleteEmailVerificationToken(record.id);
       throw AppError.badRequest('Token verifikasi sudah kedaluwarsa', 'TOKEN_EXPIRED');
@@ -83,7 +84,8 @@ export const authService = {
     }
 
     const stored = await redis.get(`refresh:${payload.userId}:${payload.tokenId}`);
-    if (!stored) throw AppError.unauthorized('Sesi sudah berakhir, silakan login ulang', 'SESSION_EXPIRED');
+    if (!stored)
+      throw AppError.unauthorized('Sesi sudah berakhir, silakan login ulang', 'SESSION_EXPIRED');
 
     // Rotate: delete old, issue new
     await redis.del(`refresh:${payload.userId}:${payload.tokenId}`);

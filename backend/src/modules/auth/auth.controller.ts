@@ -56,7 +56,9 @@ export const authController = {
     try {
       const refreshTokenCookie = req.cookies?.refreshToken as string | undefined;
       if (!refreshTokenCookie) {
-        res.status(401).json({ success: false, error: 'NO_REFRESH_TOKEN', message: 'Tidak ada refresh token' });
+        res
+          .status(401)
+          .json({ success: false, error: 'NO_REFRESH_TOKEN', message: 'Tidak ada refresh token' });
         return;
       }
 

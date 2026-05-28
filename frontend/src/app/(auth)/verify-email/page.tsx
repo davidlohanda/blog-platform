@@ -17,14 +17,18 @@ export default async function VerifyEmailPage({ searchParams }: PageProps) {
     );
   }
 
+  let success = false;
+  let message = 'Token tidak valid atau sudah kedaluwarsa.';
+
   try {
     await serverFetch(`/auth/verify-email?token=${encodeURIComponent(token)}`);
-    return <VerifyShell success={true} message="Email kamu berhasil diverifikasi. Sekarang kamu bisa masuk." />;
+    success = true;
+    message = 'Email kamu berhasil diverifikasi. Sekarang kamu bisa masuk.';
   } catch (err: unknown) {
-    const msg =
-      err instanceof Error ? err.message : 'Token tidak valid atau sudah kedaluwarsa.';
-    return <VerifyShell success={false} message={msg} />;
+    message = err instanceof Error ? err.message : 'Token tidak valid atau sudah kedaluwarsa.';
   }
+
+  return <VerifyShell success={success} message={message} />;
 }
 
 function VerifyShell({ success, message }: { success: boolean; message: string }) {

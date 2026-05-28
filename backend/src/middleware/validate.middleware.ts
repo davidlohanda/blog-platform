@@ -10,7 +10,9 @@ export function validate(schema: ZodSchema, target: ValidateTarget = 'body') {
       next(result.error);
       return;
     }
-    req[target] = result.data as typeof req[typeof target];
+    // Zod-validated data replaces raw input; cast required to satisfy Express types
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    req[target] = result.data;
     next();
   };
 }
