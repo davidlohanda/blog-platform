@@ -1,0 +1,422 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =============================================
+// USERS & AUTH
+// =============================================
+
+model User {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email             String    @unique @db.VarChar(255)
+  passwordHash      String?   @db.VarChar(255)
+  name              String    @db.VarChar(255)
+  avatarUrl         String?   @db.Text
+  bio               String?   @db.Text
+  googleId          String?   @unique @db.VarChar(255)
+  emailVerifiedAt   DateTime? @db.Timestamptz
+  createdAt         DateTime  @default(now()) @db.Timestamptz
+  updatedAt         DateTime  @updatedAt @db.Timestamptz
+
+  publications        PublicationAuthor[]
+  subscriptions       Subscription[]
+  articles            Article[]
+  series              Series[]
+  comments            Comment[]
+  qaQuestions         QaQuestion[]
+  qaAnswers           QaAnswer[]
+  savedFolders        SavedFolder[]
+  emailPreferences    EmailPreference[]
+  articleReads        ArticleRead[]
+  emailVerifyTokens   EmailVerificationToken[]
+  passwordResetTokens PasswordResetToken[]
+
+  @@map("users")
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @db.Uuid
+  token     String   @unique @db.VarChar(255)
+  expiresAt DateTime @db.Timestamptz
+  createdAt DateTime @default(now()) @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@map("email_verification_tokens")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @db.Uuid
+  token     String   @unique @db.VarChar(255)
+  expiresAt DateTime @db.Timestamptz
+  createdAt DateTime @default(now()) @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@map("password_reset_tokens")
+}
+
+// =============================================
+// PUBLICATIONS & TENANCY
+// =============================================
+
+model Publication {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug               String   @unique @db.VarChar(100)
+  name               String   @db.VarChar(255)
+  description        String?  @db.Text
+  logoUrl            String?  @db.Text
+  coverUrl           String?  @db.Text
+  customDomain       String?  @unique @db.VarChar(255)
+  platformFeePercent Decimal  @default(15.00) @db.Decimal(5, 2)
+  feeEnabled         Boolean  @default(true)
+  createdAt          DateTime @default(now()) @db.Timestamptz
+  updatedAt          DateTime @updatedAt @db.Timestamptz
+
+  authors           PublicationAuthor[]
+  subscriptionPlans SubscriptionPlan[]
+  subscriptions     Subscription[]
+  articles          Article[]
+  tags              Tag[]
+  series            Series[]
+  roadmaps          Roadmap[]
+  qaQuestions       QaQuestion[]
+  savedFolders      SavedFolder[]
+  emailPreferences  EmailPreference[]
+
+  @@index([slug])
+  @@index([customDomain])
+  @@map("publications")
+}
+
+model PublicationAuthor {
+  publicationId String     @db.Uuid
+  userId        String     @db.Uuid
+  role          AuthorRole
+  joinedAt      DateTime   @default(now()) @db.Timestamptz
+
+  publication Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([publicationId, userId])
+  @@map("publication_authors")
+}
+
+enum AuthorRole {
+  owner
+  author
+}
+
+// =============================================
+// SUBSCRIPTIONS & PAYMENTS
+// =============================================
+
+model SubscriptionPlan {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  publicationId  String   @db.Uuid
+  durationMonths Int
+  price          Decimal  @db.Decimal(12, 2)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now()) @db.Timestamptz
+
+  publication   Publication    @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  subscriptions Subscription[]
+
+  @@map("subscription_plans")
+}
+
+model Subscription {
+  id            String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  publicationId String             @db.Uuid
+  userId        String             @db.Uuid
+  planId        String             @db.Uuid
+  status        SubscriptionStatus
+  startedAt     DateTime?          @db.Timestamptz
+  expiresAt     DateTime?          @db.Timestamptz
+  grossAmount   Decimal            @db.Decimal(12, 2)
+  platformFee   Decimal            @db.Decimal(12, 2)
+  netAmount     Decimal            @db.Decimal(12, 2)
+  paymentId     String?            @db.VarChar(255)
+  paymentMethod String?            @db.VarChar(100)
+  createdAt     DateTime           @default(now()) @db.Timestamptz
+
+  publication Publication      @relation(fields: [publicationId], references: [id])
+  user        User             @relation(fields: [userId], references: [id])
+  plan        SubscriptionPlan @relation(fields: [planId], references: [id])
+
+  @@index([userId, publicationId, status, expiresAt])
+  @@map("subscriptions")
+}
+
+enum SubscriptionStatus {
+  pending
+  active
+  expired
+  cancelled
+}
+
+// =============================================
+// CONTENT
+// =============================================
+
+model Article {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  publicationId   String        @db.Uuid
+  authorId        String        @db.Uuid
+  title           String        @db.VarChar(500)
+  slug            String        @db.VarChar(500)
+  content         Json?
+  excerpt         String?       @db.Text
+  coverImageUrl   String?       @db.Text
+  status          ArticleStatus @default(draft)
+  visibility      Visibility    @default(free)
+  publishedAt     DateTime?     @db.Timestamptz
+  scheduledAt     DateTime?     @db.Timestamptz
+  metaTitle       String?       @db.VarChar(255)
+  metaDescription String?       @db.Text
+  readingTime     Int?
+  viewsCount      Int           @default(0)
+  deletedAt       DateTime?     @db.Timestamptz
+  createdAt       DateTime      @default(now()) @db.Timestamptz
+  updatedAt       DateTime      @updatedAt @db.Timestamptz
+
+  publication Publication    @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  author      User           @relation(fields: [authorId], references: [id])
+  tags        ArticleTag[]
+  seriesLinks SeriesArticle[]
+  comments    Comment[]
+  reads       ArticleRead[]
+  savedIn     SavedArticle[]
+
+  @@unique([publicationId, slug])
+  @@index([publicationId, status, publishedAt(sort: Desc)])
+  @@index([publicationId, slug])
+  @@map("articles")
+}
+
+enum ArticleStatus {
+  draft
+  scheduled
+  published
+}
+
+enum Visibility {
+  free
+  members_only
+}
+
+model Tag {
+  id            String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  publicationId String @db.Uuid
+  name          String @db.VarChar(100)
+  slug          String @db.VarChar(100)
+
+  publication Publication  @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  articles    ArticleTag[]
+
+  @@unique([publicationId, slug])
+  @@map("tags")
+}
+
+model ArticleTag {
+  articleId String @db.Uuid
+  tagId     String @db.Uuid
+
+  article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([articleId, tagId])
+  @@map("article_tags")
+}
+
+model Series {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  publicationId String   @db.Uuid
+  authorId      String   @db.Uuid
+  title         String   @db.VarChar(500)
+  slug          String   @db.VarChar(500)
+  description   String?  @db.Text
+  coverImageUrl String?  @db.Text
+  createdAt     DateTime @default(now()) @db.Timestamptz
+
+  publication Publication   @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  author      User          @relation(fields: [authorId], references: [id])
+  articles    SeriesArticle[]
+
+  @@unique([publicationId, slug])
+  @@map("series")
+}
+
+model SeriesArticle {
+  seriesId   String @db.Uuid
+  articleId  String @db.Uuid
+  orderIndex Int    @default(0)
+
+  series  Series  @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@id([seriesId, articleId])
+  @@map("series_articles")
+}
+
+model Roadmap {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  publicationId String   @db.Uuid
+  title         String   @db.VarChar(500)
+  slug          String   @db.VarChar(500)
+  description   String?  @db.Text
+  createdAt     DateTime @default(now()) @db.Timestamptz
+
+  publication Publication    @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  stages      RoadmapStage[]
+
+  @@map("roadmaps")
+}
+
+model RoadmapStage {
+  id          String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  roadmapId   String  @db.Uuid
+  title       String  @db.VarChar(255)
+  description String? @db.Text
+  orderIndex  Int     @default(0)
+
+  roadmap Roadmap            @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
+  items   RoadmapStageItem[]
+
+  @@map("roadmap_stages")
+}
+
+model RoadmapStageItem {
+  id         String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  stageId    String          @db.Uuid
+  itemType   RoadmapItemType
+  itemId     String          @db.Uuid
+  orderIndex Int             @default(0)
+
+  stage RoadmapStage @relation(fields: [stageId], references: [id], onDelete: Cascade)
+
+  @@map("roadmap_stage_items")
+}
+
+enum RoadmapItemType {
+  article
+  series
+}
+
+// =============================================
+// COMMUNITY
+// =============================================
+
+model Comment {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  articleId  String    @db.Uuid
+  userId     String    @db.Uuid
+  parentId   String?   @db.Uuid
+  content    String    @db.Text
+  isPinned   Boolean   @default(false)
+  likesCount Int       @default(0)
+  deletedAt  DateTime? @db.Timestamptz
+  createdAt  DateTime  @default(now()) @db.Timestamptz
+
+  article Article   @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  user    User      @relation(fields: [userId], references: [id])
+  parent  Comment?  @relation("Replies", fields: [parentId], references: [id])
+  replies Comment[] @relation("Replies")
+
+  @@map("comments")
+}
+
+model QaQuestion {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  publicationId String   @db.Uuid
+  userId        String   @db.Uuid
+  title         String   @db.VarChar(500)
+  content       String?  @db.Text
+  upvotesCount  Int      @default(0)
+  isAnswered    Boolean  @default(false)
+  createdAt     DateTime @default(now()) @db.Timestamptz
+
+  publication Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id])
+  answers     QaAnswer[]
+
+  @@map("qa_questions")
+}
+
+model QaAnswer {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  questionId String   @db.Uuid
+  authorId   String   @db.Uuid
+  content    String   @db.Text
+  isOfficial Boolean  @default(false)
+  createdAt  DateTime @default(now()) @db.Timestamptz
+
+  question QaQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  author   User       @relation(fields: [authorId], references: [id])
+
+  @@map("qa_answers")
+}
+
+// =============================================
+// PERSONAL LIBRARY & ANALYTICS
+// =============================================
+
+model SavedFolder {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String   @db.Uuid
+  publicationId String   @db.Uuid
+  name          String   @db.VarChar(255)
+  createdAt     DateTime @default(now()) @db.Timestamptz
+
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  publication Publication    @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  articles    SavedArticle[]
+
+  @@map("saved_folders")
+}
+
+model SavedArticle {
+  folderId  String   @db.Uuid
+  articleId String   @db.Uuid
+  savedAt   DateTime @default(now()) @db.Timestamptz
+
+  folder  SavedFolder @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  article Article     @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@id([folderId, articleId])
+  @@map("saved_articles")
+}
+
+model ArticleRead {
+  articleId         String   @db.Uuid
+  userId            String   @db.Uuid
+  readAt            DateTime @default(now()) @db.Timestamptz
+  completionPercent Int      @default(0)
+
+  article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([articleId, userId])
+  @@map("article_reads")
+}
+
+model EmailPreference {
+  userId        String  @db.Uuid
+  publicationId String  @db.Uuid
+  newArticle    Boolean @default(true)
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  publication Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+
+  @@id([userId, publicationId])
+  @@map("email_preferences")
+}
