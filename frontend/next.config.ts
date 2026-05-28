@@ -1,3 +1,4 @@
+import path from 'path';
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
@@ -13,10 +14,8 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  experimental: {
-    // dynamicIO enables 'use cache' directive — required for Next.js 16 caching model
-    // @ts-expect-error dynamicIO is available in Next.js 16 but not yet in type definitions
-    dynamicIO: true,
+  turbopack: {
+    root: path.resolve(__dirname),
   },
 };
 
