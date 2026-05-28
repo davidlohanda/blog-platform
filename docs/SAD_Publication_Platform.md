@@ -1,9 +1,10 @@
 # System Architecture Document (SAD)
 ## Platform Blog Subscription Multi-Author
-**Versi:** 1.2  
-**Tanggal:** 22 Mei 2026  
+**Versi:** 1.3  
+**Tanggal:** 28 Mei 2026  
 **Status:** Draft  
-**Referensi:** PRD v1.1
+**Referensi:** PRD v1.1  
+**Changelog v1.3:** Revisi lengkap section 5 (Authentication & Authorization) — tambah email verification strategy, soft verification flow, perbedaan OAuth vs email+password, forgot password flow, dan resend verification. Update section 7 — tambah tabel `email_verification_tokens` dan `password_reset_tokens`, tambah indexes untuk token lookup.
 
 ---
 
@@ -57,7 +58,7 @@ Data Layer
 External Services
   ├── Midtrans (payment)
   ├── Xendit (disbursement — V2)
-  ├── Resend / Mailgun (email)
+  ├── Resend (email)
   └── Google OAuth 2.0
 ```
 
@@ -142,8 +143,7 @@ Request → Router → Controller → Service → Repository → Database
 
 **Global Error Handler** — satu error handler terpusat di akhir middleware chain. Semua error yang di-`next(err)` dari manapun masuk ke sini, di-normalize ke format response yang konsisten.
 
-```
-// Contoh error response standar
+```json
 {
   "success": false,
   "statusCode": 404,
@@ -155,7 +155,7 @@ Request → Router → Controller → Service → Repository → Database
 ```
 
 #### Domain Routers
-- `auth.router.ts` — register, login, OAuth, token refresh
+- `auth.router.ts` — register, login, OAuth, token refresh, email verification
 - `publication.router.ts` — CRUD publication, author management
 - `article.router.ts` — CRUD artikel, publish, scheduling
 - `series.router.ts` — CRUD series, urutan artikel
@@ -221,73 +221,244 @@ async findMany(publicationId: string, options: ArticleQueryOptions) {
 ### 5.1 Token Strategy
 
 **Access Token (JWT)**
-- Berisi: `userId`, `email`, `publicationId` (jika konteks publication), `role`
+- Payload: `userId`, `email`, `emailVerified` (boolean)
 - Expiry: 15 menit
-- Disimpan: memory (JavaScript variable), TIDAK di localStorage atau cookie biasa
+- Disimpan di client: memory (JavaScript variable / Zustand store), TIDAK di localStorage atau cookie biasa
 - Dikirim: `Authorization: Bearer [token]` header
 
 **Refresh Token**
 - Format: opaque string (random UUID, bukan JWT)
 - Expiry: 30 hari
 - Disimpan di client: httpOnly, Secure, SameSite=Strict cookie
-- Disimpan di server: Redis dengan key `refresh:[userId]:[tokenId]`, value `{userId, expiry, userAgent}`
+- Disimpan di server: Redis dengan key `refresh:[userId]:[tokenId]`, value `{ userId, expiry, userAgent }`
 
 **Alasan tidak pakai localStorage untuk token:**
-- localStorage bisa diakses oleh JavaScript → rentan XSS
-- httpOnly cookie tidak bisa dibaca JS → aman dari XSS
+localStorage bisa diakses oleh JavaScript sehingga rentan XSS. httpOnly cookie tidak bisa dibaca JS sama sekali, aman dari XSS. Access token di memory akan hilang saat tab ditutup — ini disengaja, dan silent refresh via cookie akan mendapatkan token baru secara otomatis.
 
-### 5.2 Token Refresh Flow
+---
+
+### 5.2 Email Verification Strategy
+
+Platform menggunakan pendekatan **soft verification** — user boleh login sebelum memverifikasi email, namun akses ke fitur kritis dibatasi sampai email diverifikasi.
+
+**Alasan pendekatan ini:** Platform subscription-based memprioritaskan konversi. Memblokir user saat register akan meningkatkan churn sebelum mereka sempat explore konten.
+
+**State `emailVerifiedAt` di tabel `users`:**
+```
+emailVerifiedAt = null      → belum terverifikasi, akses terbatas
+emailVerifiedAt = timestamp → sudah terverifikasi, akses penuh
+```
+
+**Perbedaan berdasarkan metode register:**
+
+| Metode | emailVerifiedAt saat akun dibuat | Alasan |
+|---|---|---|
+| Email + Password | `null` | Perlu konfirmasi kepemilikan email |
+| Google OAuth | `new Date()` (langsung verified) | Google sudah menjamin email valid |
+
+**Fitur yang membutuhkan email terverifikasi:**
+- Checkout subscription / pembayaran
+- Menulis komentar & Q&A
+- Diundang / bergabung sebagai author di publication
+
+**Fitur yang tetap bisa diakses tanpa verifikasi:**
+- Baca artikel free
+- Browse publication
+- Update nama & bio profil
+
+**Implementasi cek di service layer:**
+```typescript
+// Helper reusable — gunakan di setiap service yang butuh email verified
+function requireVerifiedEmail(user: { emailVerifiedAt: Date | null }) {
+  if (!user.emailVerifiedAt) {
+    throw new AppError(
+      'EMAIL_NOT_VERIFIED',
+      403,
+      'Verifikasi email kamu terlebih dahulu untuk menggunakan fitur ini'
+    )
+  }
+}
+```
+
+**`emailVerified` di JWT payload:**
+Field ini disertakan agar frontend bisa langsung tahu status verifikasi tanpa request tambahan — berguna untuk menampilkan banner "Verifikasi email kamu" di UI.
+
+```typescript
+// JWT payload
+{
+  sub: user.id,
+  email: user.email,
+  emailVerified: !!user.emailVerifiedAt
+}
+```
+
+---
+
+### 5.3 Register Flow
+
+**Via Email + Password:**
+```
+1. Validasi input (Zod): email format, password min 8 karakter (huruf + angka)
+2. Cek duplikat email di database
+3. Hash password dengan Argon2id
+4. Simpan user dengan emailVerifiedAt = null
+5. Generate verification token (UUID v4)
+6. Simpan token ke tabel email_verification_tokens
+   (token, userId, expiresAt = NOW() + 24 jam)
+7. Enqueue job kirim email verifikasi via BullMQ
+8. Return 201 + data user (tanpa password_hash)
+```
+
+**Via Google OAuth:**
+```
+1. Terima user info dari Google (email, name, picture)
+2. Lookup user di database berdasarkan google_id atau email
+   - Jika sudah ada: update avatar_url jika berubah, lanjut ke step 4
+   - Jika belum ada: buat akun baru
+3. Set emailVerifiedAt = new Date() — Google sudah menjamin email valid
+4. Issue access token + refresh token (flow sama dengan login normal)
+```
+
+---
+
+### 5.4 Login Flow
+
+**Via Email + Password:**
+```
+1. Cari user berdasarkan email
+   → Jika tidak ada: return error INVALID_CREDENTIALS (pesan generik)
+2. Verify password dengan argon2.verify(user.passwordHash, inputPassword)
+   → Jika gagal: return error INVALID_CREDENTIALS (pesan generik)
+3. Buat JWT access token:
+   payload: { sub: userId, email, emailVerified: !!emailVerifiedAt }
+   expiry: 15 menit
+4. Buat refresh token (UUID v4)
+   Simpan ke Redis: key "refresh:[userId]:[tokenId]", TTL 30 hari
+5. Return: access token di body, refresh token di httpOnly cookie
+```
+
+**Catatan keamanan:** Pesan error login selalu generik ("Email atau password salah") — tidak pernah membedakan "email tidak ditemukan" vs "password salah". Ini mencegah attacker melakukan email enumeration.
+
+---
+
+### 5.5 Token Refresh Flow
 
 ```
 1. Access token expired → API kembalikan 401
-2. Client otomatis kirim POST /auth/refresh dengan refresh token (lewat cookie)
-3. Server verifikasi refresh token di Redis
-4. Jika valid: issue access token baru, rotate refresh token (hapus lama, simpan baru)
-5. Jika tidak valid: paksa logout, redirect ke login
+2. Client otomatis kirim POST /auth/refresh (refresh token via cookie)
+3. Server baca refresh token dari cookie
+4. Lookup di Redis: key "refresh:[userId]:[tokenId]"
+   → Jika tidak ada / expired: clear cookie, return 401 → client redirect ke login
+5. Jika valid:
+   a. Hapus refresh token lama dari Redis (token rotation)
+   b. Issue access token baru (JWT, 15 menit)
+   c. Issue refresh token baru (UUID), simpan ke Redis
+   d. Return access token baru di body, set cookie refresh token baru
 ```
 
-**Token Rotation:** Setiap kali refresh token digunakan, langsung dihapus dan diganti baru. Ini mencegah refresh token dicuri dan digunakan berulang.
+**Token Rotation** mencegah refresh token dicuri dan digunakan berulang. Jika token lama dipakai setelah rotation, server tahu ada anomali dan bisa invalidate semua session user tersebut.
 
-### 5.3 Google OAuth Flow
+---
+
+### 5.6 Logout Flow
 
 ```
-1. User klik "Login dengan Google"
-2. Redirect ke Google consent screen
-3. Google callback ke /auth/google/callback dengan authorization code
-4. Server tukar code dengan Google access token
-5. Ambil user info dari Google (email, name, picture)
-6. Lookup user di database berdasarkan email
-   - Jika ada: login langsung
-   - Jika tidak ada: buat akun baru (register otomatis)
-7. Issue JWT access token + refresh token seperti biasa
+1. Client kirim POST /auth/logout
+2. Server hapus refresh token dari Redis → token langsung tidak bisa dipakai lagi
+3. Server clear cookie: Set-Cookie: refreshToken=; Max-Age=0; HttpOnly
+4. Client hapus access token dari memory (reset Zustand auth store)
+5. Redirect ke halaman login
 ```
 
-### 5.4 Role & Permission System
+---
+
+### 5.7 Forgot Password Flow
+
+```
+1. User submit email di halaman forgot password
+2. POST /auth/forgot-password
+   → Jika email tidak ditemukan: tetap return 200 (mencegah email enumeration)
+   → Jika ditemukan:
+     a. Hapus token reset lama milik user ini jika ada
+     b. Generate reset token (UUID v4)
+     c. Simpan ke tabel password_reset_tokens
+        (token, userId, expiresAt = NOW() + 1 jam)
+3. Enqueue job kirim email berisi link:
+   https://app.platform.com/reset-password?token=[token]
+4. User klik link → POST /auth/reset-password { token, newPassword }
+5. Server cari token di tabel password_reset_tokens
+   → Jika tidak ada atau expired: return 400 TOKEN_INVALID
+6. Hash password baru dengan Argon2id, update di tabel users
+7. Hapus token dari tabel password_reset_tokens (single-use)
+8. Invalidate semua refresh token aktif user di Redis
+   (logout dari semua device sebagai langkah keamanan)
+9. Return 200 — client redirect ke login
+```
+
+---
+
+### 5.8 Email Verification Flow
+
+```
+Verifikasi email pertama kali:
+GET /auth/verify-email?token=[token]
+
+1. Cari token di tabel email_verification_tokens
+   → Jika tidak ada: return 400 TOKEN_INVALID
+   → Jika expired (expiresAt < NOW()): return 400 TOKEN_EXPIRED
+2. Update user: emailVerifiedAt = NOW()
+3. Hapus token dari tabel (single-use)
+4. Return 200 — redirect ke dashboard dengan notifikasi sukses
+
+Minta kirim ulang email verifikasi:
+POST /auth/resend-verification
+Rate limit: 3 request per user per jam
+
+1. Cek user belum terverifikasi (emailVerifiedAt = null)
+   → Jika sudah verified: return 400
+2. Hapus token verifikasi lama di tabel email_verification_tokens
+3. Generate token baru, simpan ke tabel
+4. Enqueue job kirim ulang email verifikasi
+5. Return 200
+```
+
+---
+
+### 5.9 Role & Permission System
 
 Setiap user bisa memiliki role berbeda di publication berbeda:
 
 ```
 Global roles:
-  - platform_admin: akses penuh ke semua publication (untuk operator platform)
+  - platform_admin: akses penuh ke semua publication (operator platform)
 
 Per-publication roles:
   - owner: semua hak akses di publication tersebut
-  - author: bisa menulis & publish artikel, tidak bisa ubah billing/settings
+  - author: bisa tulis & publish artikel, tidak bisa ubah billing/settings
   - member: subscriber aktif, akses konten premium
 
 Reader state (bukan role, tapi state):
   - anonymous: belum login, hanya akses konten free
-  - logged_in_non_member: login tapi tidak subscribe, tetap hanya free
+  - logged_in_non_member: login tapi tidak subscribe, tetap hanya akses free
 ```
 
-**Authorization Check Flow:**
+**Authorization Check Flow untuk konten premium:**
 ```
 Request ke konten premium
   → Middleware: verifikasi JWT valid
-  → Middleware: cek user punya subscription aktif untuk publication ini
-  → Cek: subscription.expires_at > now()
+  → Service: cek user punya subscription aktif untuk publication ini
+  → Cek: subscription.expiresAt > now()
   → Jika semua lolos: lanjutkan
   → Jika gagal di mana saja: 403 Forbidden
+```
+
+**Authorization Check Flow untuk fitur kritis (subscription, komentar):**
+```
+Request ke fitur kritis
+  → Middleware: verifikasi JWT valid
+  → Service: requireVerifiedEmail(req.user)
+  → Jika emailVerified false: 403 EMAIL_NOT_VERIFIED
+  → Jika true: lanjutkan ke logika bisnis
 ```
 
 ---
@@ -303,10 +474,12 @@ Request ke konten premium
 - **Error format:**
 ```json
 {
+  "success": false,
   "statusCode": 404,
-  "error": "Not Found",
+  "error": "NOT_FOUND",
   "message": "Article not found",
-  "timestamp": "2026-05-22T10:00:00Z"
+  "timestamp": "2026-05-22T10:00:00Z",
+  "path": "/api/v1/publications/xxx/articles/yyy"
 }
 ```
 
@@ -320,6 +493,8 @@ POST   /auth/logout
 POST   /auth/refresh
 POST   /auth/forgot-password
 POST   /auth/reset-password
+POST   /auth/resend-verification
+GET    /auth/verify-email?token=xxx
 GET    /auth/google
 GET    /auth/google/callback
 GET    /auth/me
@@ -327,24 +502,24 @@ GET    /auth/me
 
 #### Publications
 ```
-POST   /publications                        — buat publication baru
-GET    /publications/:slug                  — detail publication (public)
-PATCH  /publications/:id                    — update settings (owner only)
-GET    /publications/:id/authors            — daftar author
-POST   /publications/:id/authors/invite     — undang author
-DELETE /publications/:id/authors/:userId    — remove author
-GET    /publications/:id/subscription-plans — ambil paket subscription
-PUT    /publications/:id/subscription-plans — update paket (owner only)
+POST   /publications
+GET    /publications/:slug
+PATCH  /publications/:id
+GET    /publications/:id/authors
+POST   /publications/:id/authors/invite
+DELETE /publications/:id/authors/:userId
+GET    /publications/:id/subscription-plans
+PUT    /publications/:id/subscription-plans
 ```
 
 #### Articles
 ```
-GET    /publications/:pubId/articles              — list artikel (public: free saja, member: semua)
-POST   /publications/:pubId/articles              — buat artikel (author only)
-GET    /publications/:pubId/articles/:slug        — baca artikel
-PATCH  /publications/:pubId/articles/:id          — update artikel (author/owner)
-DELETE /publications/:pubId/articles/:id          — hapus artikel
-POST   /publications/:pubId/articles/:id/publish  — publish artikel
+GET    /publications/:pubId/articles
+POST   /publications/:pubId/articles
+GET    /publications/:pubId/articles/:slug
+PATCH  /publications/:pubId/articles/:id
+DELETE /publications/:pubId/articles/:id
+POST   /publications/:pubId/articles/:id/publish
 ```
 
 #### Series & Roadmaps
@@ -353,7 +528,7 @@ GET    /publications/:pubId/series
 POST   /publications/:pubId/series
 GET    /publications/:pubId/series/:id
 PATCH  /publications/:pubId/series/:id
-POST   /publications/:pubId/series/:id/articles   — tambah artikel ke series
+POST   /publications/:pubId/series/:id/articles
 
 GET    /publications/:pubId/roadmaps
 POST   /publications/:pubId/roadmaps
@@ -363,11 +538,11 @@ PATCH  /publications/:pubId/roadmaps/:id
 
 #### Subscriptions
 ```
-GET    /publications/:pubId/subscriptions/plans   — daftar paket & harga
-POST   /publications/:pubId/subscriptions/order   — buat order baru
-POST   /subscriptions/webhook/midtrans            — Midtrans webhook (no auth)
-GET    /subscriptions/me                          — status subscription user yang login
-DELETE /subscriptions/:id                         — cancel subscription
+GET    /publications/:pubId/subscriptions/plans
+POST   /publications/:pubId/subscriptions/order
+POST   /subscriptions/webhook/midtrans
+GET    /subscriptions/me
+DELETE /subscriptions/:id
 ```
 
 #### Community
@@ -376,7 +551,7 @@ GET    /publications/:pubId/articles/:artId/comments
 POST   /publications/:pubId/articles/:artId/comments
 DELETE /publications/:pubId/articles/:artId/comments/:id
 POST   /publications/:pubId/articles/:artId/comments/:id/like
-POST   /publications/:pubId/articles/:artId/like   — like artikel (non-member)
+POST   /publications/:pubId/articles/:artId/like
 
 GET    /publications/:pubId/qa
 POST   /publications/:pubId/qa
@@ -404,8 +579,8 @@ GET    /publications/:pubId/analytics/overview
 GET    /publications/:pubId/analytics/articles
 GET    /publications/:pubId/analytics/subscribers
 GET    /publications/:pubId/analytics/revenue
-GET    /publications/:pubId/subscribers                — list subscriber
-GET    /publications/:pubId/subscribers/export         — export CSV
+GET    /publications/:pubId/subscribers
+GET    /publications/:pubId/subscribers/export
 ```
 
 ### 6.3 Pagination
@@ -417,6 +592,7 @@ GET /publications/:pubId/articles?cursor=<lastId>&limit=20
 
 Response:
 {
+  "success": true,
   "data": [...],
   "pagination": {
     "nextCursor": "article-uuid-xyz",
@@ -435,61 +611,94 @@ Response:
 - **Database:** PostgreSQL 16
 - **ORM:** Prisma
 - **UUID:** menggunakan `gen_random_uuid()` untuk semua primary key
-- **Timestamps:** semua tabel memiliki `created_at` dan `updated_at`
-- **Soft delete:** tabel artikel, komentar menggunakan `deleted_at` (nullable) — data tidak benar-benar dihapus
+- **Timestamps:** semua tabel memiliki `created_at` dan `updated_at` (kecuali tabel junction)
+- **Soft delete:** tabel `articles` dan `comments` menggunakan `deleted_at` (nullable) — data tidak benar-benar dihapus
 
 ### 7.2 Schema Lengkap
 
 ```sql
+-- =============================================
+-- USERS & AUTH
+-- =============================================
+
 -- Users (global, tidak per-publication)
 CREATE TABLE users (
-  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  email         VARCHAR(255) UNIQUE NOT NULL,
-  password_hash VARCHAR(255),           -- null jika hanya OAuth
-  name          VARCHAR(255) NOT NULL,
-  avatar_url    TEXT,
-  bio           TEXT,
-  google_id     VARCHAR(255) UNIQUE,    -- untuk OAuth
-  email_verified_at TIMESTAMPTZ,
-  created_at    TIMESTAMPTZ DEFAULT NOW(),
-  updated_at    TIMESTAMPTZ DEFAULT NOW()
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email             VARCHAR(255) UNIQUE NOT NULL,
+  password_hash     VARCHAR(255),              -- null jika hanya OAuth
+  name              VARCHAR(255) NOT NULL,
+  avatar_url        TEXT,
+  bio               TEXT,
+  google_id         VARCHAR(255) UNIQUE,       -- untuk Google OAuth
+  email_verified_at TIMESTAMPTZ,               -- null = belum terverifikasi
+  created_at        TIMESTAMPTZ DEFAULT NOW(),
+  updated_at        TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Token verifikasi email (single-use, TTL 24 jam)
+-- Disimpan di PostgreSQL (bukan Redis) agar tidak hilang jika Redis restart
+CREATE TABLE email_verification_tokens (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    UUID REFERENCES users(id) ON DELETE CASCADE,
+  token      VARCHAR(255) UNIQUE NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Token reset password (single-use, TTL 1 jam)
+CREATE TABLE password_reset_tokens (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    UUID REFERENCES users(id) ON DELETE CASCADE,
+  token      VARCHAR(255) UNIQUE NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- =============================================
+-- PUBLICATIONS & TENANCY
+-- =============================================
 
 -- Publications (tenant root)
 CREATE TABLE publications (
-  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  slug          VARCHAR(100) UNIQUE NOT NULL,
-  name          VARCHAR(255) NOT NULL,
-  description   TEXT,
-  logo_url      TEXT,
-  cover_url     TEXT,
-  custom_domain VARCHAR(255) UNIQUE,
+  id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  slug                 VARCHAR(100) UNIQUE NOT NULL,
+  name                 VARCHAR(255) NOT NULL,
+  description          TEXT,
+  logo_url             TEXT,
+  cover_url            TEXT,
+  custom_domain        VARCHAR(255) UNIQUE,
   platform_fee_percent DECIMAL(5,2) DEFAULT 15.00,
-  fee_enabled   BOOLEAN DEFAULT TRUE,
-  created_at    TIMESTAMPTZ DEFAULT NOW(),
-  updated_at    TIMESTAMPTZ DEFAULT NOW()
+  fee_enabled          BOOLEAN DEFAULT TRUE,
+  created_at           TIMESTAMPTZ DEFAULT NOW(),
+  updated_at           TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Publication authors
 CREATE TABLE publication_authors (
   publication_id UUID REFERENCES publications(id) ON DELETE CASCADE,
-  user_id       UUID REFERENCES users(id) ON DELETE CASCADE,
-  role          VARCHAR(20) NOT NULL CHECK (role IN ('owner', 'author')),
-  joined_at     TIMESTAMPTZ DEFAULT NOW(),
+  user_id        UUID REFERENCES users(id) ON DELETE CASCADE,
+  role           VARCHAR(20) NOT NULL CHECK (role IN ('owner', 'author')),
+  joined_at      TIMESTAMPTZ DEFAULT NOW(),
   PRIMARY KEY (publication_id, user_id)
 );
 
+-- =============================================
+-- SUBSCRIPTIONS & PAYMENTS
+-- =============================================
+
 -- Subscription plans per publication
 CREATE TABLE subscription_plans (
-  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  publication_id UUID REFERENCES publications(id) ON DELETE CASCADE,
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  publication_id  UUID REFERENCES publications(id) ON DELETE CASCADE,
   duration_months INTEGER NOT NULL CHECK (duration_months IN (1, 3, 6, 12)),
-  price          DECIMAL(12,2) NOT NULL,
-  is_active      BOOLEAN DEFAULT TRUE,
-  created_at     TIMESTAMPTZ DEFAULT NOW()
+  price           DECIMAL(12,2) NOT NULL,
+  is_active       BOOLEAN DEFAULT TRUE,
+  created_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Subscriptions
+-- gross/platform_fee/net_amount disimpan snapshot saat transaksi
+-- karena fee_percent bisa berubah di masa depan
 CREATE TABLE subscriptions (
   id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   publication_id UUID REFERENCES publications(id),
@@ -501,38 +710,42 @@ CREATE TABLE subscriptions (
   gross_amount   DECIMAL(12,2) NOT NULL,
   platform_fee   DECIMAL(12,2) NOT NULL,
   net_amount     DECIMAL(12,2) NOT NULL,
-  payment_id     VARCHAR(255),          -- Midtrans order ID
+  payment_id     VARCHAR(255),               -- Midtrans order ID
   payment_method VARCHAR(100),
   created_at     TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- =============================================
+-- CONTENT
+-- =============================================
+
 -- Articles
 CREATE TABLE articles (
-  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  publication_id  UUID REFERENCES publications(id) ON DELETE CASCADE,
-  author_id       UUID REFERENCES users(id),
-  title           VARCHAR(500) NOT NULL,
-  slug            VARCHAR(500) NOT NULL,
-  content         JSONB,                -- Tiptap JSON format
-  excerpt         TEXT,
-  cover_image_url TEXT,
-  status          VARCHAR(20) NOT NULL DEFAULT 'draft'
-                  CHECK (status IN ('draft', 'scheduled', 'published')),
-  visibility      VARCHAR(20) NOT NULL DEFAULT 'free'
-                  CHECK (visibility IN ('free', 'members_only')),
-  published_at    TIMESTAMPTZ,
-  scheduled_at    TIMESTAMPTZ,
-  meta_title      VARCHAR(255),
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  publication_id   UUID REFERENCES publications(id) ON DELETE CASCADE,
+  author_id        UUID REFERENCES users(id),
+  title            VARCHAR(500) NOT NULL,
+  slug             VARCHAR(500) NOT NULL,
+  content          JSONB,                     -- Tiptap JSON format
+  excerpt          TEXT,
+  cover_image_url  TEXT,
+  status           VARCHAR(20) NOT NULL DEFAULT 'draft'
+                   CHECK (status IN ('draft', 'scheduled', 'published')),
+  visibility       VARCHAR(20) NOT NULL DEFAULT 'free'
+                   CHECK (visibility IN ('free', 'members_only')),
+  published_at     TIMESTAMPTZ,
+  scheduled_at     TIMESTAMPTZ,
+  meta_title       VARCHAR(255),
   meta_description TEXT,
-  reading_time    INTEGER,              -- dalam menit
-  views_count     INTEGER DEFAULT 0,
-  deleted_at      TIMESTAMPTZ,          -- soft delete
-  created_at      TIMESTAMPTZ DEFAULT NOW(),
-  updated_at      TIMESTAMPTZ DEFAULT NOW(),
+  reading_time     INTEGER,                   -- dalam menit
+  views_count      INTEGER DEFAULT 0,
+  deleted_at       TIMESTAMPTZ,               -- soft delete
+  created_at       TIMESTAMPTZ DEFAULT NOW(),
+  updated_at       TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE (publication_id, slug)
 );
 
--- Article tags
+-- Tags
 CREATE TABLE tags (
   id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   publication_id UUID REFERENCES publications(id) ON DELETE CASCADE,
@@ -549,14 +762,14 @@ CREATE TABLE article_tags (
 
 -- Series
 CREATE TABLE series (
-  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  publication_id UUID REFERENCES publications(id) ON DELETE CASCADE,
-  author_id      UUID REFERENCES users(id),
-  title          VARCHAR(500) NOT NULL,
-  slug           VARCHAR(500) NOT NULL,
-  description    TEXT,
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  publication_id  UUID REFERENCES publications(id) ON DELETE CASCADE,
+  author_id       UUID REFERENCES users(id),
+  title           VARCHAR(500) NOT NULL,
+  slug            VARCHAR(500) NOT NULL,
+  description     TEXT,
   cover_image_url TEXT,
-  created_at     TIMESTAMPTZ DEFAULT NOW(),
+  created_at      TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE (publication_id, slug)
 );
 
@@ -593,16 +806,20 @@ CREATE TABLE roadmap_stage_items (
   order_index INTEGER NOT NULL DEFAULT 0
 );
 
+-- =============================================
+-- COMMUNITY
+-- =============================================
+
 -- Comments
 CREATE TABLE comments (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   article_id  UUID REFERENCES articles(id) ON DELETE CASCADE,
   user_id     UUID REFERENCES users(id),
-  parent_id   UUID REFERENCES comments(id),  -- null jika root comment
+  parent_id   UUID REFERENCES comments(id),  -- null = root comment, max 1 level reply
   content     TEXT NOT NULL,
   is_pinned   BOOLEAN DEFAULT FALSE,
   likes_count INTEGER DEFAULT 0,
-  deleted_at  TIMESTAMPTZ,
+  deleted_at  TIMESTAMPTZ,                   -- soft delete
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -627,6 +844,10 @@ CREATE TABLE qa_answers (
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- =============================================
+-- PERSONAL LIBRARY & ANALYTICS
+-- =============================================
+
 -- Saved articles (personal library)
 CREATE TABLE saved_folders (
   id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -645,14 +866,14 @@ CREATE TABLE saved_articles (
 
 -- Article read tracking
 CREATE TABLE article_reads (
-  article_id          UUID REFERENCES articles(id) ON DELETE CASCADE,
-  user_id             UUID REFERENCES users(id) ON DELETE CASCADE,
-  read_at             TIMESTAMPTZ DEFAULT NOW(),
-  completion_percent  INTEGER DEFAULT 0,
+  article_id         UUID REFERENCES articles(id) ON DELETE CASCADE,
+  user_id            UUID REFERENCES users(id) ON DELETE CASCADE,
+  read_at            TIMESTAMPTZ DEFAULT NOW(),
+  completion_percent INTEGER DEFAULT 0,
   PRIMARY KEY (article_id, user_id)
 );
 
--- Email preferences
+-- Email preferences per user per publication
 CREATE TABLE email_preferences (
   user_id        UUID REFERENCES users(id) ON DELETE CASCADE,
   publication_id UUID REFERENCES publications(id) ON DELETE CASCADE,
@@ -665,19 +886,41 @@ CREATE TABLE email_preferences (
 
 ```sql
 -- Query paling sering: artikel per publication
-CREATE INDEX idx_articles_publication_status ON articles(publication_id, status, published_at DESC);
-CREATE INDEX idx_articles_publication_slug ON articles(publication_id, slug);
+CREATE INDEX idx_articles_publication_status
+  ON articles(publication_id, status, published_at DESC);
+CREATE INDEX idx_articles_publication_slug
+  ON articles(publication_id, slug);
 
 -- Check subscription aktif (dijalankan setiap request ke konten premium)
-CREATE INDEX idx_subscriptions_user_pub ON subscriptions(user_id, publication_id, status, expires_at);
+CREATE INDEX idx_subscriptions_user_pub
+  ON subscriptions(user_id, publication_id, status, expires_at);
 
--- Tenant resolution via custom domain
+-- Tenant resolution via custom domain / slug
 CREATE INDEX idx_publications_custom_domain ON publications(custom_domain);
 CREATE INDEX idx_publications_slug ON publications(slug);
 
+-- Auth token lookups (harus cepat)
+CREATE INDEX idx_email_verification_tokens_token
+  ON email_verification_tokens(token);
+CREATE INDEX idx_password_reset_tokens_token
+  ON password_reset_tokens(token);
+
 -- Full text search (PostgreSQL FTS)
-CREATE INDEX idx_articles_fts ON articles USING GIN(to_tsvector('indonesian', title || ' ' || excerpt));
+CREATE INDEX idx_articles_fts ON articles
+  USING GIN(to_tsvector('indonesian', title || ' ' || COALESCE(excerpt, '')));
 ```
+
+### 7.4 Redis Keys untuk Auth
+
+Refresh token disimpan di Redis karena diakses sangat sering (setiap 15 menit per user aktif) dan butuh TTL otomatis. Token verifikasi email dan reset password disimpan di PostgreSQL karena perlu persistence — tidak boleh hilang jika Redis restart.
+
+| Data | Storage | Key / Identifier | TTL |
+|---|---|---|---|
+| Refresh token | Redis | `refresh:[userId]:[tokenId]` | 30 hari |
+| Email verification token | PostgreSQL | tabel `email_verification_tokens` | 24 jam (field `expires_at`) |
+| Password reset token | PostgreSQL | tabel `password_reset_tokens` | 1 jam (field `expires_at`) |
+| Subscription status cache | Redis | `sub:[userId]:[pubId}` | 5 menit |
+| Publication cache | Redis | `pub:slug:[slug]` | 1 jam |
 
 ---
 
@@ -689,14 +932,15 @@ Platform menggunakan **Midtrans Snap** untuk checkout UI dan **Midtrans Core API
 
 **Flow pembuatan order:**
 ```
-1. Client POST /subscriptions/order {planId}
+1. Client POST /subscriptions/order { planId }
 2. Server:
-   a. Validasi plan exists dan aktif
-   b. Hitung platform_fee = gross_amount × (fee_percent/100)
-   c. Hitung net_amount = gross_amount - platform_fee
-   d. Buat record subscription dengan status 'pending'
-   e. Buat Midtrans transaction dengan order_id = subscription.id
-   f. Return Midtrans snap_token ke client
+   a. Validasi email user sudah terverifikasi (requireVerifiedEmail)
+   b. Validasi plan exists dan aktif
+   c. Hitung platform_fee = gross_amount × (fee_percent / 100)
+   d. Hitung net_amount = gross_amount - platform_fee
+   e. Buat record subscription dengan status 'pending'
+   f. Buat Midtrans transaction dengan order_id = subscription.id
+   g. Return Midtrans snap_token ke client
 3. Client tampilkan Midtrans Snap popup dengan snap_token
 4. User bayar melalui UI Midtrans
 5. Midtrans kirim webhook ke /subscriptions/webhook/midtrans
@@ -707,36 +951,40 @@ Platform menggunakan **Midtrans Snap** untuk checkout UI dan **Midtrans Core API
 1. Terima webhook Midtrans
 2. VERIFIKASI SIGNATURE: SHA512(order_id + status_code + gross_amount + ServerKey)
    → Jika tidak valid: return 400, jangan proses
-3. Cek transaction_status:
-   - 'settlement' atau 'capture': → aktifkan subscription
-   - 'pending': → tidak ada aksi (tunggu)
-   - 'deny' / 'cancel' / 'expire': → update status ke 'cancelled'
-4. Jika settlement: UPDATE subscriptions SET status='active', started_at=NOW(), expires_at=...
-5. Trigger email konfirmasi ke subscriber
-6. Return 200 OK ke Midtrans
+3. Idempotency check: cek subscription.payment_id sudah pernah diproses?
+   → Jika sudah: return 200 tanpa aksi
+4. Cek transaction_status:
+   - 'settlement' atau 'capture' → aktifkan subscription
+   - 'pending' → tidak ada aksi
+   - 'deny' / 'cancel' / 'expire' → update status ke 'cancelled'
+5. Jika settlement:
+   UPDATE subscriptions SET status='active', started_at=NOW(), expires_at=...
+6. Enqueue job kirim email konfirmasi ke subscriber
+7. Return 200 OK ke Midtrans
 ```
-
-**Idempotency:** Sebelum memproses webhook, cek apakah subscription.payment_id sudah pernah diproses. Jika sudah, return 200 tanpa melakukan aksi apapun.
 
 ### 8.2 Access Control Check
 
-Setiap request ke artikel premium melewati middleware ini:
-
 ```typescript
 async function checkPremiumAccess(userId: string, publicationId: string): Promise<boolean> {
-  const subscription = await db.subscriptions.findFirst({
+  const cacheKey = `sub:${userId}:${publicationId}`
+  const cached = await redis.get(cacheKey)
+  if (cached !== null) return cached === 'true'
+
+  const subscription = await prisma.subscription.findFirst({
     where: {
       userId,
       publicationId,
       status: 'active',
-      expires_at: { gt: new Date() }  // belum expired
+      expiresAt: { gt: new Date() }
     }
-  });
-  return !!subscription;
+  })
+
+  const hasAccess = !!subscription
+  await redis.setex(cacheKey, 300, String(hasAccess))
+  return hasAccess
 }
 ```
-
-Middleware ini dipanggil dengan query yang di-cache di Redis (TTL 5 menit) untuk menghindari database hit setiap request.
 
 ---
 
@@ -750,7 +998,8 @@ Middleware ini dipanggil dengan query yang di-cache di Redis (TTL 5 menit) untuk
 
 | Email | Trigger | Recipient |
 |---|---|---|
-| Verifikasi email | Register | User baru |
+| Verifikasi email | Register via email+password | User baru |
+| Resend verifikasi | Request manual | User belum verified |
 | Welcome | Subscription aktif | Subscriber baru |
 | Konfirmasi pembayaran | Webhook settlement | Subscriber |
 | Notifikasi artikel baru | Artikel published | Subscriber (yang opt-in) |
@@ -760,7 +1009,7 @@ Middleware ini dipanggil dengan query yang di-cache di Redis (TTL 5 menit) untuk
 
 ### 9.3 Email Queue
 
-Email tidak dikirim secara synchronous dalam request-response cycle. Semua email dikirim melalui job queue (BullMQ + Redis) untuk menghindari latency tambahan:
+Email tidak dikirim secara synchronous dalam request-response cycle. Semua email dikirim melalui job queue (BullMQ + Redis):
 
 ```
 Request selesai → enqueue email job → return response ke client
@@ -796,30 +1045,54 @@ Klik link → update `email_preferences.new_article = false` untuk user + public
 ### 10.2 SSL/TLS
 
 - Subdomain resmi (`slug.platform.com`): wildcard SSL dari platform
-- Custom domain: Let's Encrypt via Caddy atau cert-manager (jika pakai Kubernetes)
+- Custom domain: Let's Encrypt via Caddy atau cert-manager
 
 ### 10.3 Routing di Next.js via `proxy.ts`
 
+Di Next.js 16, `middleware.ts` digantikan oleh `proxy.ts` yang berjalan di Node.js runtime (bukan Edge runtime). Perubahan ini membuat boundary jaringan lebih eksplisit.
+
 ```typescript
-// proxy.ts — tenant resolution dari domain
+// proxy.ts — di root project (sejajar dengan src/)
+import { NextRequest, NextResponse } from 'next/server'
+
 export default function proxy(request: NextRequest) {
   const hostname = request.headers.get('host') ?? ''
+  const { pathname } = request.nextUrl
 
   const isSubdomain = hostname.endsWith('.platform.com') && hostname !== 'platform.com'
   const isCustomDomain = !hostname.includes('platform.com')
 
   if (isSubdomain || isCustomDomain) {
+    const slug = isSubdomain
+      ? hostname.replace('.platform.com', '')
+      : hostname
+
     const requestHeaders = new Headers(request.headers)
     requestHeaders.set('x-publication-host', hostname)
+    requestHeaders.set('x-publication-slug', slug)
 
     return NextResponse.next({ request: { headers: requestHeaders } })
   }
 
+  // Auth redirect untuk dashboard routes
+  if (pathname.startsWith('/dashboard')) {
+    const hasSession = request.cookies.has('refresh_token')
+    if (!hasSession) {
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
+  }
+
   return NextResponse.next()
+}
+
+export const config = {
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
 }
 ```
 
-Di Server Component layout, baca header untuk fetch data publikasi yang tepat:
+> **Catatan:** `proxy.ts` hanya untuk keputusan di request boundary — redirect, rewrite, set header. Business logic (validasi token penuh, cek subscription) tetap di Server Component atau Express backend.
+
+Di Server Component layout:
 
 ```typescript
 // app/(publication)/layout.tsx
@@ -828,11 +1101,8 @@ import { headers } from 'next/headers'
 export default async function PublicationLayout({ children }) {
   const headersList = await headers()
   const host = headersList.get('x-publication-host') ?? ''
-
-  // Fetch publication berdasarkan host — bisa custom domain atau subdomain
   const publication = await fetchPublicationByHost(host)
   if (!publication) notFound()
-
   return <>{children}</>
 }
 ```
@@ -843,15 +1113,12 @@ export default async function PublicationLayout({ children }) {
 
 ### 11.1 Provider: Cloudinary
 
-Semua gambar di-upload ke Cloudinary. Alasan:
-- CDN global otomatis
-- Transformasi gambar on-the-fly (resize, compress, format conversion)
-- Free tier cukup untuk MVP
+Semua gambar di-upload ke Cloudinary. Alasan: CDN global otomatis, transformasi gambar on-the-fly (resize, compress, format conversion), free tier cukup untuk MVP.
 
 ### 11.2 Upload Flow
 
 ```
-1. Client minta signed upload URL dari backend: GET /media/upload-url
+1. Client minta signed upload URL: GET /media/upload-url
 2. Backend generate Cloudinary signed upload params
 3. Client upload langsung ke Cloudinary (tidak lewat backend — hemat bandwidth)
 4. Cloudinary return public URL
@@ -878,15 +1145,13 @@ platform/
 
 ### 12.1 MVP: PostgreSQL Full-Text Search
 
-Untuk MVP, search menggunakan PostgreSQL FTS — tidak perlu service tambahan:
-
 ```sql
 SELECT id, title, excerpt, published_at
 FROM articles
 WHERE publication_id = $1
   AND status = 'published'
   AND deleted_at IS NULL
-  AND (visibility = 'free' OR $2 = true)  -- $2: apakah user adalah member
+  AND (visibility = 'free' OR $2 = true)   -- $2: apakah user adalah member
   AND to_tsvector('indonesian', title || ' ' || COALESCE(excerpt, ''))
       @@ plainto_tsquery('indonesian', $3)  -- $3: search query
 ORDER BY ts_rank(
@@ -898,11 +1163,7 @@ LIMIT 20;
 
 ### 12.2 V2: Meilisearch
 
-Saat volume artikel mulai banyak (>10.000 per publication), upgrade ke Meilisearch:
-- Typo tolerance
-- Faceted search (filter by author, tag, date)
-- Sub-50ms response time
-- Self-hosted (cost-efficient)
+Saat volume artikel besar (>10.000 per publication), upgrade ke Meilisearch: typo tolerance, faceted search, sub-50ms response time, self-hosted.
 
 **Indexing strategy:** Setiap kali artikel dipublish/diupdate, kirim ke Meilisearch index. Index terpisah per publication untuk isolasi data.
 
@@ -918,34 +1179,128 @@ Saat volume artikel mulai banyak (>10.000 per publication), upgrade ke Meilisear
 | Publication by domain | `pub:domain:{domain}` | 1 jam | Update custom domain |
 | Subscription status | `sub:{userId}:{pubId}` | 5 menit | Subscription event |
 | Article metadata | `art:{articleId}` | 30 menit | Article update |
-| User session | `session:{userId}` | 15 menit | Logout |
+| Refresh token | `refresh:{userId}:{tokenId}` | 30 hari | Logout / rotation |
 
 ### 13.2 Cache-Aside Pattern
 
 ```typescript
 async function getPublication(slug: string) {
-  const cacheKey = `pub:slug:${slug}`;
-  
-  // 1. Coba ambil dari cache
-  const cached = await redis.get(cacheKey);
-  if (cached) return JSON.parse(cached);
-  
-  // 2. Jika miss, ambil dari database
-  const pub = await db.publications.findUnique({ where: { slug } });
-  if (!pub) return null;
-  
-  // 3. Simpan ke cache
-  await redis.setex(cacheKey, 3600, JSON.stringify(pub));
-  return pub;
+  const cacheKey = `pub:slug:${slug}`
+  const cached = await redis.get(cacheKey)
+  if (cached) return JSON.parse(cached)
+
+  const pub = await prisma.publication.findUnique({ where: { slug } })
+  if (!pub) return null
+
+  await redis.setex(cacheKey, 3600, JSON.stringify(pub))
+  return pub
 }
 ```
 
-### 13.3 Next.js Caching
+### 13.3 Next.js Caching (Next.js 16)
 
-- **Halaman artikel free:** `revalidate: 3600` (ISR — regenerate setiap 1 jam)
-- **Halaman artikel premium:** no cache (harus cek subscription setiap request)
-- **Halaman listing artikel:** `revalidate: 300` (5 menit)
-- **Dashboard:** no cache (CSR, real-time data)
+```typescript
+// lib/api/server.ts
+import { unstable_cacheTag as cacheTag, unstable_cacheLife as cacheLife } from 'next/cache'
+
+export async function fetchArticle(slug: string) {
+  'use cache'
+  cacheTag(`article-${slug}`)
+  cacheTag('articles')
+  cacheLife('hours')
+  const res = await fetch(`${API_URL}/articles/${slug}`)
+  return res.json()
+}
+
+// Data real-time — tidak di-cache
+export async function fetchSubscriberStats(pubId: string) {
+  const res = await fetch(`${API_URL}/analytics/${pubId}`)
+  return res.json()
+}
+```
+
+**On-demand invalidation:**
+
+```typescript
+'use server'
+import { revalidateTag } from 'next/cache'
+
+export async function publishArticle(articleId: string, slug: string) {
+  await api.post(`/articles/${articleId}/publish`)
+  revalidateTag(`article-${slug}`)
+  revalidateTag('articles')
+}
+```
+
+**`cacheLife` profiles:**
+
+| Profile | Cocok untuk |
+|---|---|
+| `'seconds'` | Data yang berubah sangat cepat |
+| `'minutes'` | List artikel, data semi-fresh |
+| `'hours'` | Konten artikel, halaman series |
+| `'days'` | Halaman statis, about page |
+| `'max'` | Aset yang tidak pernah berubah |
+
+#### Parallel Data Fetching
+
+```typescript
+// BAIK: parallel
+const [publication, articles, authors] = await Promise.all([
+  fetchPublication(slug),
+  fetchArticles(pubId),
+  fetchAuthors(pubId),
+])
+```
+
+#### Suspense & Streaming
+
+```typescript
+export default function PublicationHomePage() {
+  return (
+    <main>
+      <PublicationHero />
+      <Suspense fallback={<ArticleListSkeleton />}>
+        <ArticleList />
+      </Suspense>
+    </main>
+  )
+}
+```
+
+#### Image Optimization
+
+```typescript
+import Image from 'next/image'
+
+<Image
+  src={article.coverImageUrl}
+  alt={article.title}
+  width={800}
+  height={400}
+  priority={isAboveFold}
+/>
+
+// Untuk fill mode
+<div className="relative aspect-video">
+  <Image src={...} alt={...} fill className="object-cover"
+    sizes="(max-width: 768px) 100vw, 800px" />
+</div>
+```
+
+#### Metadata & SEO
+
+```typescript
+export async function generateMetadata({ params }) {
+  const publication = await fetchPublication(params.slug)
+  return {
+    metadataBase: new URL(`https://${publication.customDomain ?? `${publication.slug}.platform.com`}`),
+    title: { template: `%s | ${publication.name}`, default: publication.name },
+    description: publication.description,
+    openGraph: { siteName: publication.name, locale: 'id_ID' },
+  }
+}
+```
 
 ---
 
@@ -953,15 +1308,15 @@ async function getPublication(slug: string) {
 
 ### 14.1 Input Validation
 
-Semua input divalidasi menggunakan `class-validator` + `Zod` sebelum masuk ke service layer. Tidak ada raw user input yang langsung dikirim ke database.
+Semua input divalidasi menggunakan Zod sebelum masuk ke service layer. Tidak ada raw user input yang langsung dikirim ke database.
 
 ### 14.2 SQL Injection Prevention
 
-Menggunakan Prisma ORM — semua query menggunakan parameterized queries secara default. Raw SQL hanya digunakan di tempat yang sangat terbatas dan selalu menggunakan `$queryRaw` dengan parameter binding.
+Menggunakan Prisma ORM — semua query menggunakan parameterized queries secara default. Raw SQL hanya via `$queryRaw` dengan parameter binding.
 
 ### 14.3 XSS Prevention
 
-Konten artikel disimpan sebagai Tiptap JSON (bukan HTML). Saat di-render di frontend, Tiptap renderer mengontrol output HTML — tidak ada raw HTML dari user yang langsung di-inject ke DOM.
+Konten artikel disimpan sebagai Tiptap JSON (bukan HTML). Tiptap renderer mengontrol output HTML — tidak ada raw HTML dari user yang langsung di-inject ke DOM.
 
 ### 14.4 CSRF Protection
 
@@ -970,12 +1325,13 @@ Menggunakan `SameSite=Strict` pada refresh token cookie — browser tidak akan m
 ### 14.5 Rate Limiting
 
 ```
-POST /auth/login          → 5 request per IP per menit
-POST /auth/register       → 3 request per IP per 10 menit
-POST /auth/forgot-password → 3 request per IP per jam
-GET  /*                   → 100 request per IP per menit
-POST /* (authenticated)   → 30 request per user per menit
-POST /subscriptions/webhook → whitelist Midtrans IP saja
+POST /auth/login                 → 5 request per IP per menit
+POST /auth/register              → 3 request per IP per 10 menit
+POST /auth/forgot-password       → 3 request per IP per jam
+POST /auth/resend-verification   → 3 request per user per jam
+GET  /*                          → 100 request per IP per menit
+POST /* (authenticated)          → 30 request per user per menit
+POST /subscriptions/webhook      → whitelist Midtrans IP saja
 ```
 
 ### 14.6 Sensitive Data
@@ -992,19 +1348,13 @@ POST /subscriptions/webhook → whitelist Midtrans IP saja
 
 ```
 Frontend (Next.js)  →  Vercel (free tier → Pro)
-Backend (NestJS)    →  Railway atau Render
-Database            →  Railway PostgreSQL atau Supabase
+Backend (Express)   →  Railway atau Render
+Database            →  Railway PostgreSQL
 Redis               →  Railway Redis atau Upstash
 File Storage        →  Cloudinary
 Email               →  Resend
 DNS & CDN           →  Cloudflare
 ```
-
-**Alasan pilihan ini:**
-- Zero DevOps overhead di fase MVP
-- Semua punya free tier yang cukup untuk awal
-- Auto-deploy dari GitHub push
-- Built-in monitoring dasar
 
 ### 15.2 Environment Variables
 
@@ -1055,17 +1405,14 @@ PLATFORM_API_URL=https://api.platform.com
 Trigger: push ke branch main
 
 Jobs:
-1. lint & test (parallel)
-2. build Docker image
-3. push ke registry
-4. deploy ke Railway/Render
-5. run smoke tests
-6. notify (Slack/email)
+1. lint & type check (parallel)
+2. build
+3. deploy ke Railway/Render (backend) + Vercel (frontend)
+4. run smoke tests
 ```
 
 ### 15.4 Future Migration Path (V3+)
 
-Saat traffic sudah besar:
 ```
 Vercel          →  tetap (excellent untuk Next.js)
 Railway/Render  →  AWS ECS atau GCP Cloud Run
@@ -1083,555 +1430,87 @@ Cloudinary      →  tetap atau AWS S3 + CloudFront
 ```
 backend/
 ├── src/
-│   ├── index.ts                      — entry point, app bootstrap
-│   ├── app.ts                        — Express app setup, middleware chain
+│   ├── index.ts                       — entry point, app bootstrap
+│   ├── app.ts                         — Express app setup, middleware chain
 │   │
 │   ├── config/
-│   │   ├── index.ts                  — load & export semua config
-│   │   ├── database.config.ts        — Prisma client singleton
-│   │   └── redis.config.ts           — Redis client singleton
+│   │   ├── index.ts                   — load & export semua config
+│   │   ├── database.config.ts         — Prisma client singleton
+│   │   └── redis.config.ts            — Redis client singleton
 │   │
-│   ├── middleware/                   — global middleware
-│   │   ├── auth.middleware.ts        — verify JWT, attach user ke req
-│   │   ├── tenant.middleware.ts      — resolve publication dari Host header
-│   │   ├── rateLimiter.middleware.ts — per-route rate limits
-│   │   ├── validate.middleware.ts    — Zod schema validation factory
-│   │   ├── logger.middleware.ts      — request/response logging
+│   ├── middleware/
+│   │   ├── auth.middleware.ts         — verify JWT, attach user ke req
+│   │   ├── tenant.middleware.ts       — resolve publication dari Host header
+│   │   ├── rateLimiter.middleware.ts  — per-route rate limits
+│   │   ├── validate.middleware.ts     — Zod schema validation factory
+│   │   ├── logger.middleware.ts       — request/response logging
 │   │   └── errorHandler.middleware.ts — global error handler (harus paling akhir)
 │   │
 │   ├── modules/
-│   │   │
 │   │   ├── auth/
-│   │   │   ├── auth.router.ts        — POST /auth/login, /register, dll
-│   │   │   ├── auth.controller.ts    — req/res handling
-│   │   │   ├── auth.service.ts       — business logic (sign token, verify, dll)
-│   │   │   ├── auth.repository.ts    — DB queries (find user by email, dll)
-│   │   │   └── auth.schema.ts        — Zod validation schemas
-│   │   │
+│   │   │   ├── auth.router.ts
+│   │   │   ├── auth.controller.ts
+│   │   │   ├── auth.service.ts
+│   │   │   ├── auth.repository.ts
+│   │   │   └── auth.schema.ts
 │   │   ├── publication/
-│   │   │   ├── publication.router.ts
-│   │   │   ├── publication.controller.ts
-│   │   │   ├── publication.service.ts
-│   │   │   ├── publication.repository.ts
-│   │   │   └── publication.schema.ts
-│   │   │
 │   │   ├── article/
-│   │   │   ├── article.router.ts
-│   │   │   ├── article.controller.ts
-│   │   │   ├── article.service.ts
-│   │   │   ├── article.repository.ts
-│   │   │   └── article.schema.ts
-│   │   │
 │   │   ├── series/
-│   │   │   ├── series.router.ts
-│   │   │   ├── series.controller.ts
-│   │   │   ├── series.service.ts
-│   │   │   ├── series.repository.ts
-│   │   │   └── series.schema.ts
-│   │   │
 │   │   ├── roadmap/
-│   │   │   ├── roadmap.router.ts
-│   │   │   ├── roadmap.controller.ts
-│   │   │   ├── roadmap.service.ts
-│   │   │   ├── roadmap.repository.ts
-│   │   │   └── roadmap.schema.ts
-│   │   │
 │   │   ├── subscription/
-│   │   │   ├── subscription.router.ts
-│   │   │   ├── subscription.controller.ts
-│   │   │   ├── subscription.service.ts
-│   │   │   ├── subscription.repository.ts
-│   │   │   ├── midtrans.service.ts   — Midtrans API wrapper
-│   │   │   └── subscription.schema.ts
-│   │   │
+│   │   │   └── midtrans.service.ts    — Midtrans API wrapper
 │   │   ├── community/
-│   │   │   ├── community.router.ts
-│   │   │   ├── comment.controller.ts
-│   │   │   ├── comment.service.ts
-│   │   │   ├── comment.repository.ts
-│   │   │   ├── qa.controller.ts
-│   │   │   ├── qa.service.ts
-│   │   │   ├── qa.repository.ts
-│   │   │   └── community.schema.ts
-│   │   │
 │   │   ├── search/
-│   │   │   ├── search.router.ts
-│   │   │   ├── search.controller.ts
-│   │   │   └── search.service.ts     — query builder untuk FTS
-│   │   │
-│   │   ├── media/
-│   │   │   ├── media.router.ts
-│   │   │   ├── media.controller.ts
-│   │   │   └── cloudinary.service.ts — signed upload URL generator
-│   │   │
 │   │   ├── email/
-│   │   │   ├── email.service.ts      — kirim via Resend
-│   │   │   ├── email.queue.ts        — BullMQ job definitions
-│   │   │   └── templates/            — HTML email templates
-│   │   │       ├── welcome.ts
-│   │   │       ├── new-article.ts
-│   │   │       ├── subscription-confirm.ts
-│   │   │       └── reset-password.ts
-│   │   │
+│   │   ├── media/
 │   │   └── analytics/
-│   │       ├── analytics.router.ts
-│   │       ├── analytics.controller.ts
-│   │       └── analytics.service.ts
 │   │
-│   ├── lib/
-│   │   ├── jwt.ts                    — sign/verify token helpers
-│   │   ├── password.ts               — argon2 hash/verify helpers
-│   │   ├── pagination.ts             — cursor pagination helper
-│   │   └── AppError.ts               — custom error class
-│   │
-│   └── types/
-│       ├── express.d.ts              — extend Express Request (req.user, req.publication)
-│       └── index.ts
+│   └── lib/
+│       ├── AppError.ts                — custom error class
+│       ├── jwt.ts                     — signAccessToken, verifyToken
+│       ├── password.ts                — hash, verify (Argon2)
+│       └── emailQueue.ts              — BullMQ queue & worker
 │
 ├── prisma/
 │   ├── schema.prisma
 │   └── migrations/
 │
-├── test/
-│   ├── unit/
-│   └── integration/
-│
-├── .env
-├── .env.example
-├── Dockerfile
-├── docker-compose.yml
-├── tsconfig.json
-└── package.json
+├── package.json
+└── tsconfig.json
 ```
 
-**Catatan penting untuk Express setup:**
-
-```typescript
-// app.ts — urutan middleware adalah KRITIS, jangan diubah
-app.use(helmet())                    // 1. Security headers — PALING PERTAMA
-app.use(cors(corsOptions))           // 2. CORS
-app.use(express.json())              // 3. Body parser
-app.use(loggerMiddleware)            // 4. Request logging
-app.use(rateLimiter)                 // 5. Global rate limit
-app.use(tenantMiddleware)            // 6. Resolve publication dari domain
-
-// Routes
-app.use('/api/v1/auth', authRouter)
-app.use('/api/v1/publications', publicationRouter)
-// ... dst
-
-// Error handler HARUS paling terakhir, setelah semua routes
-app.use(errorHandlerMiddleware)      // 7. Global error handler — PALING TERAKHIR
-```
-
-### 16.2 Frontend (Next.js — App Router)
+### 16.2 Frontend (Next.js 16)
 
 ```
 frontend/
-├── src/
-│   ├── app/                          — Next.js App Router root
-│   │   │
-│   │   ├── (publication)/            — Route group: publication site (reader)
-│   │   │   ├── layout.tsx            — SC: fetch publication data, set metadata
-│   │   │   ├── page.tsx              — SC: homepage publication (Cache Component)
-│   │   │   ├── [articleSlug]/
-│   │   │   │   └── page.tsx          — SC: artikel free (cached) / premium (request-time)
-│   │   │   ├── series/[slug]/
-│   │   │   │   └── page.tsx          — SC: halaman series (Cache Component)
-│   │   │   ├── roadmap/[slug]/
-│   │   │   │   └── page.tsx          — SC: halaman roadmap (Cache Component)
-│   │   │   └── subscribe/
-│   │   │       └── page.tsx          — CC: checkout flow (butuh state & payment SDK)
-│   │   │
-│   │   ├── (dashboard)/              — Route group: dashboard (owner/author)
-│   │   │   ├── layout.tsx            — CC: auth check, sidebar navigation
-│   │   │   ├── dashboard/
-│   │   │   │   ├── page.tsx          — SC: overview stats (request-time)
-│   │   │   │   ├── articles/
-│   │   │   │   │   ├── page.tsx      — SC: list artikel
-│   │   │   │   │   └── [id]/
-│   │   │   │   │       └── page.tsx  — CC: editor (Tiptap butuh browser APIs)
-│   │   │   │   ├── series/
-│   │   │   │   ├── roadmaps/
-│   │   │   │   ├── subscribers/
-│   │   │   │   │   └── page.tsx      — SC: list subscriber + export
-│   │   │   │   ├── analytics/
-│   │   │   │   │   └── page.tsx      — CC: chart interaktif
-│   │   │   │   └── settings/
-│   │   │   │       └── page.tsx      — CC: form settings
-│   │   │
-│   │   ├── (auth)/
-│   │   │   ├── login/page.tsx        — CC: form login
-│   │   │   ├── register/page.tsx     — CC: form register
-│   │   │   └── forgot-password/
-│   │   │       └── page.tsx          — CC: form forgot password
-│   │   │
-│   │   ├── me/
-│   │   │   ├── library/page.tsx      — CC: folder & saved articles
-│   │   │   └── settings/page.tsx     — CC: profile settings
-│   │   │
-│   │   ├── layout.tsx                — Root layout (font, global providers)
-│   │   ├── not-found.tsx
-│   │   └── error.tsx
-│   │
-│   ├── components/
-│   │   ├── ui/                       — shadcn/ui (semua SC by default)
-│   │   │
-│   │   ├── article/
-│   │   │   ├── ArticleCard.tsx       — SC
-│   │   │   ├── ArticleBody.tsx       — SC: render Tiptap JSON ke HTML
-│   │   │   ├── ArticlePaywall.tsx    — SC: paywall gate
-│   │   │   ├── ArticleLikeButton.tsx — CC: butuh onClick handler
-│   │   │   └── ArticleSaveButton.tsx — CC: butuh state + API call
-│   │   │
-│   │   ├── series/
-│   │   │   ├── SeriesNav.tsx         — SC
-│   │   │   └── SeriesProgress.tsx    — CC: track progress per user
-│   │   │
-│   │   ├── roadmap/
-│   │   │   └── RoadmapVisual.tsx     — CC: interaktif, klik antar stage
-│   │   │
-│   │   ├── editor/
-│   │   │   └── RichTextEditor.tsx    — CC: Tiptap (wajib CC, browser API)
-│   │   │
-│   │   ├── comment/
-│   │   │   ├── CommentList.tsx       — SC: initial render
-│   │   │   └── CommentForm.tsx       — CC: form submit
-│   │   │
-│   │   └── layout/
-│   │       ├── PublicationNav.tsx    — SC
-│   │       └── DashboardSidebar.tsx  — CC: active state navigation
-│   │
-│   ├── lib/
-│   │   ├── api/
-│   │   │   ├── client.ts             — Axios instance untuk CC (browser)
-│   │   │   └── server.ts             — fetch wrapper untuk SC (server-side)
-│   │   ├── auth.ts                   — session helpers
-│   │   ├── cache.ts                  — cacheTag constants & revalidation helpers
-│   │   └── utils.ts
-│   │
-│   ├── hooks/                        — custom hooks (semua CC only)
-│   │   ├── useAuth.ts
-│   │   ├── useSubscription.ts
-│   │   └── useSavedArticles.ts
-│   │
-│   ├── store/                        — Zustand (CC only)
-│   │   └── authStore.ts
-│   │
-│   └── types/
-│       └── index.ts
-│
-├── proxy.ts                          — pengganti middleware.ts di Next.js 16+
-├── public/
+├── proxy.ts                           — tenant resolution & auth redirect (BUKAN middleware.ts)
 ├── next.config.ts
-├── .env.local
-└── package.json
+│
+└── src/
+    ├── app/
+    │   ├── (auth)/                    — login, register, forgot-password, reset-password
+    │   │   └── verify-email/          — halaman konfirmasi verifikasi
+    │   ├── (publication)/             — halaman reader (SSR/SSG)
+    │   ├── dashboard/                 — owner & author dashboard (CSR)
+    │   └── me/                        — profil & library personal
+    │
+    ├── components/
+    │   ├── ui/                        — shadcn/ui components
+    │   ├── auth/
+    │   ├── article/
+    │   ├── editor/                    — Tiptap editor (CC only)
+    │   └── subscription/
+    │
+    ├── lib/
+    │   ├── api/
+    │   │   ├── server.ts              — fetch helpers untuk Server Components
+    │   │   └── client.ts             — Axios instance untuk Client Components
+    │   └── actions/                   — Server Actions
+    │
+    ├── hooks/                         — custom hooks (CC only)
+    ├── store/                         — Zustand stores (CC only)
+    └── types/                         — TypeScript type definitions
 ```
-
----
-
-### 16.3 Next.js Rendering Strategy & Best Practices
-
-#### Aturan Dasar: Server Component (SC) vs Client Component (CC)
-
-> **Default: semua komponen adalah Server Component.** Tambahkan `'use client'` hanya ketika benar-benar diperlukan.
-
-**Gunakan Server Component ketika:**
-- Fetch data dari API atau database
-- Akses environment variables server-side
-- Render konten statis atau semi-statis
-- Tidak ada interaksi user (onClick, onChange, dll)
-- Tidak butuh browser APIs (window, localStorage, dll)
-- Tidak menggunakan React hooks (useState, useEffect, dll)
-
-**Gunakan Client Component ketika:**
-- Ada event handler (onClick, onChange, onSubmit)
-- Menggunakan React hooks (useState, useEffect, useRef)
-- Menggunakan browser APIs (window, localStorage, IntersectionObserver)
-- Library pihak ketiga yang belum support RSC (Tiptap editor, chart library, Midtrans SDK)
-- Real-time data (polling, WebSocket)
-
-**Pattern penting — "push CC ke bawah":**
-```
-// BURUK: seluruh halaman jadi CC hanya karena satu tombol
-'use client'
-export default function ArticlePage() {
-  const [liked, setLiked] = useState(false)
-  // ... seluruh halaman render di client
-}
-
-// BAIK: pisahkan CC ke komponen kecil, SC tetap di atas
-// article/[slug]/page.tsx — SC
-export default async function ArticlePage({ params }) {
-  const article = await fetchArticle(params.slug)  // server fetch
-  return (
-    <article>
-      <ArticleBody content={article.content} />     {/* SC */}
-      <ArticleLikeButton articleId={article.id} />  {/* CC — hanya tombol ini */}
-    </article>
-  )
-}
-```
-
----
-
-#### Rendering Strategy per Halaman (Next.js 16)
-
-Di Next.js 16, mental model bergeser dari "ISR vs SSR vs SSG" menjadi pertanyaan yang lebih tepat: **bagian mana yang harus di-cache, dan bagian mana yang harus fresh per-request?**
-
-| Halaman | Strategy | Alasan | Cara |
-|---|---|---|---|
-| Homepage publication | Cache Component | Konten stabil, update saat artikel baru publish | `'use cache'` + `cacheTag` |
-| Halaman artikel (free) | Cache Component | SEO kritis, konten jarang berubah | `'use cache'` + `cacheTag` |
-| Halaman artikel (premium) | Request-time (Suspense) | Harus cek subscription per-user, tidak boleh di-cache | Tidak pakai `'use cache'` |
-| Halaman series | Cache Component | Konten semi-statis | `'use cache'` + `cacheTag` |
-| Halaman roadmap | Cache Component | Konten semi-statis | `'use cache'` + `cacheTag` |
-| Dashboard overview | Request-time | Data real-time per owner | Tidak pakai `'use cache'` |
-| Editor artikel | CSR (CC) | Interaktif penuh | Client Component |
-| Subscribe/checkout | CSR (CC) | State-heavy, payment SDK | Client Component |
-
----
-
-#### Caching di Next.js 16: `'use cache'` dan Cache Components
-
-Next.js 16 mengganti model caching implisit dengan **opt-in caching eksplisit** via directive `'use cache'`. Tidak ada lagi magic `revalidate` di level route — setiap fungsi yang ingin di-cache harus dideklarasikan secara eksplisit.
-
-```typescript
-// lib/api/server.ts
-
-import { unstable_cacheTag as cacheTag, unstable_cacheLife as cacheLife } from 'next/cache'
-
-// Cache Component — data di-cache, bisa di-invalidate by tag
-export async function fetchArticle(slug: string) {
-  'use cache'
-  cacheTag(`article-${slug}`)         // tag untuk on-demand invalidation
-  cacheTag('articles')                // tag generik untuk invalidate semua artikel
-  cacheLife('hours')                  // profile: cache selama beberapa jam
-
-  const res = await fetch(`${API_URL}/articles/${slug}`)
-  return res.json()
-}
-
-// Data yang tidak boleh di-cache — request-time
-export async function fetchSubscriberStats(pubId: string) {
-  // Tidak ada 'use cache' — selalu fresh per request
-  const res = await fetch(`${API_URL}/analytics/${pubId}`)
-  return res.json()
-}
-```
-
-**On-demand invalidation setelah mutasi** menggunakan `revalidateTag`:
-
-```typescript
-// lib/actions/article.actions.ts
-'use server'
-import { revalidateTag } from 'next/cache'
-
-export async function publishArticle(articleId: string, slug: string) {
-  await api.post(`/articles/${articleId}/publish`)
-
-  // Invalidate cache — halaman yang pakai tag ini akan di-regenerate
-  revalidateTag(`article-${slug}`)
-  revalidateTag('articles')
-}
-```
-
-**`cacheLife` profiles yang tersedia** (bisa dikustomisasi di `next.config.ts`):
-
-| Profile | Cocok untuk |
-|---|---|
-| `'seconds'` | Data yang berubah sangat cepat |
-| `'minutes'` | List artikel, data semi-fresh |
-| `'hours'` | Konten artikel, halaman series |
-| `'days'` | Halaman statis, about page |
-| `'max'` | Aset yang tidak pernah berubah |
-
----
-
-#### Server Actions untuk Mutasi
-
-Untuk form submission dan mutasi data, gunakan **Server Actions** — tidak perlu buat API route terpisah untuk operasi sederhana dari UI.
-
-```typescript
-// components/comment/CommentForm.tsx
-'use client'
-import { submitComment } from '@/lib/actions/comment.actions'
-
-export function CommentForm({ articleId }: { articleId: string }) {
-  return (
-    <form action={submitComment}>
-      <input type="hidden" name="articleId" value={articleId} />
-      <textarea name="content" required />
-      <button type="submit">Kirim Komentar</button>
-    </form>
-  )
-}
-
-// lib/actions/comment.actions.ts
-'use server'
-import { revalidateTag } from 'next/cache'
-
-export async function submitComment(formData: FormData) {
-  const articleId = formData.get('articleId') as string
-  const content = formData.get('content') as string
-
-  // Validasi, auth check, panggil backend API
-  await api.post(`/articles/${articleId}/comments`, { content })
-
-  // Invalidate cache komentar
-  revalidateTag(`comments-${articleId}`)
-}
-```
-
-> **Catatan:** Server Actions untuk mutasi simpel (komentar, save artikel, like). Untuk operasi kompleks seperti checkout subscription, tetap gunakan REST API backend secara langsung dari CC.
-
----
-
-#### Parallel & Sequential Data Fetching
-
-```typescript
-// BURUK: sequential — total waktu = A + B + C
-const publication = await fetchPublication(slug)
-const articles = await fetchArticles(publication.id)
-const authors = await fetchAuthors(publication.id)
-
-// BAIK: parallel — total waktu = max(A, B, C)
-const [publication, articles, authors] = await Promise.all([
-  fetchPublication(slug),
-  fetchArticles(pubId),
-  fetchAuthors(pubId),
-])
-```
-
----
-
-#### Suspense & Streaming
-
-Gunakan `<Suspense>` untuk bagian halaman yang load-nya lambat, agar bagian lain tetap ditampilkan lebih cepat:
-
-```typescript
-// app/(publication)/page.tsx
-import { Suspense } from 'react'
-
-export default function PublicationHomePage() {
-  return (
-    <main>
-      <PublicationHero />           {/* render langsung — data cepat */}
-      <Suspense fallback={<ArticleListSkeleton />}>
-        <ArticleList />             {/* streaming — data lebih lambat */}
-      </Suspense>
-    </main>
-  )
-}
-```
-
----
-
-#### Image Optimization
-
-Selalu gunakan `next/image`, tidak pernah `<img>` biasa:
-
-```typescript
-import Image from 'next/image'
-
-// Untuk gambar dengan dimensi diketahui
-<Image
-  src={article.coverImageUrl}
-  alt={article.title}
-  width={800}
-  height={400}
-  priority={isAboveFold}  // true untuk gambar di atas fold (LCP)
-/>
-
-// Untuk gambar yang dimensinya tidak diketahui (fill parent)
-<div className="relative aspect-video">
-  <Image
-    src={article.coverImageUrl}
-    alt={article.title}
-    fill
-    className="object-cover"
-    sizes="(max-width: 768px) 100vw, 800px"  // WAJIB untuk fill mode
-  />
-</div>
-```
-
----
-
-#### Metadata & SEO
-
-```typescript
-// app/(publication)/layout.tsx — base metadata untuk semua halaman publication
-export async function generateMetadata({ params }) {
-  const publication = await fetchPublication(params.slug)
-
-  return {
-    metadataBase: new URL(`https://${publication.customDomain ?? `${publication.slug}.platform.com`}`),
-    title: {
-      template: `%s | ${publication.name}`,  // "Judul Artikel | Nama Publication"
-      default: publication.name,
-    },
-    description: publication.description,
-    openGraph: {
-      siteName: publication.name,
-      locale: 'id_ID',
-    },
-  }
-}
-```
-
----
-
-#### `proxy.ts` — Pengganti `middleware.ts` di Next.js 16
-
-Di Next.js 16, `middleware.ts` digantikan oleh `proxy.ts` yang berjalan di Node.js runtime (bukan Edge runtime). Perubahan ini membuat boundary jaringan lebih eksplisit.
-
-```typescript
-// proxy.ts — di root project (sejajar dengan src/)
-import { NextRequest, NextResponse } from 'next/server'
-
-export default function proxy(request: NextRequest) {
-  const hostname = request.headers.get('host') ?? ''
-  const { pathname } = request.nextUrl
-
-  // 1. Resolve tenant dari domain/subdomain
-  // Custom domain → lookup publication, set header untuk dipakai di layout
-  // Subdomain → ekstrak slug langsung dari hostname
-  const isSubdomain = hostname.endsWith('.platform.com') && hostname !== 'platform.com'
-  const isCustomDomain = !hostname.includes('platform.com')
-
-  if (isSubdomain || isCustomDomain) {
-    const slug = isSubdomain
-      ? hostname.replace('.platform.com', '')
-      : hostname  // custom domain, nanti di-lookup di layout server component
-
-    const requestHeaders = new Headers(request.headers)
-    requestHeaders.set('x-publication-host', hostname)
-    requestHeaders.set('x-publication-slug', slug)
-
-    return NextResponse.next({ request: { headers: requestHeaders } })
-  }
-
-  // 2. Auth redirect untuk dashboard routes
-  // Jika akses /dashboard tanpa auth cookie → redirect ke login
-  if (pathname.startsWith('/dashboard')) {
-    const hasSession = request.cookies.has('refresh_token')
-    if (!hasSession) {
-      return NextResponse.redirect(new URL('/login', request.url))
-    }
-  }
-
-  return NextResponse.next()
-}
-
-// Jalankan proxy hanya pada route yang relevan
-export const config = {
-  matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
-  ],
-}
-```
-
-> **Catatan penting:** `proxy.ts` hanya untuk keputusan di request boundary — redirect, rewrite, set header. Business logic (validasi token penuh, cek subscription) tetap di Server Component atau Express backend, bukan di `proxy.ts`.
 
 ---
 
