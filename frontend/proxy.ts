@@ -7,7 +7,7 @@ export const config = {
   matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 };
 
-export default function middleware(req: NextRequest): NextResponse {
+export function proxy(req: NextRequest): NextResponse {
   const hostname = req.headers.get('host') ?? '';
   const pathname = req.nextUrl.pathname;
 

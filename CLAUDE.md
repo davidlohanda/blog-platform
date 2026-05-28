@@ -64,21 +64,58 @@ blog-platform/
 ### Frontend (Next.js 16)
 - **Default Server Component** — tambah `'use client'` hanya jika perlu interaksi/hooks/browser API
 - **Caching:** `'use cache'` + `cacheTag()` + `cacheLife()` — bukan `revalidate` lama
-- **Routing middleware:** `proxy.ts` di root — BUKAN `middleware.ts`
+- **Routing middleware:** `proxy.ts` di root — BUKAN `middleware.ts` (deprecated di Next.js 16)
+  - Fungsi wajib bernama `proxy()`, BUKAN `middleware()`
+  - Runtime adalah **Node.js saja** — edge runtime tidak didukung di `proxy.ts`
+  - Jika perlu edge runtime, tetap pakai `middleware.ts` (tapi hindari untuk project ini)
+  - Ref: [Next.js 16 upgrade guide](https://nextjs.org/docs/app/guides/upgrading/version-16)
 - **params/searchParams:** wajib di-`await` sebelum diakses
 - **Gambar:** selalu `next/image` — tidak pernah `<img>`
-- **Form:** React Hook Form + Zod
+- **Form:** React Hook Form + Zod + shadcn/ui `<Form>` wrapper
 - **State global:** Zustand — hanya di Client Component
+
+### Frontend UI Rules (WAJIB)
+
+**Komponen shadcn/ui yang WAJIB dipakai:**
+- `<Button>` — semua tombol, TIDAK PERNAH `<button>` biasa
+- `<Input>` — semua input teks, TIDAK PERNAH `<input>` biasa
+- `<Form>`, `<FormField>`, `<FormControl>`, `<FormLabel>`, `<FormMessage>` — semua form
+- `<Card>` — card/panel konten
+- `<Dialog>` — modal/popup
+- `<Badge>` — label/tag status
+- `<Table>` — tabel data
+
+**Warna — WAJIB pakai semantic tokens:**
+- DILARANG hardcode hex (`#2a261f`, `#f9f7f4`, dll)
+- Gunakan: `bg-background`, `text-foreground`, `text-muted-foreground`
+- Gunakan: `border-border`, `border-input`, `bg-muted`, `bg-card`
+- Gunakan: `bg-primary`, `text-primary-foreground`, `text-destructive`
+- Token lengkap didefinisikan di `frontend/src/app/globals.css`
+
+**Responsive — WAJIB:**
+- Selalu mulai dari mobile-first
+- Gunakan breakpoint `md:` dan `lg:` untuk desktop layout
+- Layout auth: `grid-cols-1 md:grid-cols-2`
+- Tidak boleh ada elemen yang overflow atau tidak terbaca di mobile
+
+**Komponen reusable — WAJIB dipisah:**
+- Komponen yang dipakai di 2+ halaman → pindah ke `components/`
+- Layout shell (AuthShell, DashboardShell, dll) → `components/layout/`
+- Icon custom → `components/ui/`
 
 ### Yang TIDAK BOLEH Dilakukan
 - Hardcode nilai yang seharusnya di `.env`
 - Query tanpa `publicationId` di repository layer
 - Gunakan `bcrypt` — pakai Argon2
-- Gunakan `middleware.ts` — pakai `proxy.ts`
+- Gunakan `middleware.ts` — pakai `proxy.ts` (deprecated di Next.js 16)
+- Beri nama fungsi `middleware()` di proxy.ts — wajib bernama `proxy()`
 - Simpan access token di localStorage atau cookie biasa
 - Gunakan `<img>` — pakai `next/image`
 - Commit file `.env` atau `.env.local`
 - Gunakan `unstable_cache` — pakai `'use cache'`
+- Hardcode warna hex di komponen — pakai semantic tokens
+- Pakai `<input>` atau `<button>` biasa — pakai shadcn/ui
+- Buat komponen inline jika dipakai di 2+ tempat
 
 ---
 
@@ -129,6 +166,17 @@ Saat implementasi halaman frontend:
 2. Identifikasi struktur, komponen, warna, spacing
 3. Implementasikan dengan shadcn/ui + Tailwind
 4. Verifikasi di browser: tampilan mendekati referensi
+
+---
+
+## Referensi Desain Frontend
+
+Hasil desain UI ada di `frontend/design-references/`.
+Saat implementasi halaman frontend, WAJIB:
+1. Baca `frontend/design-references/index.html` untuk overview semua halaman
+2. Lihat `frontend/design-references/screens/` untuk screenshot per halaman
+3. Implementasikan shadcn/ui + Tailwind CSS mengacu ke desain tersebut
+4. Jangan implementasi UI tanpa melihat referensi desain terlebih dahulu
 
 ---
 

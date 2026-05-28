@@ -28,11 +28,11 @@ jobs:
         working-directory: frontend
 
       - name: Type check
-        run: npx tsc --noEmit
+        run: npm run type-check
         working-directory: frontend
 
       - name: Lint
-        run: npx eslint src --ext .ts,.tsx
+        run: npm run lint
         working-directory: frontend
 
       - name: Build

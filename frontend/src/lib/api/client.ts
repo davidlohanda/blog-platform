@@ -12,18 +12,39 @@ export const apiClient = axios.create({
   },
 });
 
-// Attach access token from memory to every request
+// Lazy import of auth store to avoid circular dependency at module load time
+function getAccessToken(): string | null {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { useAuthStore } = require('@/store/authStore') as {
+      useAuthStore: { getState: () => { accessToken: string | null } };
+    };
+    return useAuthStore.getState().accessToken;
+  } catch {
+    return null;
+  }
+}
+
+function setAccessToken(token: string | null): void {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { useAuthStore } = require('@/store/authStore') as {
+      useAuthStore: { getState: () => { setAuth: (t: string, u: unknown) => void; clearAuth: () => void } };
+    };
+    if (!token) useAuthStore.getState().clearAuth();
+  } catch {
+    // ignore
+  }
+}
+
 apiClient.interceptors.request.use((config) => {
-  if (typeof window !== 'undefined') {
-    const token = (window as Window & { __accessToken?: string }).__accessToken;
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+  const token = getAccessToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
 
-// Auto-refresh on 401
 apiClient.interceptors.response.use(
   (response) => response,
   async (error: unknown) => {
@@ -39,13 +60,25 @@ apiClient.interceptors.response.use(
           { withCredentials: true },
         );
         const newToken = data.data.accessToken;
-        (window as Window & { __accessToken?: string }).__accessToken = newToken;
+
+        // Update store with new token (keep existing user data)
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          const { useAuthStore } = require('@/store/authStore') as {
+            useAuthStore: { getState: () => { setToken: (t: string) => void } };
+          };
+          useAuthStore.getState().setToken(newToken);
+        } catch {
+          // ignore
+        }
+
         if (originalRequest.headers) {
           originalRequest.headers.Authorization = `Bearer ${newToken}`;
         }
         return apiClient(originalRequest);
       } catch {
-        (window as Window & { __accessToken?: string }).__accessToken = undefined;
+        setAccessToken(null);
+        window.location.href = '/login';
         return Promise.reject(error);
       }
     }
