@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<title>Blog Platform — Design Reference Index</title>
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  html,body{margin:0;padding:0;background:#FAF7F2;font-family:"Geist",system-ui,sans-serif;color:#1C1A17}
+  .wrap{max-width:1080px;margin:0 auto;padding:64px 40px}
+  h1{font-family:"Newsreader",serif;font-size:44px;letter-spacing:-0.02em;margin:0 0 12px}
+  .sub{font-size:16px;color:#4A453E;margin:0 0 36px;max-width:560px;line-height:1.6}
+  h2{font-family:"Newsreader",serif;font-size:13px;font-weight:600;letter-spacing:0.16em;text-transform:uppercase;color:#756E63;margin:40px 0 16px;padding-bottom:8px;border-bottom:1px solid #E5DFD4}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px}
+  a.row{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:8px;text-decoration:none;color:inherit;border:1px solid #E5DFD4;background:#fff;transition:all .12s}
+  a.row:hover{border-color:#1C1A17;background:#F3EFE8}
+  .num{font-family:"Geist Mono",monospace;font-size:11px;color:#A39C8E;width:18px;flex-shrink:0}
+  .name{flex:1;font-size:14px;font-weight:500}
+  .dim{font-family:"Geist Mono",monospace;font-size:11px;color:#A39C8E}
+  @import url('https://fonts.googleapis.com/css2?family=Newsreader:wght@600&family=Geist:wght@400;500;600&family=Geist+Mono&display=swap');
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Blog Platform — Design Reference</h1>
+  <p class="sub">Setiap halaman MVP, satu file HTML. Buka file mana saja untuk melihat desain standalone. Folder ini juga berisi seluruh source <code>.jsx</code> dan tokens CSS untuk dipakai sebagai context Claude Code.</p>
+
+  <h2>Publication site (reader-facing)</h2>
+  <div class="grid">
+    <a class="row" href="publication-artikel-gratis.html"><span class="num">01</span><span class="name">Halaman artikel — versi gratis</span><span class="dim">1280×1900</span></a>
+    <a class="row" href="publication-artikel-premium-paywall.html"><span class="num">02</span><span class="name">Halaman artikel premium — paywall non-member</span><span class="dim">1280×1700</span></a>
+    <a class="row" href="publication-artikel-premium-member.html"><span class="num">03</span><span class="name">Halaman artikel premium — member penuh</span><span class="dim">1280×2400</span></a>
+    <a class="row" href="publication-artikel-save-to-folder-dialog.html"><span class="num">04</span><span class="name">Artikel — dialog simpan ke folder</span><span class="dim">1280×2400</span></a>
+    <a class="row" href="publication-homepage.html"><span class="num">05</span><span class="name">Homepage publication</span><span class="dim">1280×2400</span></a>
+    <a class="row" href="publication-subscribe-checkout.html"><span class="num">06</span><span class="name">Halaman subscribe & checkout</span><span class="dim">1280×1200</span></a>
+    <a class="row" href="publication-auth-login.html"><span class="num">07</span><span class="name">Auth — halaman masuk</span><span class="dim">1200×760</span></a>
+    <a class="row" href="publication-auth-register.html"><span class="num">08</span><span class="name">Auth — halaman daftar</span><span class="dim">1200×760</span></a>
+    <a class="row" href="publication-auth-forgot-password.html"><span class="num">09</span><span class="name">Auth — lupa kata sandi</span><span class="dim">1200×760</span></a>
+    <a class="row" href="publication-halaman-series.html"><span class="num">10</span><span class="name">Halaman series (reader)</span><span class="dim">1280×1700</span></a>
+    <a class="row" href="publication-halaman-roadmap.html"><span class="num">11</span><span class="name">Halaman roadmap (reader)</span><span class="dim">1280×1700</span></a>
+    <a class="row" href="publication-halaman-search-results.html"><span class="num">12</span><span class="name">Halaman hasil pencarian</span><span class="dim">1280×1500</span></a>
+    <a class="row" href="publication-qa-daftar-pertanyaan.html"><span class="num">13</span><span class="name">Q&A — daftar pertanyaan</span><span class="dim">1280×1500</span></a>
+    <a class="row" href="publication-qa-detail-pertanyaan.html"><span class="num">14</span><span class="name">Q&A — detail pertanyaan + jawaban resmi</span><span class="dim">1280×2000</span></a>
+  </div>
+
+  <h2>Member personal pages</h2>
+  <div class="grid">
+    <a class="row" href="member-personal-library.html"><span class="num">15</span><span class="name">Personal library member</span><span class="dim">1280×1100</span></a>
+    <a class="row" href="member-profile-settings.html"><span class="num">16</span><span class="name">Profile settings member</span><span class="dim">1280×1500</span></a>
+    <a class="row" href="member-subscription-settings.html"><span class="num">17</span><span class="name">Subscription settings member</span><span class="dim">1280×1500</span></a>
+  </div>
+
+  <h2>Dashboard (owner/author)</h2>
+  <div class="grid">
+    <a class="row" href="dashboard-overview.html"><span class="num">18</span><span class="name">Dashboard — overview/ringkasan</span><span class="dim">1440×920</span></a>
+    <a class="row" href="dashboard-daftar-artikel.html"><span class="num">19</span><span class="name">Dashboard — daftar artikel</span><span class="dim">1440×920</span></a>
+    <a class="row" href="dashboard-editor-artikel.html"><span class="num">20</span><span class="name">Dashboard — editor artikel</span><span class="dim">1440×920</span></a>
+    <a class="row" href="dashboard-analytics.html"><span class="num">21</span><span class="name">Dashboard — analytics</span><span class="dim">1440×920</span></a>
+    <a class="row" href="dashboard-subscribers.html"><span class="num">22</span><span class="name">Dashboard — daftar subscriber</span><span class="dim">1440×920</span></a>
+    <a class="row" href="dashboard-settings.html"><span class="num">23</span><span class="name">Dashboard — settings (3 tab: umum, paket, author)</span><span class="dim">1440×920</span></a>
+    <a class="row" href="dashboard-series-management.html"><span class="num">24</span><span class="name">Dashboard — series management</span><span class="dim">1440×920</span></a>
+    <a class="row" href="dashboard-roadmap-management.html"><span class="num">25</span><span class="name">Dashboard — roadmap management</span><span class="dim">1440×1200</span></a>
+    <a class="row" href="dashboard-qa-management.html"><span class="num">26</span><span class="name">Dashboard — Q&A management</span><span class="dim">1440×1100</span></a>
+  </div>
+
+</div>
+</body>
+</html>

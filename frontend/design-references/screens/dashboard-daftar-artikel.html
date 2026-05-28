@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<title>Dashboard — daftar artikel — Blog Platform Design</title>
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  html,body{margin:0;padding:0;background:#f0eee9;font-family:"Geist",system-ui,sans-serif}
+  .stage{padding:32px;min-height:100vh}
+  .label{font-size:13px;color:#7a7060;margin-bottom:10px;letter-spacing:0.02em}
+  .label strong{color:#2a261f;font-weight:600}
+  .frame{width:1440px;height:920px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.08),0 8px 32px rgba(0,0,0,.08);overflow:hidden;border-radius:4px;margin-bottom:60px}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="label"><strong>Dashboard — daftar artikel</strong> · 1440×920</div>
+  <div class="frame"><div id="root" style="width:100%;height:100%;overflow:hidden"></div></div>
+</div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="../src/shared.jsx"></script>
+<script type="text/babel" src="../src/article.jsx"></script>
+<script type="text/babel" src="../src/homepage.jsx"></script>
+<script type="text/babel" src="../src/checkout.jsx"></script>
+<script type="text/babel" src="../src/auth.jsx"></script>
+<script type="text/babel" src="../src/dashboard.jsx"></script>
+<script type="text/babel" src="../src/editor.jsx"></script>
+<script type="text/babel" src="../src/series.jsx"></script>
+<script type="text/babel" src="../src/library.jsx"></script>
+<script type="text/babel" src="../src/roadmap.jsx"></script>
+<script type="text/babel" src="../src/search.jsx"></script>
+<script type="text/babel" src="../src/profile.jsx"></script>
+<script type="text/babel" src="../src/dashboard-analytics.jsx"></script>
+<script type="text/babel" src="../src/dashboard-subscribers.jsx"></script>
+<script type="text/babel" src="../src/dashboard-settings.jsx"></script>
+<script type="text/babel" src="../src/dashboard-series.jsx"></script>
+<script type="text/babel" src="../src/dashboard-roadmap.jsx"></script>
+<script type="text/babel" src="../src/qa.jsx"></script>
+<script type="text/babel" src="../src/dashboard-qa.jsx"></script>
+<script type="text/babel">
+ReactDOM.createRoot(document.getElementById('root')).render(<DashboardArticles  />);
+</script>
+</body>
+</html>

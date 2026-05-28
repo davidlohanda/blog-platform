@@ -1,0 +1,161 @@
+# CLAUDE.md
+## Blog Platform — Lentera
+> File ini dibaca otomatis oleh Claude Code setiap sesi dimulai.
+> Untuk detail lengkap, lihat file di folder docs/.
+
+---
+
+## Project Overview
+
+Platform blog subscription multi-author (SaaS). Setiap "publication" berdiri independen dengan audience-nya sendiri — tidak ada marketplace atau discovery lintas publication. Model bisnis: platform fee 15% dari setiap transaksi subscription member.
+
+**Dokumen referensi lengkap:**
+- `docs/PRD_Publication_Platform.md` — requirements & business decisions
+- `docs/SAD_Publication_Platform.md` — arsitektur & technical design
+- `docs/TECH_CONTEXT.md` — rules implementasi (BACA INI SEBELUM CODING)
+- `docs/GIT_STRATEGY.md` — branching & commit convention
+- `docs/USER_STORIES_MVP.md` — task breakdown implementasi (progress tracker)
+
+---
+
+## Tech Stack
+
+| Layer | Tech |
+|---|---|
+| Backend | Node.js + TypeScript + Express.js + Prisma |
+| Frontend | Next.js 16 + TypeScript + Tailwind CSS + shadcn/ui |
+| Database | PostgreSQL + Redis |
+| Auth | JWT (15m) + Refresh Token (30d, httpOnly cookie) |
+| Password | Argon2 — BUKAN bcrypt |
+| Payment | Midtrans |
+| Email | Resend + BullMQ |
+| Storage | Cloudinary |
+| Deploy | Railway (backend + DB) + Vercel (frontend) |
+
+---
+
+## Struktur Folder
+
+```
+blog-platform/
+├── CLAUDE.md                  ← file ini
+├── docs/                      ← semua dokumen planning
+├── frontend/                  ← Next.js app
+│   ├── design-references/     ← hasil Claude Design (Jalur A)
+│   └── ...
+├── backend/                   ← Express app
+├── docker-compose.yml         ← PostgreSQL + Redis lokal
+└── .github/workflows/         ← CI/CD
+```
+
+---
+
+## Rules Kritis — Selalu Diikuti
+
+### Backend
+- **4-layer wajib:** router → controller → service → repository
+- **Tenant isolation:** setiap query repository WAJIB include `publicationId`
+- **Error handling:** selalu `next(error)`, tidak pernah `res.json()` di catch
+- **Response format:** `{ success: true, data: ... }` atau `{ success: false, error: ... }`
+- **Validasi:** semua input via Zod schema di `[modul].schema.ts`
+- **Password:** Argon2 — jangan pernah bcrypt
+- **Token:** access token di memory JS, refresh token di httpOnly cookie
+
+### Frontend (Next.js 16)
+- **Default Server Component** — tambah `'use client'` hanya jika perlu interaksi/hooks/browser API
+- **Caching:** `'use cache'` + `cacheTag()` + `cacheLife()` — bukan `revalidate` lama
+- **Routing middleware:** `proxy.ts` di root — BUKAN `middleware.ts`
+- **params/searchParams:** wajib di-`await` sebelum diakses
+- **Gambar:** selalu `next/image` — tidak pernah `<img>`
+- **Form:** React Hook Form + Zod
+- **State global:** Zustand — hanya di Client Component
+
+### Yang TIDAK BOLEH Dilakukan
+- Hardcode nilai yang seharusnya di `.env`
+- Query tanpa `publicationId` di repository layer
+- Gunakan `bcrypt` — pakai Argon2
+- Gunakan `middleware.ts` — pakai `proxy.ts`
+- Simpan access token di localStorage atau cookie biasa
+- Gunakan `<img>` — pakai `next/image`
+- Commit file `.env` atau `.env.local`
+- Gunakan `unstable_cache` — pakai `'use cache'`
+
+---
+
+## Git Convention (Ringkasan)
+
+```bash
+# Branch naming
+feat/nama-fitur
+fix/nama-bug
+hotfix/nama-bug-kritis
+chore/nama-setup
+
+# Commit format (Conventional Commits)
+feat(scope): deskripsi
+fix(scope): deskripsi
+chore(scope): deskripsi
+
+# Alur per Epic
+git checkout main && git pull
+git checkout -b feat/nama-epic
+# ... kerjakan semua story ...
+git push origin feat/nama-epic
+# buat PR → merge → hapus branch
+```
+
+---
+
+## Progress Implementasi
+
+Track progress di `docs/USER_STORIES_MVP.md` — update checkbox `[ ]` → `[x]` setiap task selesai.
+
+**Cara lanjut sesi baru:**
+```
+Baca CLAUDE.md dan docs/USER_STORIES_MVP.md.
+Lanjutkan implementasi EPIC [X] dari STORY [Y.Z].
+Checkout branch: git checkout feat/[nama-branch]
+Task terakhir selesai: TASK-[prefix]-[X.Y.Z]
+```
+
+---
+
+## UI/UX Design
+
+**Jalur yang dipilih:** A — hasil Claude Design tersimpan di `frontend/design-references/`
+
+Saat implementasi halaman frontend:
+1. Baca file `frontend/design-references/[nama-halaman].html`
+2. Identifikasi struktur, komponen, warna, spacing
+3. Implementasikan dengan shadcn/ui + Tailwind
+4. Verifikasi di browser: tampilan mendekati referensi
+
+---
+
+## Cara Jalankan Lokal
+
+```bash
+# Terminal 1 — Database (jalankan sekali)
+docker-compose up -d
+
+# Terminal 2 — Backend
+cd backend && npm run dev
+# berjalan di http://localhost:4000
+
+# Terminal 3 — Frontend
+cd frontend && npm run dev
+# berjalan di http://localhost:3000
+```
+
+---
+
+## Context7
+
+Sebelum implementasi yang melibatkan library berubah cepat, panggil Context7:
+```
+use context7 next.js     ← selalu untuk frontend
+use context7 prisma      ← jika menyentuh database
+use context7 shadcn/ui   ← jika implementasi komponen UI
+```
+
+Lihat `docs/` → referensi lengkap di plugin `create-fullstack-app`.

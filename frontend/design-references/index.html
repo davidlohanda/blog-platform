@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <title>Lentera — MVP Design</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    html, body { margin: 0; padding: 0; }
+    body { font-family: "Geist", system-ui, sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script type="text/babel" src="design-canvas.jsx"></script>
+  <script type="text/babel" src="src/shared.jsx"></script>
+  <script type="text/babel" src="src/article.jsx"></script>
+  <script type="text/babel" src="src/homepage.jsx"></script>
+  <script type="text/babel" src="src/checkout.jsx"></script>
+  <script type="text/babel" src="src/auth.jsx"></script>
+  <script type="text/babel" src="src/dashboard.jsx"></script>
+  <script type="text/babel" src="src/editor.jsx"></script>
+  <script type="text/babel" src="src/series.jsx"></script>
+  <script type="text/babel" src="src/library.jsx"></script>
+  <script type="text/babel" src="src/roadmap.jsx"></script>
+  <script type="text/babel" src="src/search.jsx"></script>
+  <script type="text/babel" src="src/profile.jsx"></script>
+  <script type="text/babel" src="src/dashboard-analytics.jsx"></script>
+  <script type="text/babel" src="src/dashboard-subscribers.jsx"></script>
+  <script type="text/babel" src="src/dashboard-settings.jsx"></script>
+  <script type="text/babel" src="src/dashboard-series.jsx"></script>
+  <script type="text/babel" src="src/dashboard-roadmap.jsx"></script>
+  <script type="text/babel" src="src/qa.jsx"></script>
+  <script type="text/babel" src="src/dashboard-qa.jsx"></script>
+
+  <script type="text/babel">
+    /* Main canvas — assembles every artboard for the MVP. */
+
+    function App() {
+      return (
+        <DesignCanvas>
+          {/* ───────── P1 · Article ───────── */}
+          <DCSection id="article" title="01 · Halaman Artikel" subtitle="Tiga state — gratis, paywall non-member, dan member penuh. Sekarang dengan reading progress bar, navigasi series, dan diskusi member yang lebih lengkap.">
+            <DCArtboard id="article-free" label="A · Artikel Gratis" width={1280} height={1900}>
+              <ArticlePage variant="free" />
+            </DCArtboard>
+            <DCArtboard id="article-paywall" label="B · Premium · Paywall" width={1280} height={1700}>
+              <ArticlePage variant="paywall" />
+            </DCArtboard>
+            <DCArtboard id="article-member" label="C · Premium · Member" width={1280} height={2400}>
+              <ArticlePage variant="member" />
+            </DCArtboard>
+            <DCArtboard id="article-save" label="D · Save ke Folder (dialog)" width={1280} height={2400}>
+              <ArticlePage variant="member-savedialog" />
+            </DCArtboard>
+          </DCSection>
+
+          {/* ───────── P2 · Homepage ───────── */}
+          <DCSection id="homepage" title="02 · Homepage Publication" subtitle="Halaman depan setiap publication — bisa tampil sebagai majalah independen di domain sendiri.">
+            <DCArtboard id="homepage" label="Homepage Lentera" width={1280} height={2400}>
+              <HomePage />
+            </DCArtboard>
+          </DCSection>
+
+          {/* ───────── P3 · Subscribe & Checkout ───────── */}
+          <DCSection id="checkout" title="03 · Subscribe & Checkout" subtitle="Pilih paket, pilih pembayaran, lihat ringkasan. Akses langsung setelah bayar (tidak ada trial).">
+            <DCArtboard id="checkout" label="Pilih paket + pembayaran" width={1280} height={1200}>
+              <CheckoutPage />
+            </DCArtboard>
+          </DCSection>
+
+          {/* ───────── P4 · Auth ───────── */}
+          <DCSection id="auth" title="04 · Login / Register / Lupa Sandi" subtitle="Layout split — sisi kiri tetap, sisi kanan berisi form yang diganti per state.">
+            <DCArtboard id="login" label="A · Masuk" width={1200} height={760}>
+              <LoginPage />
+            </DCArtboard>
+            <DCArtboard id="register" label="B · Daftar" width={1200} height={760}>
+              <RegisterPage />
+            </DCArtboard>
+            <DCArtboard id="forgot" label="C · Lupa Sandi" width={1200} height={760}>
+              <ForgotPage />
+            </DCArtboard>
+          </DCSection>
+
+          {/* ───────── P5 · Dashboard utama ───────── */}
+          <DCSection id="dashboard" title="05 · Dashboard — Overview & Daftar Artikel" subtitle="Internal: yang dilihat owner setelah login. Kiri sidebar konstan, kanan konten halaman.">
+            <DCArtboard id="dash-overview" label="A · Overview" width={1440} height={920}>
+              <DashboardOverview />
+            </DCArtboard>
+            <DCArtboard id="dash-articles" label="B · Daftar Artikel" width={1440} height={920}>
+              <DashboardArticles />
+            </DCArtboard>
+          </DCSection>
+
+          {/* ───────── P6 · Editor ───────── */}
+          <DCSection id="editor" title="06 · Editor Artikel" subtitle="Distraction-free. Toolbar mengambang muncul saat seleksi teks. Drawer kanan untuk pengaturan terbit.">
+            <DCArtboard id="editor" label="Editor + Settings drawer" width={1440} height={920}>
+              <ArticleEditor />
+            </DCArtboard>
+          </DCSection>
+
+          {/* ───────── P7 · Series ───────── */}
+          <DCSection id="series" title="07 · Halaman Series" subtitle="Daftar artikel dalam satu series + progress pembaca.">
+            <DCArtboard id="series" label="Series — Belajar Membaca Pelan" width={1280} height={1700}>
+              <SeriesPage />
+            </DCArtboard>
+          </DCSection>
+
+          {/* ───────── P8 · Personal Library ───────── */}
+          <DCSection id="library" title="08 · Personal Library" subtitle="Folder + tulisan yang disimpan member. Privat per akun.">
+            <DCArtboard id="library" label="Library — Semua tersimpan" width={1280} height={1100}>
+              <PersonalLibrary />
+            </DCArtboard>
+          </DCSection>
+
+          {/* ───────── P9 · Roadmap reader ───────── */}
+          <DCSection id="roadmap" title="09 · Halaman Roadmap" subtitle="Visual learning path bertahap — node punya status locked/in-progress/completed. Klik node memperluas daftar isinya.">
+            <DCArtboard id="roadmap" label="Roadmap — Pemula → Lanjut" width={1280} height={1700}>
+              <RoadmapPage />
+            </DCArtboard>
+          </DCSection>
+
+          {/* ───────── P10 · Search ───────── */}
+          <DCSection id="search" title="10 · Halaman Hasil Search" subtitle="Hasil artikel + series + roadmap dengan filter author, tag, dan urutan.">
+            <DCArtboard id="search" label="Search — “membaca pelan”" width={1280} height={1500}>
+              <SearchPage />
+            </DCArtboard>
+          </DCSection>
+
+          {/* ───────── P11 · Personal Account ───────── */}
+          <DCSection id="personal" title="11 · Personal — Profile & Subscription" subtitle="Halaman pengaturan untuk member: profil, password, status paket, riwayat transaksi.">
+            <DCArtboard id="profile" label="A · Profile Settings" width={1280} height={1500}>
+              <ProfileSettings />
+            </DCArtboard>
+            <DCArtboard id="subscription" label="B · Subscription Settings" width={1280} height={1500}>
+              <SubscriptionSettings />
+            </DCArtboard>
+          </DCSection>
+
+          {/* ───────── P12 · Dashboard expanded ───────── */}
+          <DCSection id="dash-more" title="12 · Dashboard — Analytics, Subscriber, Settings" subtitle="Halaman internal lanjutan: detail performa, kelola subscriber, pengaturan publication & tim.">
+            <DCArtboard id="dash-analytics" label="A · Analytics" width={1440} height={920}>
+              <DashboardAnalytics />
+            </DCArtboard>
+            <DCArtboard id="dash-subscribers" label="B · Subscriber" width={1440} height={920}>
+              <DashboardSubscribers />
+            </DCArtboard>
+            <DCArtboard id="dash-settings" label="C · Settings (3 tab)" width={1440} height={920}>
+              <DashboardSettings />
+            </DCArtboard>
+          </DCSection>
+
+          {/* ───────── P13 · Dashboard Series & Roadmap ───────── */}
+          <DCSection id="dash-content" title="13 · Dashboard — Series & Roadmap Management" subtitle="Buat series & roadmap, atur urutan artikel di dalamnya.">
+            <DCArtboard id="dash-series" label="A · Series Management" width={1440} height={920}>
+              <DashboardSeries />
+            </DCArtboard>
+            <DCArtboard id="dash-roadmap" label="B · Roadmap Management" width={1440} height={1200}>
+              <DashboardRoadmap />
+            </DCArtboard>
+          </DCSection>
+
+          {/* ───────── P14 · Q&A reader ───────── */}
+          <DCSection id="qa" title="14 · Halaman Q&A (Publication-level)" subtitle="Tempat member bertanya, upvote, dan baca jawaban penulis. Daftar pertanyaan + halaman detail dengan jawaban resmi yang disematkan.">
+            <DCArtboard id="qa-list" label="A · Daftar Pertanyaan" width={1280} height={1500}>
+              <QAListPage />
+            </DCArtboard>
+            <DCArtboard id="qa-detail" label="B · Detail Pertanyaan" width={1280} height={2000}>
+              <QADetailPage />
+            </DCArtboard>
+          </DCSection>
+
+          {/* ───────── P15 · Q&A dashboard ───────── */}
+          <DCSection id="dash-qa" title="15 · Dashboard — Q&A Management" subtitle="Inbox pertanyaan masuk, composer jawaban resmi (otomatis disematkan), pin jawaban member terbaik.">
+            <DCArtboard id="dash-qa" label="Q&A Inbox + Composer" width={1440} height={1100}>
+              <DashboardQA />
+            </DCArtboard>
+          </DCSection>
+        </DesignCanvas>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
