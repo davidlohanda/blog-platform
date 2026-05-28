@@ -67,8 +67,37 @@ blog-platform/
 - **Routing middleware:** `proxy.ts` di root — BUKAN `middleware.ts`
 - **params/searchParams:** wajib di-`await` sebelum diakses
 - **Gambar:** selalu `next/image` — tidak pernah `<img>`
-- **Form:** React Hook Form + Zod
+- **Form:** React Hook Form + Zod + shadcn/ui `<Form>` wrapper
 - **State global:** Zustand — hanya di Client Component
+
+### Frontend UI Rules (WAJIB)
+
+**Komponen shadcn/ui yang WAJIB dipakai:**
+- `<Button>` — semua tombol, TIDAK PERNAH `<button>` biasa
+- `<Input>` — semua input teks, TIDAK PERNAH `<input>` biasa
+- `<Form>`, `<FormField>`, `<FormControl>`, `<FormLabel>`, `<FormMessage>` — semua form
+- `<Card>` — card/panel konten
+- `<Dialog>` — modal/popup
+- `<Badge>` — label/tag status
+- `<Table>` — tabel data
+
+**Warna — WAJIB pakai semantic tokens:**
+- DILARANG hardcode hex (`#2a261f`, `#f9f7f4`, dll)
+- Gunakan: `bg-background`, `text-foreground`, `text-muted-foreground`
+- Gunakan: `border-border`, `border-input`, `bg-muted`, `bg-card`
+- Gunakan: `bg-primary`, `text-primary-foreground`, `text-destructive`
+- Token lengkap didefinisikan di `frontend/src/app/globals.css`
+
+**Responsive — WAJIB:**
+- Selalu mulai dari mobile-first
+- Gunakan breakpoint `md:` dan `lg:` untuk desktop layout
+- Layout auth: `grid-cols-1 md:grid-cols-2`
+- Tidak boleh ada elemen yang overflow atau tidak terbaca di mobile
+
+**Komponen reusable — WAJIB dipisah:**
+- Komponen yang dipakai di 2+ halaman → pindah ke `components/`
+- Layout shell (AuthShell, DashboardShell, dll) → `components/layout/`
+- Icon custom → `components/ui/`
 
 ### Yang TIDAK BOLEH Dilakukan
 - Hardcode nilai yang seharusnya di `.env`
@@ -79,6 +108,9 @@ blog-platform/
 - Gunakan `<img>` — pakai `next/image`
 - Commit file `.env` atau `.env.local`
 - Gunakan `unstable_cache` — pakai `'use cache'`
+- Hardcode warna hex di komponen — pakai semantic tokens
+- Pakai `<input>` atau `<button>` biasa — pakai shadcn/ui
+- Buat komponen inline jika dipakai di 2+ tempat
 
 ---
 
