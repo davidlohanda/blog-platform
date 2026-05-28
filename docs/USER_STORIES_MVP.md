@@ -27,55 +27,55 @@ EPIC         — Kelompok fitur besar (setara modul)
 ### STORY 1.1 — Setup Monorepo
 Sebagai developer, saya ingin struktur project yang rapi sejak awal, agar frontend dan backend bisa dikembangkan dalam satu repository tanpa konflik.
 
-**TASK-BE-1.1.1** `[ ]` Init folder `backend/` dengan TypeScript + Express.js  
-**TASK-BE-1.1.2** `[ ]` Setup `tsconfig.json` dengan strict mode  
-**TASK-BE-1.1.3** `[ ]` Setup ESLint + Prettier untuk backend  
-**TASK-BE-1.1.4** `[ ]` Buat struktur folder sesuai SAD: `modules/`, `middleware/`, `config/`, `lib/`  
-**TASK-BE-1.1.5** `[ ]` Setup `app.ts` dengan middleware chain (helmet, cors, express.json, logger, rate limiter, error handler)  
-**TASK-BE-1.1.6** `[ ]` Buat `AppError` custom class di `lib/AppError.ts`  
-**TASK-BE-1.1.7** `[ ]` Buat global error handler middleware  
-**TASK-BE-1.1.8** `[ ]` Setup environment variables dengan `.env.example`  
+**TASK-BE-1.1.1** `[x]` Init folder `backend/` dengan TypeScript + Express.js  
+**TASK-BE-1.1.2** `[x]` Setup `tsconfig.json` dengan strict mode  
+**TASK-BE-1.1.3** `[x]` Setup ESLint + Prettier untuk backend  
+**TASK-BE-1.1.4** `[x]` Buat struktur folder sesuai SAD: `modules/`, `middleware/`, `config/`, `lib/`  
+**TASK-BE-1.1.5** `[x]` Setup `app.ts` dengan middleware chain (helmet, cors, express.json, logger, rate limiter, error handler)  
+**TASK-BE-1.1.6** `[x]` Buat `AppError` custom class di `lib/AppError.ts`  
+**TASK-BE-1.1.7** `[x]` Buat global error handler middleware  
+**TASK-BE-1.1.8** `[x]` Setup environment variables dengan `.env.example`  
 
-**TASK-FE-1.1.1** `[ ]` Init folder `frontend/` dengan Next.js 16 + TypeScript + Tailwind CSS  
-**TASK-FE-1.1.2** `[ ]` Setup shadcn/ui  
-**TASK-FE-1.1.3** `[ ]` ESLint + Prettier untuk frontend  
-**TASK-FE-1.1.4** `[ ]` Buat struktur folder sesuai SAD: `app/`, `components/`, `lib/`, `hooks/`, `store/`, `types/`  
-**TASK-FE-1.1.5** `[ ]` Setup `proxy.ts` (tenant resolver + auth redirect)  
-**TASK-FE-1.1.6** `[ ]` Setup Axios instance di `lib/api/client.ts` (untuk Client Component)  
-**TASK-FE-1.1.7** `[ ]` Setup fetch wrapper di `lib/api/server.ts` (untuk Server Component)  
-**TASK-FE-1.1.8** `[ ]` Setup environment variables dengan `.env.local.example`  
+**TASK-FE-1.1.1** `[x]` Init folder `frontend/` dengan Next.js 16 + TypeScript + Tailwind CSS  
+**TASK-FE-1.1.2** `[x]` Setup shadcn/ui  
+**TASK-FE-1.1.3** `[x]` ESLint + Prettier untuk frontend  
+**TASK-FE-1.1.4** `[x]` Buat struktur folder sesuai SAD: `app/`, `components/`, `lib/`, `hooks/`, `store/`, `types/`  
+**TASK-FE-1.1.5** `[x]` Setup `proxy.ts` (tenant resolver + auth redirect)  
+**TASK-FE-1.1.6** `[x]` Setup Axios instance di `lib/api/client.ts` (untuk Client Component)  
+**TASK-FE-1.1.7** `[x]` Setup fetch wrapper di `lib/api/server.ts` (untuk Server Component)  
+**TASK-FE-1.1.8** `[x]` Setup environment variables dengan `.env.local.example`  
 
-**TASK-1.1.1** `[ ]` Buat root `package.json` monorepo dengan scripts untuk jalankan frontend & backend sekaligus  
-**TASK-1.1.2** `[ ]` Buat `docker-compose.yml` untuk PostgreSQL + Redis development lokal  
-**TASK-1.1.3** `[ ]` Buat `.gitignore` root  
-**TASK-1.1.4** `[ ]` Buat `README.md` dengan instruksi setup project  
-**TASK-1.1.5** `[ ]` Init git + commit pertama: `chore(config): init monorepo structure`  
+**TASK-1.1.1** `[x]` Buat root `package.json` monorepo dengan scripts untuk jalankan frontend & backend sekaligus  
+**TASK-1.1.2** `[x]` Buat `docker-compose.yml` untuk PostgreSQL + Redis development lokal  
+**TASK-1.1.3** `[x]` Buat `.gitignore` root  
+**TASK-1.1.4** `[x]` Buat `README.md` dengan instruksi setup project  
+**TASK-1.1.5** `[x]` Init git + commit pertama: `chore(config): init monorepo structure`  
 
 ---
 
 ### STORY 1.2 — Setup Database
 Sebagai developer, saya ingin database ter-setup dengan schema yang benar sejak awal, agar semua modul bisa langsung menggunakannya tanpa migrasi berulang.
 
-**TASK-BE-1.2.1** `[ ]` Init Prisma di `backend/`  
-**TASK-BE-1.2.2** `[ ]` Tulis Prisma schema lengkap sesuai SAD section 7.2: Users, Publications, PublicationAuthors, SubscriptionPlans, Subscriptions, Articles, Tags, ArticleTags, Series, SeriesArticles, EmailPreferences  
-**TASK-BE-1.2.3** `[ ]` Jalankan migrasi pertama: `prisma migrate dev --name init`  
-**TASK-BE-1.2.4** `[ ]` Buat Prisma client singleton di `config/database.config.ts`  
-**TASK-BE-1.2.5** `[ ]` Buat database indexes sesuai SAD section 7.3  
-**TASK-BE-1.2.6** `[ ]` Buat seed data untuk development (1 publication, 2 author, 5 artikel sample)  
-**TASK-BE-1.2.7** `[ ]` Setup Redis client singleton di `config/redis.config.ts`  
-**TASK-BE-1.2.8** `[ ]` Commit: `chore(db): add Prisma schema and initial migration`  
+**TASK-BE-1.2.1** `[x]` Init Prisma di `backend/`  
+**TASK-BE-1.2.2** `[x]` Tulis Prisma schema lengkap sesuai SAD section 7.2: Users, Publications, PublicationAuthors, SubscriptionPlans, Subscriptions, Articles, Tags, ArticleTags, Series, SeriesArticles, EmailPreferences  
+**TASK-BE-1.2.3** `[x]` Jalankan migrasi pertama: `prisma migrate dev --name init`  
+**TASK-BE-1.2.4** `[x]` Buat Prisma client singleton di `config/database.config.ts`  
+**TASK-BE-1.2.5** `[x]` Buat database indexes sesuai SAD section 7.3  
+**TASK-BE-1.2.6** `[x]` Buat seed data untuk development (1 publication, 2 author, 5 artikel sample)  
+**TASK-BE-1.2.7** `[x]` Setup Redis client singleton di `config/redis.config.ts`  
+**TASK-BE-1.2.8** `[x]` Commit: `chore(db): add Prisma schema and initial migration`  
 
 ---
 
 ### STORY 1.3 — Setup CI/CD Dasar
 Sebagai developer, saya ingin setiap push ke GitHub otomatis dicek kualitasnya, agar tidak ada kode rusak yang masuk ke main branch.
 
-**TASK-1.3.1** `[ ]` Buat GitHub repository  
-**TASK-1.3.2** `[ ]` Push semua dokumen dari folder `docs/` sebagai commit pertama  
-**TASK-1.3.3** `[ ]` Buat `.github/workflows/backend-ci.yml` — lint + type check saat PR  
-**TASK-1.3.4** `[ ]` Buat `.github/workflows/frontend-ci.yml` — lint + type check + build saat PR  
-**TASK-1.3.5** `[ ]` Setup branch protection rules di GitHub untuk branch `main`  
-**TASK-1.3.6** `[ ]` Commit: `chore(ci): add GitHub Actions workflow for lint and build`  
+**TASK-1.3.1** `[x]` Buat GitHub repository  
+**TASK-1.3.2** `[x]` Push semua dokumen dari folder `docs/` sebagai commit pertama  
+**TASK-1.3.3** `[x]` Buat `.github/workflows/backend-ci.yml` — lint + type check saat PR  
+**TASK-1.3.4** `[x]` Buat `.github/workflows/frontend-ci.yml` — lint + type check + build saat PR  
+**TASK-1.3.5** `[ ]` Setup branch protection rules di GitHub untuk branch `main` ← manual di GitHub UI  
+**TASK-1.3.6** `[x]` Commit: `chore(ci): add GitHub Actions workflow for lint and build`  
 
 ---
 
