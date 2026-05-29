@@ -7,9 +7,16 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  /* UI font: Inter — buttons, labels, navigation, body text */
+  --font-sans: var(--font-inter);
+  --font-ui: var(--font-inter);
+  /* Heading font: Fraunces — titles, headings, display text */
+  --font-serif: var(--font-fraunces);
+  --font-heading: var(--font-fraunces);
+  /* Body/article font: Source Serif 4 — long-form reading content */
+  --font-body: var(--font-source-serif);
+  /* Mono: system stack — code blocks */
+  --font-mono: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -126,6 +133,37 @@
     @apply bg-background text-foreground;
   }
   html {
-    @apply font-sans;
+    /* Inter as default UI font */
+    font-family: var(--font-inter), system-ui, sans-serif;
   }
+  /* Fraunces for all serif/heading contexts */
+  .font-serif,
+  .font-heading {
+    font-family: var(--font-fraunces), Georgia, serif;
+  }
+}
+
+/* Source Serif 4 for article body / long-form reading */
+.prose,
+.article-body {
+  font-family: var(--font-source-serif), Georgia, serif;
+  font-size: 1.0625rem;   /* 17px — comfortable reading size */
+  line-height: 1.75;
+}
+
+/* Headings inside prose still use Fraunces */
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4 {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+/* Code blocks inside prose */
+.prose code,
+.prose pre {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
 }
