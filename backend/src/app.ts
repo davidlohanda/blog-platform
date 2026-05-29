@@ -10,6 +10,8 @@ import { globalRateLimiter } from './middleware/rateLimiter.middleware';
 import { errorHandler } from './middleware/errorHandler.middleware';
 import { authRouter } from './modules/auth/auth.router';
 import { usersRouter } from './modules/users/users.router';
+import { publicationRouter } from './modules/publication/publication.router';
+import { tenantMiddleware } from './middleware/tenant.middleware';
 
 export function createApp() {
   const app = express();
@@ -38,8 +40,11 @@ export function createApp() {
     res.json({ success: true, data: { status: 'ok', env: config.nodeEnv } });
   });
 
+  app.use(tenantMiddleware);
+
   app.use('/auth', authRouter);
   app.use('/users', usersRouter);
+  app.use('/publications', publicationRouter);
 
   app.use(errorHandler);
 
