@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -326,12 +327,12 @@ export default function ProfileSettingsPage() {
                 <Button type="submit" variant="outline" disabled={passwordForm.formState.isSubmitting}>
                   {passwordForm.formState.isSubmitting ? 'Menyimpan…' : 'Simpan kata sandi'}
                 </Button>
-                <a
+                <Link
                   href="/forgot-password"
                   className="text-sm text-muted-foreground hover:text-foreground"
                 >
                   Saya lupa kata sandi saat ini
-                </a>
+                </Link>
               </div>
             </form>
           </Form>

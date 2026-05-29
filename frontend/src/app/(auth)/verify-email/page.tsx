@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { serverFetch } from '@/lib/api/server';
 
@@ -5,7 +6,26 @@ interface PageProps {
   searchParams: Promise<{ token?: string }>;
 }
 
-export default async function VerifyEmailPage({ searchParams }: PageProps) {
+export default function VerifyEmailPage({ searchParams }: PageProps) {
+  return (
+    <Suspense
+      fallback={
+        <VerifyShell
+          success={false}
+          message="Memverifikasi email…"
+        />
+      }
+    >
+      <VerifyContent searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function VerifyContent({
+  searchParams,
+}: {
+  searchParams: Promise<{ token?: string }>;
+}) {
   const { token } = await searchParams;
 
   if (!token) {
@@ -42,11 +62,22 @@ function VerifyShell({ success, message }: { success: boolean; message: string }
         >
           {success ? (
             <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-              <path d="M4 11l5 5 9-9" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              <path
+                d="M4 11l5 5 9-9"
+                stroke="#16a34a"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
           ) : (
             <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-              <path d="M11 7v5M11 15h.01" stroke="#dc2626" strokeWidth="2.5" strokeLinecap="round" />
+              <path
+                d="M11 7v5M11 15h.01"
+                stroke="#dc2626"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+              />
             </svg>
           )}
         </div>

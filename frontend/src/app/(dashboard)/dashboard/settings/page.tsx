@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -583,9 +584,9 @@ export default function SettingsPage() {
       <DashboardShell title="Pengaturan">
         <div className="flex h-64 flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
           <p>Kamu belum punya publication.</p>
-          <a href="/onboarding" className="text-foreground underline">
+          <Link href="/onboarding" className="text-foreground underline">
             Buat publication sekarang
-          </a>
+          </Link>
         </div>
       </DashboardShell>
     );

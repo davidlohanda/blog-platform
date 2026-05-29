@@ -46,7 +46,12 @@ router.post(
   (req, res, next) => publicationController.setCustomDomain(req, res, next),
 );
 
-// Authors — list (owner/author)
+// Authors — public list for reader homepage (no email)
+router.get('/:id/authors/public', (req, res, next) =>
+  publicationController.listPublicAuthors(req, res, next),
+);
+
+// Authors — list (owner/author, includes email for management)
 router.get(
   '/:id/authors',
   authenticate,

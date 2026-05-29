@@ -9,6 +9,7 @@ import type {
   PublishArticleInput,
   ArticleFilters,
 } from './article.schema';
+import type { PublicArticleFilters } from './article.repository';
 
 function toSlug(title: string): string {
   return title
@@ -57,6 +58,59 @@ export const articleService = {
     const article = await articleRepository.findBySlug(publicationId, slug);
     if (!article) throw AppError.notFound('Artikel tidak ditemukan');
     return article;
+  },
+
+  // Public reader: gates premium content based on membership
+  async getPublicBySlug(
+    publicationId: string,
+    slug: string,
+    opts: { isMember: boolean } = { isMember: false },
+  ) {
+    const article = await articleRepository.findBySlug(publicationId, slug);
+    if (!article || article.status !== 'published') {
+      throw AppError.notFound('Artikel tidak ditemukan');
+    }
+
+    if (article.visibility === 'members_only' && !opts.isMember) {
+      // Return metadata + excerpt only — no content
+      return { ...article, content: null };
+    }
+
+    return article;
+  },
+
+  async listPublic(publicationId: string, filters: PublicArticleFilters) {
+    const items = await articleRepository.findManyPublic(publicationId, filters);
+    const hasMore = items.length > filters.limit;
+    const data = hasMore ? items.slice(0, filters.limit) : items;
+    const nextCursor = hasMore ? data[data.length - 1]?.id : null;
+    return { data, nextCursor, hasMore };
+  },
+
+  async incrementView(publicationId: string, id: string) {
+    const article = await articleRepository.findById(publicationId, id);
+    if (!article) throw AppError.notFound('Artikel tidak ditemukan');
+    await articleRepository.incrementViewCount(id);
+  },
+
+  async toggleLike(publicationId: string, articleId: string, userId: string) {
+    const article = await articleRepository.findById(publicationId, articleId);
+    if (!article) throw AppError.notFound('Artikel tidak ditemukan');
+
+    const existing = await articleRepository.findLike(articleId, userId);
+    if (existing) {
+      await articleRepository.removeLike(articleId, userId);
+      return { liked: false, likesCount: Math.max(0, article.likesCount - 1) };
+    }
+    await articleRepository.addLike(articleId, userId);
+    return { liked: true, likesCount: article.likesCount + 1 };
+  },
+
+  async getLikeStatus(publicationId: string, articleId: string, userId: string) {
+    const article = await articleRepository.findById(publicationId, articleId);
+    if (!article) throw AppError.notFound('Artikel tidak ditemukan');
+    const like = await articleRepository.findLike(articleId, userId);
+    return { liked: !!like, likesCount: article.likesCount };
   },
 
   async getById(publicationId: string, id: string) {

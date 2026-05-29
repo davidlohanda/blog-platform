@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, use } from 'react';
+import { Suspense, useState, useEffect, useRef, use } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { RichTextEditor } from '@/components/editor/RichTextEditor';
@@ -30,6 +30,14 @@ interface Publication {
 }
 
 export default function ArticleEditorPage({ params }: { params: Promise<{ id: string }> }) {
+  return (
+    <Suspense>
+      <ArticleEditorContent params={params} />
+    </Suspense>
+  );
+}
+
+function ArticleEditorContent({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
   const accessToken = useAuthStore((s) => s.accessToken);
