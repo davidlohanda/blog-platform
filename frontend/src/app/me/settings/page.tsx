@@ -19,6 +19,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { useAuthStore } from '@/store/authStore';
 import { apiClient } from '@/lib/api/client';
+import { uploadToCloudinary } from '@/lib/cloudinary';
 import type { AuthUser } from '@/store/authStore';
 
 const profileSchema = z.object({
@@ -51,6 +52,7 @@ export default function ProfileSettingsPage() {
   const [profileSuccess, setProfileSuccess] = useState(false);
   const [passwordSuccess, setPasswordSuccess] = useState(false);
   const [bioLength, setBioLength] = useState(0);
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
   const profileForm = useForm<ProfileValues>({
     resolver: zodResolver(profileSchema),
@@ -125,13 +127,42 @@ export default function ProfileSettingsPage() {
             <h2 className="mb-1 text-base font-semibold text-foreground">Foto profil</h2>
             <p className="text-sm text-muted-foreground">JPG, PNG, atau GIF. Maksimum 2 MB.</p>
             <div className="mt-3 flex items-center gap-4">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted text-lg font-semibold text-muted-foreground">
-                {user?.name?.slice(0, 2).toUpperCase() ?? '??'}
-              </div>
-              <Button variant="outline" type="button" disabled>
-                Ganti foto
-              </Button>
-              <span className="text-xs text-muted-foreground">Upload foto tersedia setelah EPIC 4</span>
+              {user?.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={user.avatarUrl}
+                  alt={user.name}
+                  className="h-16 w-16 rounded-full object-cover"
+                />
+              ) : (
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted text-lg font-semibold text-muted-foreground">
+                  {user?.name?.slice(0, 2).toUpperCase() ?? '??'}
+                </div>
+              )}
+              <label className={`cursor-pointer rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted ${avatarUploading ? 'cursor-not-allowed opacity-50' : ''}`}>
+                {avatarUploading ? 'Mengunggah…' : 'Ganti foto'}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={avatarUploading}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file || !accessToken) return;
+                    setAvatarUploading(true);
+                    try {
+                      const url = await uploadToCloudinary(file, 'lentera/avatars');
+                      const { data } = await apiClient.patch<{ data: AuthUser }>('/users/me', { avatarUrl: url });
+                      setAuth(accessToken, data.data);
+                    } catch {
+                      // ignore, user stays with old avatar
+                    } finally {
+                      setAvatarUploading(false);
+                      e.target.value = '';
+                    }
+                  }}
+                />
+              </label>
             </div>
           </div>
 
