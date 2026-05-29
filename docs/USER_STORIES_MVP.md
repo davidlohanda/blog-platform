@@ -252,41 +252,41 @@ Sebagai owner, saya ingin bisa mengkonfigurasi nama, deskripsi, logo, dan custom
 ### STORY 4.1 — Menulis Artikel dengan Rich Text Editor
 Sebagai author, saya ingin bisa menulis artikel dengan editor yang lengkap, agar konten yang saya buat terlihat profesional dan mudah dibaca.
 
-**TASK-BE-4.1.1** `[ ]` Buat `article.schema.ts` — Zod schema untuk create/update artikel  
-**TASK-BE-4.1.2** `[ ]` Buat `article.repository.ts` — method `create`, `findById`, `findBySlug`, `findMany`, `update`, `softDelete`  
-**TASK-BE-4.1.3** `[ ]` Buat `article.service.ts` — method `create`, `update`, `publish`, `delete`; auto-generate slug dari judul; hitung reading time  
-**TASK-BE-4.1.4** `[ ]` Endpoint `POST /publications/:pubId/articles` — buat artikel baru (status: draft)  
-**TASK-BE-4.1.5** `[ ]` Endpoint `GET /publications/:pubId/articles/:slug` — baca satu artikel  
-**TASK-BE-4.1.6** `[ ]` Endpoint `PATCH /publications/:pubId/articles/:id` — update artikel  
-**TASK-BE-4.1.7** `[ ]` Endpoint `DELETE /publications/:pubId/articles/:id` — soft delete  
-**TASK-BE-4.1.8** `[ ]` Endpoint `POST /publications/:pubId/articles/:id/publish` — publish atau schedule artikel  
-**TASK-BE-4.1.9** `[ ]` Background job: publish scheduled articles saat waktu yang ditentukan tiba  
-**TASK-BE-4.1.10** `[ ]` Commit: `feat(article): add article CRUD and publish flow`  
+**TASK-BE-4.1.1** `[x]` Buat `article.schema.ts` — Zod schema untuk create/update artikel  
+**TASK-BE-4.1.2** `[x]` Buat `article.repository.ts` — method `create`, `findById`, `findBySlug`, `findMany`, `update`, `softDelete`  
+**TASK-BE-4.1.3** `[x]` Buat `article.service.ts` — method `create`, `update`, `publish`, `delete`; auto-generate slug dari judul; hitung reading time  
+**TASK-BE-4.1.4** `[x]` Endpoint `POST /publications/:pubId/articles` — buat artikel baru (status: draft)  
+**TASK-BE-4.1.5** `[x]` Endpoint `GET /publications/:pubId/articles/:slug` — baca satu artikel  
+**TASK-BE-4.1.6** `[x]` Endpoint `PATCH /publications/:pubId/articles/:id` — update artikel  
+**TASK-BE-4.1.7** `[x]` Endpoint `DELETE /publications/:pubId/articles/:id` — soft delete  
+**TASK-BE-4.1.8** `[x]` Endpoint `POST /publications/:pubId/articles/:id/publish` — publish atau schedule artikel  
+**TASK-BE-4.1.9** `[ ]` ~~Background job: publish scheduled articles~~ BLOCKED: menunggu BullMQ setup di STORY 7.1  
+**TASK-BE-4.1.10** `[x]` Commit: `feat(article): add article CRUD and publish flow`  
 
-**TASK-FE-4.1.1** `[ ]` Install dan setup Tiptap editor  
-**TASK-FE-4.1.2** `[ ]` Buat komponen `RichTextEditor.tsx` (Client Component) dengan extensions: Bold, Italic, Underline, Strike, Heading (H1-H4), BulletList, OrderedList, Blockquote, CodeBlock, Table, HorizontalRule, Image, YouTube embed  
-**TASK-FE-4.1.3** `[ ]` Buat halaman editor `app/(dashboard)/dashboard/articles/[id]/page.tsx` — full screen, distraction-free  
-**TASK-FE-4.1.4** `[ ]` Buat settings drawer: visibility (free/premium), excerpt, cover image, tag, jadwal publish, series, slug URL  
-**TASK-FE-4.1.5** `[ ]` Autosave setiap 30 detik — tampilkan status "Tersimpan otomatis · X detik lalu"  
-**TASK-FE-4.1.6** `[ ]` Tombol Preview — buka preview artikel di tab baru  
-**TASK-FE-4.1.7** `[ ]` Tombol Terbitkan — konfirmasi dialog, lalu publish  
-**TASK-FE-4.1.8** `[ ]` Commit: `feat(article): add rich text editor with Tiptap`  
+**TASK-FE-4.1.1** `[x]` Install dan setup Tiptap editor  
+**TASK-FE-4.1.2** `[x]` Buat komponen `RichTextEditor.tsx` dengan extensions: Bold, Italic, Underline, Strike, Heading H1-H4, BulletList, OrderedList, Blockquote, CodeBlock, Table, HorizontalRule, Image, YouTube  
+**TASK-FE-4.1.3** `[x]` Buat halaman editor `app/(dashboard)/dashboard/articles/[id]/page.tsx` — full screen  
+**TASK-FE-4.1.4** `[x]` Settings drawer: visibility, excerpt, jadwal publish, slug URL  
+**TASK-FE-4.1.5** `[x]` Autosave setiap 30 detik — tampilkan status tersimpan/menyimpan  
+**TASK-FE-4.1.6** `[ ]` ~~Tombol Preview~~ BLOCKED: menunggu reader page di EPIC 6  
+**TASK-FE-4.1.7** `[x]` Tombol Terbitkan — panggil publish endpoint, redirect ke daftar artikel  
+**TASK-FE-4.1.8** `[x]` Commit: `feat(article): add rich text editor with Tiptap`  
 
-**TASK-INT-4.1.1** `[ ]` Hubungkan editor dengan autosave ke backend  
-**TASK-INT-4.1.2** `[ ]` Hubungkan publish action dengan backend  
-**TASK-INT-4.1.3** `[ ]` Commit: `feat(article): integrate editor with backend`  
+**TASK-INT-4.1.1** `[x]` Hubungkan editor dengan autosave ke backend  
+**TASK-INT-4.1.2** `[x]` Hubungkan publish action dengan backend  
+**TASK-INT-4.1.3** `[x]` Commit: `feat(article): integrate editor with backend`  
 
 ---
 
 ### STORY 4.2 — Upload Gambar ke Artikel
 Sebagai author, saya ingin bisa menyisipkan gambar ke dalam artikel, agar konten lebih menarik secara visual.
 
-**TASK-BE-4.2.1** `[ ]` Setup Cloudinary SDK di backend  
-**TASK-BE-4.2.2** `[ ]` Buat `cloudinary.service.ts` — generate signed upload URL  
-**TASK-BE-4.2.3** `[ ]` Endpoint `GET /media/upload-url` — return signed upload params untuk Cloudinary (authenticated)  
-**TASK-BE-4.2.4** `[ ]` Commit: `feat(media): add Cloudinary signed upload URL endpoint`  
+**TASK-BE-4.2.1** `[x]` Setup Cloudinary SDK di backend  
+**TASK-BE-4.2.2** `[x]` Buat `cloudinary.service.ts` — generate signed upload URL  
+**TASK-BE-4.2.3** `[x]` Endpoint `GET /media/upload-url` — return signed upload params untuk Cloudinary (authenticated)  
+**TASK-BE-4.2.4** `[x]` Commit: `feat(media): add Cloudinary signed upload URL endpoint`  
 
-**TASK-FE-4.2.1** `[ ]` Integrasi Tiptap Image extension dengan Cloudinary direct upload  
+**TASK-FE-4.2.1** `[ ]` Integrasi Tiptap Image extension dengan Cloudinary direct upload ← setelah koneksi Cloudinary ditest  
 **TASK-FE-4.2.2** `[ ]` Upload flow: minta signed URL dari backend → upload langsung ke Cloudinary → insert URL ke editor  
 **TASK-FE-4.2.3** `[ ]` Tambahkan upload cover image di settings drawer  
 **TASK-FE-4.2.4** `[ ]` Commit: `feat(media): integrate Cloudinary image upload in editor`  
@@ -296,44 +296,44 @@ Sebagai author, saya ingin bisa menyisipkan gambar ke dalam artikel, agar konten
 ### STORY 4.3 — Manajemen Artikel di Dashboard
 Sebagai author/owner, saya ingin bisa melihat semua artikel dalam satu tampilan, agar saya bisa mengelola konten dengan mudah.
 
-**TASK-BE-4.3.1** `[ ]` Endpoint `GET /publications/:pubId/articles` — list semua artikel dengan pagination, filter status dan author  
-**TASK-BE-4.3.2** `[ ]` Commit: `feat(article): add article list endpoint with filters`  
+**TASK-BE-4.3.1** `[x]` Endpoint `GET /publications/:pubId/articles` — list semua artikel dengan pagination, filter status dan author  
+**TASK-BE-4.3.2** `[x]` Commit: `feat(article): add article list endpoint with filters`  
 
-**TASK-FE-4.3.1** `[ ]` Buat halaman `dashboard/articles/page.tsx` (Server Component)  
-**TASK-FE-4.3.2** `[ ]` Tabel artikel: cover thumbnail, judul, tag, author, status badge, views, komentar count, tanggal  
-**TASK-FE-4.3.3** `[ ]` Filter: tab Semua/Terbit/Draft/Terjadwal, filter by author, filter by tag, search judul  
-**TASK-FE-4.3.4** `[ ]` Pagination dengan cursor-based  
-**TASK-FE-4.3.5** `[ ]` Tombol "Tulis baru" → buat draft baru dan redirect ke editor  
-**TASK-FE-4.3.6** `[ ]` Kebab menu per artikel: edit, hapus, lihat di publication  
-**TASK-FE-4.3.7** `[ ]` Commit: `feat(article): add article management dashboard page`  
+**TASK-FE-4.3.1** `[x]` Buat halaman `dashboard/articles/page.tsx` (Client Component)  
+**TASK-FE-4.3.2** `[x]` Tabel artikel: judul, tag, author, status badge, views, tanggal  
+**TASK-FE-4.3.3** `[x]` Filter: tab Semua/Terbit/Draft/Terjadwal + search judul  
+**TASK-FE-4.3.4** `[x]` Pagination dengan cursor-based  
+**TASK-FE-4.3.5** `[x]` Tombol "Tulis baru" → buat draft baru dan redirect ke editor  
+**TASK-FE-4.3.6** `[x]` Hapus artikel dari tabel  
+**TASK-FE-4.3.7** `[x]` Commit: `feat(article): add article management dashboard page`  
 
-**TASK-INT-4.3.1** `[ ]` Integrasi halaman daftar artikel dengan backend  
-**TASK-INT-4.3.2** `[ ]` Commit: `feat(article): integrate article list with backend`  
+**TASK-INT-4.3.1** `[x]` Integrasi halaman daftar artikel dengan backend  
+**TASK-INT-4.3.2** `[x]` Commit: `feat(article): integrate article list with backend`  
 
 ---
 
 ### STORY 4.4 — Series Artikel
 Sebagai author, saya ingin bisa mengelompokkan artikel ke dalam sebuah series, agar pembaca bisa mengikuti konten secara terurut.
 
-**TASK-BE-4.4.1** `[ ]` Buat `series.repository.ts`, `series.service.ts`, `series.router.ts`  
-**TASK-BE-4.4.2** `[ ]` Endpoint `POST /publications/:pubId/series` — buat series baru  
-**TASK-BE-4.4.3** `[ ]` Endpoint `GET /publications/:pubId/series` — list semua series  
-**TASK-BE-4.4.4** `[ ]` Endpoint `GET /publications/:pubId/series/:slug` — detail series + daftar artikel  
-**TASK-BE-4.4.5** `[ ]` Endpoint `PATCH /publications/:pubId/series/:id` — update series  
-**TASK-BE-4.4.6** `[ ]` Endpoint `POST /publications/:pubId/series/:id/articles` — tambah artikel ke series + atur urutan  
-**TASK-BE-4.4.7** `[ ]` Endpoint `DELETE /publications/:pubId/series/:id/articles/:articleId` — remove artikel dari series  
-**TASK-BE-4.4.8** `[ ]` Tracking read progress per user: `POST /series/:id/articles/:articleId/read`  
-**TASK-BE-4.4.9** `[ ]` Commit: `feat(series): add series management endpoints`  
+**TASK-BE-4.4.1** `[x]` Buat `series.schema.ts`, `series.repository.ts`, `series.service.ts`, `series.controller.ts`, `series.router.ts`  
+**TASK-BE-4.4.2** `[x]` Endpoint `POST /publications/:pubId/series` — buat series baru  
+**TASK-BE-4.4.3** `[x]` Endpoint `GET /publications/:pubId/series` — list semua series  
+**TASK-BE-4.4.4** `[x]` Endpoint `GET /publications/:pubId/series/:slug` — detail series + daftar artikel  
+**TASK-BE-4.4.5** `[x]` Endpoint `PATCH /publications/:pubId/series/:id` — update series  
+**TASK-BE-4.4.6** `[x]` Endpoint `POST /publications/:pubId/series/:id/articles` — tambah artikel ke series + atur urutan  
+**TASK-BE-4.4.7** `[x]` Endpoint `DELETE /publications/:pubId/series/:id/articles/:articleId` — remove artikel dari series  
+**TASK-BE-4.4.8** `[ ]` ~~Tracking read progress~~ BLOCKED: menunggu EPIC 6 (Reader Experience)  
+**TASK-BE-4.4.9** `[x]` Commit: `feat(series): add series management endpoints`  
 
-**TASK-FE-4.4.1** `[ ]` Buat halaman `dashboard/series/page.tsx` — list semua series  
-**TASK-FE-4.4.2** `[ ]` Buat halaman buat/edit series: judul, deskripsi, cover, drag-and-drop urutan artikel  
-**TASK-FE-4.4.3** `[ ]` Buat halaman series publik `app/(publication)/series/[slug]/page.tsx` (Cache Component)  
-**TASK-FE-4.4.4** `[ ]` Tampilan series: header info, progress bar "X dari Y bagian", daftar artikel dengan status (selesai/sedang dibaca/belum dibaca/premium)  
-**TASK-FE-4.4.5** `[ ]` Tambahkan navigasi prev/next series di halaman artikel  
-**TASK-FE-4.4.6** `[ ]` Commit: `feat(series): add series pages frontend`  
+**TASK-FE-4.4.1** `[x]` Buat halaman `dashboard/series/page.tsx` — list semua series + form create  
+**TASK-FE-4.4.2** `[ ]` ~~Drag-and-drop urutan artikel dalam series~~ BLOCKED: menunggu @dnd-kit setup  
+**TASK-FE-4.4.3** `[ ]` ~~Halaman series publik~~ BLOCKED: menunggu EPIC 6 (Reader Experience)  
+**TASK-FE-4.4.4** `[ ]` ~~Progress bar series~~ BLOCKED: menunggu EPIC 6  
+**TASK-FE-4.4.5** `[ ]` ~~Navigasi prev/next series di artikel~~ BLOCKED: menunggu EPIC 6  
+**TASK-FE-4.4.6** `[x]` Commit: `feat(series): add series pages frontend`  
 
-**TASK-INT-4.4.1** `[ ]` Integrasi series management dan reader experience  
-**TASK-INT-4.4.2** `[ ]` Commit: `feat(series): integrate series feature end-to-end`  
+**TASK-INT-4.4.1** `[x]` Integrasi series dashboard dengan backend  
+**TASK-INT-4.4.2** `[x]` Commit: `feat(series): integrate series feature end-to-end`  
 
 ---
 

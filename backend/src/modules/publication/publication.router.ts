@@ -9,6 +9,8 @@ import {
   setCustomDomainSchema,
 } from './publication.schema';
 import { z } from 'zod';
+import { articleRouter } from '../article/article.router';
+import { seriesRouter } from '../series/series.router';
 
 const router = Router();
 
@@ -80,5 +82,9 @@ router.delete(
   requirePublicationRole('owner'),
   (req, res, next) => publicationController.removeAuthor(req, res, next),
 );
+
+// Mount article and series sub-routers with mergeParams
+router.use('/:pubId/articles', articleRouter);
+router.use('/:pubId/series', seriesRouter);
 
 export { router as publicationRouter };
