@@ -101,7 +101,7 @@ Sebagai pengunjung baru, saya ingin bisa membuat akun dengan email dan password,
 **TASK-FE-2.1.7** `[x]` Commit: `feat(auth): add register page with form validation`  
 
 **TASK-INT-2.1.1** `[x]` Hubungkan form register ke `POST /auth/register`  
-**TASK-INT-2.1.2** `[ ]` Test end-to-end: register → terima email → klik link → akun aktif ← requires email setup (STORY 7.1)  
+**TASK-INT-2.1.2** `[ ]` ~~Test end-to-end: register → terima email → klik link → akun aktif~~ BLOCKED: menunggu STORY 7.1 (Email Service)  
 **TASK-INT-2.1.3** `[x]` Commit: `feat(auth): integrate register frontend with backend`  
 
 ---
@@ -128,8 +128,8 @@ Sebagai user terdaftar, saya ingin bisa login dengan email dan password, agar sa
 **TASK-FE-2.2.6** `[x]` Commit: `feat(auth): add login page with token management`  
 
 **TASK-INT-2.2.1** `[x]` Hubungkan form login ke `POST /auth/login`  
-**TASK-INT-2.2.2** `[ ]` Test refresh token flow: access token expired → auto refresh → request ulang  
-**TASK-INT-2.2.3** `[ ]` Test logout: token dihapus, redirect ke login  
+**TASK-INT-2.2.2** `[ ]` ~~Test refresh token flow: access token expired → auto refresh → request ulang~~ BLOCKED: menunggu manual testing  
+**TASK-INT-2.2.3** `[ ]` ~~Test logout: token dihapus, redirect ke login~~ BLOCKED: menunggu manual testing  
 **TASK-INT-2.2.4** `[x]` Commit: `feat(auth): integrate login flow end-to-end`  
 
 ---
