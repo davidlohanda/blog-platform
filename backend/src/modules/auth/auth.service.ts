@@ -111,6 +111,34 @@ export const authService = {
     }
   },
 
+  async forgotPassword(email: string) {
+    const user = await authRepository.findByEmail(email);
+    // Always return same message to avoid email enumeration
+    if (!user) return { message: 'Jika email terdaftar, link reset akan dikirim dalam beberapa menit.' };
+
+    const token = randomUUID();
+    await redis.setex(`reset:${token}`, 60 * 60, user.id); // TTL 1 hour
+
+    // TODO STORY 7.1: send reset email via Resend
+    const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
+    console.log(`[Auth] Password reset URL: ${frontendUrl}/reset-password?token=${token}`);
+
+    return { message: 'Jika email terdaftar, link reset akan dikirim dalam beberapa menit.' };
+  },
+
+  async resetPassword(token: string, newPassword: string) {
+    const userId = await redis.get(`reset:${token}`);
+    if (!userId) {
+      throw AppError.badRequest('Token tidak valid atau sudah kedaluwarsa', 'INVALID_TOKEN');
+    }
+
+    const passwordHash = await hash(newPassword);
+    await authRepository.updatePassword(userId, passwordHash);
+    await redis.del(`reset:${token}`);
+
+    return { message: 'Password berhasil diubah. Silakan login dengan password baru.' };
+  },
+
   async handleGoogleUser(profile: { googleId: string; email: string; name: string; avatarUrl?: string }) {
     let user = await authRepository.findByGoogleId(profile.googleId);
 

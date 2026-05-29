@@ -18,5 +18,19 @@ export const verifyEmailQuerySchema = z.object({
   token: z.string().min(1, 'Token wajib diisi'),
 });
 
+export const forgotPasswordSchema = z.object({
+  email: z.email('Format email tidak valid'),
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(1, 'Token wajib diisi'),
+  password: z
+    .string()
+    .min(8, 'Password minimal 8 karakter')
+    .regex(/(?=.*[a-zA-Z])(?=.*\d)/, 'Password harus mengandung huruf dan angka'),
+});
+
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;

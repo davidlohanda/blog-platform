@@ -4,8 +4,8 @@ import cookieParser from 'cookie-parser';
 import { authController } from './auth.controller';
 import { validate } from '../../middleware/validate.middleware';
 import { authenticate } from '../../middleware/auth.middleware';
-import { authRateLimiter } from '../../middleware/rateLimiter.middleware';
-import { registerSchema, loginSchema, verifyEmailQuerySchema } from './auth.schema';
+import { authRateLimiter, forgotPasswordRateLimiter } from '../../middleware/rateLimiter.middleware';
+import { registerSchema, loginSchema, verifyEmailQuerySchema, forgotPasswordSchema, resetPasswordSchema } from './auth.schema';
 import { config } from '../../config';
 
 const router = Router();
@@ -20,6 +20,15 @@ router.get('/verify-email', validate(verifyEmailQuerySchema, 'query'), (req, res
 );
 router.post('/login', authRateLimiter, validate(loginSchema), (req, res, next) =>
   authController.login(req, res, next),
+);
+router.post(
+  '/forgot-password',
+  forgotPasswordRateLimiter,
+  validate(forgotPasswordSchema),
+  (req, res, next) => authController.forgotPassword(req, res, next),
+);
+router.post('/reset-password', validate(resetPasswordSchema), (req, res, next) =>
+  authController.resetPassword(req, res, next),
 );
 router.post('/refresh', (req, res, next) => authController.refresh(req, res, next));
 router.post('/logout', authenticate, (req, res, next) => authController.logout(req, res, next));

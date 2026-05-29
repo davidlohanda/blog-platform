@@ -49,6 +49,20 @@ export const authRepository = {
     return prisma.emailVerificationToken.deleteMany({ where: { userId } });
   },
 
+  findByIdWithPassword(id: string) {
+    return prisma.user.findUnique({
+      where: { id },
+      select: { id: true, email: true, passwordHash: true },
+    });
+  },
+
+  updatePassword(userId: string, passwordHash: string) {
+    return prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash },
+    });
+  },
+
   findByGoogleId(googleId: string) {
     return prisma.user.findUnique({ where: { googleId } });
   },

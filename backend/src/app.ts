@@ -9,6 +9,7 @@ import { logger } from './middleware/logger.middleware';
 import { globalRateLimiter } from './middleware/rateLimiter.middleware';
 import { errorHandler } from './middleware/errorHandler.middleware';
 import { authRouter } from './modules/auth/auth.router';
+import { usersRouter } from './modules/users/users.router';
 
 export function createApp() {
   const app = express();
@@ -38,6 +39,7 @@ export function createApp() {
   });
 
   app.use('/auth', authRouter);
+  app.use('/users', usersRouter);
 
   app.use(errorHandler);
 
