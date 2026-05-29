@@ -1,7 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
 import { authService } from './auth.service';
 import { config } from '../../config';
-import type { RegisterInput, LoginInput, ForgotPasswordInput, ResetPasswordInput } from './auth.schema';
+import type {
+  RegisterInput,
+  LoginInput,
+  ForgotPasswordInput,
+  ResetPasswordInput,
+} from './auth.schema';
 import type { GoogleProfile } from '../../config/passport.config';
 
 const REFRESH_COOKIE_OPTIONS = {
@@ -115,7 +120,9 @@ export const authController = {
       const { accessToken, refreshToken } = await authService.handleGoogleUser(googleUser);
 
       res.cookie('refreshToken', refreshToken, REFRESH_COOKIE_OPTIONS);
-      res.redirect(`${config.platform.frontendUrl}/auth/google/callback?access_token=${accessToken}`);
+      res.redirect(
+        `${config.platform.frontendUrl}/auth/google/callback?access_token=${accessToken}`,
+      );
     } catch (error) {
       next(error);
     }

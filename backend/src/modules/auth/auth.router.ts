@@ -1,11 +1,20 @@
-import { Router } from 'express';
+import { Router, type RequestHandler } from 'express';
 import passport from 'passport';
 import cookieParser from 'cookie-parser';
 import { authController } from './auth.controller';
 import { validate } from '../../middleware/validate.middleware';
 import { authenticate } from '../../middleware/auth.middleware';
-import { authRateLimiter, forgotPasswordRateLimiter } from '../../middleware/rateLimiter.middleware';
-import { registerSchema, loginSchema, verifyEmailQuerySchema, forgotPasswordSchema, resetPasswordSchema } from './auth.schema';
+import {
+  authRateLimiter,
+  forgotPasswordRateLimiter,
+} from '../../middleware/rateLimiter.middleware';
+import {
+  registerSchema,
+  loginSchema,
+  verifyEmailQuerySchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
+} from './auth.schema';
 import { config } from '../../config';
 
 const router = Router();
@@ -40,12 +49,18 @@ if (config.google.clientId && config.google.clientSecret) {
 
   router.get(
     '/google',
-    passport.authenticate('google', { session: false, scope: ['profile', 'email'] }),
+    passport.authenticate('google', {
+      session: false,
+      scope: ['profile', 'email'],
+    }) as RequestHandler,
   );
 
   router.get(
     '/google/callback',
-    passport.authenticate('google', { session: false, failureRedirect: oauthFailureUrl }),
+    passport.authenticate('google', {
+      session: false,
+      failureRedirect: oauthFailureUrl,
+    }) as RequestHandler,
     (req, res, next) => authController.googleCallback(req, res, next),
   );
 }

@@ -11,7 +11,9 @@ export interface GoogleProfile {
 
 export function configurePassport(): void {
   if (!config.google.clientId || !config.google.clientSecret) {
-    console.warn('[Passport] Google OAuth not configured — GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET missing');
+    console.warn(
+      '[Passport] Google OAuth not configured — GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET missing',
+    );
     return;
   }
 

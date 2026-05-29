@@ -119,6 +119,18 @@ blog-platform/
 
 ---
 
+## Wajib Sebelum Setiap Commit
+
+Jalankan di **backend** dan **frontend** — pastikan 0 errors sebelum push:
+```bash
+npm run lint        # 0 errors, 0 warnings
+npm run type-check  # 0 errors
+```
+
+Untuk backend: jika ada prettier error, jalankan `npm run lint:fix` terlebih dahulu.
+
+---
+
 ## Git Workflow Rules
 - Commit setiap Story selesai
 - Push setiap Story selesai ke branch Epic yang sedang berjalan

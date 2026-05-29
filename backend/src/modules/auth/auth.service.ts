@@ -114,7 +114,8 @@ export const authService = {
   async forgotPassword(email: string) {
     const user = await authRepository.findByEmail(email);
     // Always return same message to avoid email enumeration
-    if (!user) return { message: 'Jika email terdaftar, link reset akan dikirim dalam beberapa menit.' };
+    if (!user)
+      return { message: 'Jika email terdaftar, link reset akan dikirim dalam beberapa menit.' };
 
     const token = randomUUID();
     await redis.setex(`reset:${token}`, 60 * 60, user.id); // TTL 1 hour
@@ -139,13 +140,22 @@ export const authService = {
     return { message: 'Password berhasil diubah. Silakan login dengan password baru.' };
   },
 
-  async handleGoogleUser(profile: { googleId: string; email: string; name: string; avatarUrl?: string }) {
+  async handleGoogleUser(profile: {
+    googleId: string;
+    email: string;
+    name: string;
+    avatarUrl?: string;
+  }) {
     let user = await authRepository.findByGoogleId(profile.googleId);
 
     if (!user) {
       const existingByEmail = await authRepository.findByEmail(profile.email);
       if (existingByEmail) {
-        user = await authRepository.linkGoogleId(existingByEmail.id, profile.googleId, profile.avatarUrl);
+        user = await authRepository.linkGoogleId(
+          existingByEmail.id,
+          profile.googleId,
+          profile.avatarUrl,
+        );
       } else {
         user = await authRepository.createGoogleUser(profile);
       }
