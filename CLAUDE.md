@@ -119,15 +119,22 @@ blog-platform/
 
 ---
 
-## Wajib Sebelum Setiap Commit
+## Wajib Sebelum Setiap Push
 
-Jalankan di **backend** dan **frontend** — pastikan 0 errors sebelum push:
+Jalankan semua perintah berikut — **pastikan 0 errors sebelum push ke branch apapun:**
+
 ```bash
-npm run lint        # 0 errors, 0 warnings
-npm run type-check  # 0 errors
+# Backend
+cd backend && npm run lint && npm run type-check
+
+# Frontend
+cd frontend && npm run lint && npm run type-check && npm run build
 ```
 
-Untuk backend: jika ada prettier error, jalankan `npm run lint:fix` terlebih dahulu.
+**Catatan:**
+- Backend: jika ada prettier error, jalankan `npm run lint:fix` terlebih dahulu
+- Frontend lint mengecek ESLint rules termasuk React hooks rules — build saja tidak cukup
+- Frontend build harus berhasil (tidak cukup hanya type-check)
 
 ---
 
