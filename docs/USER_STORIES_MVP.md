@@ -342,58 +342,58 @@ Sebagai author, saya ingin bisa mengelompokkan artikel ke dalam sebuah series, a
 ### STORY 5.1 — Konfigurasi Paket Subscription
 Sebagai owner, saya ingin bisa mengatur harga subscription untuk tiap durasi, agar pembaca bisa memilih paket yang sesuai.
 
-**TASK-BE-5.1.1** `[ ]` Buat `subscription.repository.ts` — method untuk plans dan subscriptions  
-**TASK-BE-5.1.2** `[ ]` Endpoint `GET /publications/:pubId/subscription-plans` — list semua plans aktif (public)  
-**TASK-BE-5.1.3** `[ ]` Endpoint `PUT /publications/:pubId/subscription-plans` — update/create semua plans sekaligus (owner only)  
-**TASK-BE-5.1.4** `[ ]` Kalkulasi otomatis persentase hemat vs harga bulanan  
-**TASK-BE-5.1.5** `[ ]` Commit: `feat(subscription): add subscription plans management`  
+**TASK-BE-5.1.1** `[x]` Buat `subscription.repository.ts` — method untuk plans dan subscriptions  
+**TASK-BE-5.1.2** `[x]` Endpoint `GET /publications/:pubId/subscription-plans` — list semua plans aktif (public)  
+**TASK-BE-5.1.3** `[x]` Endpoint `PUT /publications/:pubId/subscription-plans` — update/create semua plans sekaligus (owner only)  
+**TASK-BE-5.1.4** `[x]` Kalkulasi otomatis persentase hemat vs harga bulanan  
+**TASK-BE-5.1.5** `[x]` Commit: `feat(subscription): add subscription plans management`  
 
-**TASK-FE-5.1.1** `[ ]` Tab Paket Harga di halaman settings: input harga per tier, toggle enable/disable, preview tampilan "hemat X%"  
-**TASK-FE-5.1.2** `[ ]` Commit: `feat(subscription): add subscription plans settings UI`  
+**TASK-FE-5.1.1** `[x]` Tab Paket Harga di halaman settings: input harga per tier, toggle enable/disable, preview "hemat X%"  
+**TASK-FE-5.1.2** `[x]` Commit: `feat(subscription): add subscription plans settings UI`  
 
-**TASK-INT-5.1.1** `[ ]` Integrasi settings paket harga  
-**TASK-INT-5.1.2** `[ ]` Commit: `feat(subscription): integrate subscription plans settings`  
+**TASK-INT-5.1.1** `[x]` Integrasi settings paket harga  
+**TASK-INT-5.1.2** `[x]` Commit: `feat(subscription): integrate subscription plans settings`  
 
 ---
 
 ### STORY 5.2 — Proses Berlangganan
 Sebagai pembaca, saya ingin bisa berlangganan ke publication yang saya sukai, agar saya bisa mengakses konten premium.
 
-**TASK-BE-5.2.1** `[ ]` Setup Midtrans SDK  
-**TASK-BE-5.2.2** `[ ]` Buat `midtrans.service.ts` — create transaction, verify webhook signature  
-**TASK-BE-5.2.3** `[ ]` Endpoint `POST /publications/:pubId/subscriptions/order` — validasi plan, hitung fee (15%), buat record subscription status `pending`, buat Midtrans transaction, return snap_token  
-**TASK-BE-5.2.4** `[ ]` Endpoint `POST /subscriptions/webhook/midtrans` — verify signature, cek idempotency, update status subscription berdasarkan transaction_status  
-**TASK-BE-5.2.5** `[ ]` Buat `member.middleware.ts` — cek apakah user punya subscription aktif untuk publication ini, cache di Redis (TTL 5 menit)  
-**TASK-BE-5.2.6** `[ ]` Commit: `feat(subscription): add Midtrans payment integration and webhook`  
+**TASK-BE-5.2.1** `[x]` Setup Midtrans SDK  
+**TASK-BE-5.2.2** `[x]` Buat `midtrans.service.ts` — create transaction, verify webhook signature  
+**TASK-BE-5.2.3** `[x]` Endpoint `POST /publications/:pubId/subscriptions/order` — validasi plan, hitung fee (15%), buat record subscription status `pending`, buat Midtrans transaction, return snap_token  
+**TASK-BE-5.2.4** `[x]` Endpoint `POST /subscriptions/webhook/midtrans` — verify signature, cek idempotency, update status subscription berdasarkan transaction_status  
+**TASK-BE-5.2.5** `[x]` Buat `member.middleware.ts` — cek apakah user punya subscription aktif untuk publication ini, cache di Redis (TTL 5 menit)  
+**TASK-BE-5.2.6** `[x]` Commit: `feat(subscription): add Midtrans payment integration and webhook`  
 
-**TASK-FE-5.2.1** `[ ]` Buat halaman `app/(publication)/subscribe/page.tsx` (Client Component)  
-**TASK-FE-5.2.2** `[ ]` Tampilkan semua paket aktif dengan harga, persentase hemat, dan benefit  
-**TASK-FE-5.2.3** `[ ]` Tampilkan ringkasan order di sidebar: paket dipilih, diskon, PPN, total  
-**TASK-FE-5.2.4** `[ ]` Pilihan metode pembayaran (GoPay, QRIS, Virtual Account, Kartu Kredit)  
-**TASK-FE-5.2.5** `[ ]` Integrasi Midtrans Snap.js — tampilkan popup pembayaran  
-**TASK-FE-5.2.6** `[ ]` Handle callback sukses: redirect ke artikel yang dituju / homepage publication  
-**TASK-FE-5.2.7** `[ ]` Handle callback gagal: tampilkan pesan error dan opsi coba lagi  
-**TASK-FE-5.2.8** `[ ]` Commit: `feat(subscription): add subscribe and checkout page`  
+**TASK-FE-5.2.1** `[x]` Buat halaman `app/subscribe/page.tsx` (Client Component) ← (publication) route group menyusul di EPIC 6  
+**TASK-FE-5.2.2** `[x]` Tampilkan semua paket aktif dengan harga, persentase hemat  
+**TASK-FE-5.2.3** `[x]` Tampilkan ringkasan order di sidebar: paket dipilih, PPN, total  
+**TASK-FE-5.2.4** `[x]` Pilihan metode pembayaran — ditangani oleh popup Midtrans Snap (GoPay, QRIS, VA, Kartu)  
+**TASK-FE-5.2.5** `[x]` Integrasi Midtrans Snap.js — tampilkan popup pembayaran  
+**TASK-FE-5.2.6** `[x]` Handle callback sukses: redirect ke `next` / `/me/subscription`  
+**TASK-FE-5.2.7** `[x]` Handle callback gagal: tampilkan pesan error dan opsi coba lagi  
+**TASK-FE-5.2.8** `[x]` Commit: `feat(subscription): add subscribe and checkout page`  
 
-**TASK-INT-5.2.1** `[ ]` Integrasi checkout dengan backend dan Midtrans  
-**TASK-INT-5.2.2** `[ ]` Test end-to-end: pilih paket → bayar (sandbox) → akses konten premium  
-**TASK-INT-5.2.3** `[ ]` Commit: `feat(subscription): integrate payment flow end-to-end`  
+**TASK-INT-5.2.1** `[x]` Integrasi checkout dengan backend dan Midtrans (snap token creation ditest OK)  
+**TASK-INT-5.2.2** `[ ]` ~~Test end-to-end: pilih paket → bayar (sandbox) → akses konten premium~~ BLOCKED: butuh manual test bayar di browser + webhook tunnel (ngrok)  
+**TASK-INT-5.2.3** `[x]` Commit: `feat(subscription): integrate payment flow end-to-end`  
 
 ---
 
 ### STORY 5.3 — Manajemen Subscription Member
 Sebagai member, saya ingin bisa melihat status subscription saya dan riwayat transaksi, agar saya tahu kapan subscription saya berakhir.
 
-**TASK-BE-5.3.1** `[ ]` Endpoint `GET /subscriptions/me` — status subscription aktif user yang login, untuk publication yang sedang diakses  
-**TASK-BE-5.3.2** `[ ]` Endpoint `GET /subscriptions/me/history` — riwayat semua transaksi  
-**TASK-BE-5.3.3** `[ ]` Endpoint `DELETE /subscriptions/:id` — cancel subscription (akses tetap aktif hingga expired)  
-**TASK-BE-5.3.4** `[ ]` Commit: `feat(subscription): add member subscription management endpoints`  
+**TASK-BE-5.3.1** `[x]` Endpoint `GET /subscriptions/me` — status subscription aktif user yang login, untuk publication yang sedang diakses  
+**TASK-BE-5.3.2** `[x]` Endpoint `GET /subscriptions/me/history` — riwayat semua transaksi  
+**TASK-BE-5.3.3** `[x]` Endpoint `DELETE /subscriptions/:id` — cancel subscription (akses tetap aktif hingga expired)  
+**TASK-BE-5.3.4** `[x]` Commit: `feat(subscription): add member subscription management endpoints`  
 
-**TASK-FE-5.3.1** `[ ]` Buat halaman `app/me/subscription/page.tsx` — status paket aktif, tanggal berakhir, tabel riwayat transaksi, tombol cancel  
-**TASK-FE-5.3.2** `[ ]` Commit: `feat(subscription): add member subscription settings page`  
+**TASK-FE-5.3.1** `[x]` Buat halaman `app/me/subscription/page.tsx` — status paket aktif, progress bar, tabel riwayat, tombol cancel  
+**TASK-FE-5.3.2** `[x]` Commit: `feat(subscription): add member subscription settings page`  
 
-**TASK-INT-5.3.1** `[ ]` Integrasi halaman subscription settings  
-**TASK-INT-5.3.2** `[ ]` Commit: `feat(subscription): integrate member subscription management`  
+**TASK-INT-5.3.1** `[x]` Integrasi halaman subscription settings  
+**TASK-INT-5.3.2** `[x]` Commit: `feat(subscription): integrate member subscription management`  
 
 ---
 

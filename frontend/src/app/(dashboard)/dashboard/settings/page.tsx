@@ -39,7 +39,20 @@ interface Author {
   user: { id: string; name: string; email: string; avatarUrl: string | null };
 }
 
-type ActiveTab = 'general' | 'authors';
+type ActiveTab = 'general' | 'plans' | 'authors';
+
+interface Plan {
+  durationMonths: number;
+  price: number;
+  isActive: boolean;
+}
+
+const DEFAULT_PLANS: Plan[] = [
+  { durationMonths: 1, price: 39000, isActive: true },
+  { durationMonths: 3, price: 35000, isActive: true },
+  { durationMonths: 6, price: 32000, isActive: true },
+  { durationMonths: 12, price: 28000, isActive: false },
+];
 
 // ─── Schemas ─────────────────────────────────────────────────────────────────
 
@@ -398,6 +411,149 @@ function AuthorsTab({ pubId }: { pubId: string }) {
   );
 }
 
+// ─── Plans Tab ────────────────────────────────────────────────────────────────
+
+function PlansTab({ pubId }: { pubId: string }) {
+  const [plans, setPlans] = useState<Plan[]>(DEFAULT_PLANS);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    apiClient
+      .get<{ data: Array<Plan & { savingsPercent: number }> }>(
+        `/publications/${pubId}/subscription-plans`,
+      )
+      .then(({ data }) => {
+        // API returns only active plans; merge with defaults to keep all tiers editable
+        if (cancelled) return;
+        if (data.data.length > 0) {
+          const byDuration = new Map(data.data.map((p) => [p.durationMonths, p]));
+          setPlans(
+            DEFAULT_PLANS.map((d) => {
+              const found = byDuration.get(d.durationMonths);
+              return found
+                ? { durationMonths: d.durationMonths, price: found.price, isActive: true }
+                : { ...d, isActive: false };
+            }),
+          );
+        }
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [pubId]);
+
+  const basePrice = plans.find((p) => p.durationMonths === 1)?.price ?? 0;
+
+  function savingsFor(p: Plan): number {
+    if (p.durationMonths === 1 || !basePrice) return 0;
+    return Math.max(0, Math.round((1 - p.price / basePrice) * 100));
+  }
+
+  function updatePlan(idx: number, patch: Partial<Plan>) {
+    setPlans((prev) => prev.map((p, i) => (i === idx ? { ...p, ...patch } : p)));
+    setSuccess(false);
+  }
+
+  async function save() {
+    setSaving(true);
+    setSuccess(false);
+    try {
+      // Only send active plans (must have at least 1)
+      const activePlans = plans.filter((p) => p.isActive);
+      const payload = activePlans.length > 0 ? activePlans : plans;
+      await apiClient.put(`/publications/${pubId}/subscription-plans`, { plans: payload });
+      setSuccess(true);
+    } catch {
+      // ignore
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (loading) {
+    return <p className="text-sm text-muted-foreground">Memuat paket…</p>;
+  }
+
+  return (
+    <div className="max-w-2xl space-y-5">
+      <Card className="p-6">
+        <h2 className="mb-1 font-serif text-lg font-medium text-foreground">Tier subscription</h2>
+        <p className="mb-5 text-sm text-muted-foreground">
+          Atur harga per bulan dan ketersediaan tiap paket. Perubahan tidak mempengaruhi
+          subscriber yang sudah ada.
+        </p>
+
+        <div className="space-y-3">
+          {plans.map((p, idx) => (
+            <div
+              key={p.durationMonths}
+              className={`flex items-center gap-4 rounded-lg border p-4 ${
+                p.isActive ? 'border-border' : 'border-border/50 opacity-60'
+              }`}
+            >
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-muted font-serif text-base font-semibold">
+                {p.durationMonths}
+              </div>
+              <div className="w-24">
+                <p className="text-sm font-semibold text-foreground">{p.durationMonths} Bulan</p>
+                {savingsFor(p) > 0 && (
+                  <p className="text-xs text-foreground/60">Hemat {savingsFor(p)}%</p>
+                )}
+              </div>
+              <div className="flex-1">
+                <label className="mb-1 block text-[11px] font-medium text-muted-foreground">
+                  Harga / bulan
+                </label>
+                <div className="flex items-center">
+                  <span className="flex h-9 items-center rounded-l-lg border border-r-0 border-input bg-muted px-2.5 text-xs text-muted-foreground">
+                    Rp
+                  </span>
+                  <input
+                    type="number"
+                    className="h-9 w-full rounded-r-lg border border-input bg-background px-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+                    value={p.price}
+                    disabled={!p.isActive}
+                    onChange={(e) => updatePlan(idx, { price: Number(e.target.value) })}
+                  />
+                </div>
+              </div>
+              <label className="flex cursor-pointer flex-col items-center gap-1">
+                <span className="text-[11px] font-medium text-muted-foreground">Aktif</span>
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 accent-foreground"
+                  checked={p.isActive}
+                  onChange={(e) => updatePlan(idx, { isActive: e.target.checked })}
+                />
+              </label>
+            </div>
+          ))}
+        </div>
+
+        {success && (
+          <p className="mt-4 rounded-lg bg-foreground/5 px-3 py-2.5 text-sm text-foreground">
+            Paket berhasil disimpan.
+          </p>
+        )}
+
+        <div className="mt-5 flex justify-end">
+          <Button type="button" onClick={save} disabled={saving}>
+            {saving ? 'Menyimpan…' : 'Simpan paket'}
+          </Button>
+        </div>
+      </Card>
+
+      <div className="rounded-lg bg-muted px-4 py-3 text-xs leading-relaxed text-muted-foreground">
+        Platform fee 15% otomatis dipotong dari setiap transaksi. PPN 11% sudah termasuk dalam
+        harga yang kamu tetapkan.
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
@@ -408,6 +564,7 @@ export default function SettingsPage() {
 
   const TABS: Array<{ id: ActiveTab; label: string }> = [
     { id: 'general', label: 'Umum' },
+    { id: 'plans', label: 'Paket harga' },
     { id: 'authors', label: 'Author' },
   ];
 
@@ -465,6 +622,7 @@ export default function SettingsPage() {
         {activeTab === 'general' && (
           <GeneralTab pub={pub} onSaved={setPubOverride} />
         )}
+        {activeTab === 'plans' && <PlansTab pubId={pub.id} />}
         {activeTab === 'authors' && (
           <AuthorsTab pubId={pub.id} />
         )}
