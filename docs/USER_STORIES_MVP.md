@@ -286,10 +286,10 @@ Sebagai author, saya ingin bisa menyisipkan gambar ke dalam artikel, agar konten
 **TASK-BE-4.2.3** `[x]` Endpoint `GET /media/upload-url` — return signed upload params untuk Cloudinary (authenticated)  
 **TASK-BE-4.2.4** `[x]` Commit: `feat(media): add Cloudinary signed upload URL endpoint`  
 
-**TASK-FE-4.2.1** `[ ]` Integrasi Tiptap Image extension dengan Cloudinary direct upload ← setelah koneksi Cloudinary ditest  
-**TASK-FE-4.2.2** `[ ]` Upload flow: minta signed URL dari backend → upload langsung ke Cloudinary → insert URL ke editor  
-**TASK-FE-4.2.3** `[ ]` Tambahkan upload cover image di settings drawer  
-**TASK-FE-4.2.4** `[ ]` Commit: `feat(media): integrate Cloudinary image upload in editor`  
+**TASK-FE-4.2.1** `[x]` Integrasi Tiptap Image extension dengan Cloudinary direct upload  
+**TASK-FE-4.2.2** `[x]` Upload flow: minta signed URL dari backend → upload langsung ke Cloudinary → insert URL ke editor  
+**TASK-FE-4.2.3** `[x]` Tambahkan upload cover image di settings drawer  
+**TASK-FE-4.2.4** `[x]` Commit: `feat(media): integrate Cloudinary image upload in editor`  
 
 ---
 

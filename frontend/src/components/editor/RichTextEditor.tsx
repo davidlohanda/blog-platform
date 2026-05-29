@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useRef } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
@@ -15,6 +16,7 @@ import CharacterCount from '@tiptap/extension-character-count';
 interface RichTextEditorProps {
   content?: object | null;
   onChange?: (json: object) => void;
+  onImageUpload?: (file: File) => Promise<string>;
   placeholder?: string;
   editable?: boolean;
 }
@@ -22,9 +24,13 @@ interface RichTextEditorProps {
 export function RichTextEditor({
   content,
   onChange,
+  onImageUpload,
   placeholder = 'Tekan / untuk perintah, atau mulai menulis…',
   editable = true,
 }: RichTextEditorProps) {
+  const [uploading, setUploading] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+
   const editor = useEditor({
     immediatelyRender: false,
     editable,
@@ -51,8 +57,40 @@ export function RichTextEditor({
   const wordCount = editor?.storage.characterCount?.words() ?? 0;
   const readingTime = Math.max(1, Math.ceil(wordCount / 200));
 
+  async function handleImageFile(file: File) {
+    if (!editor || !onImageUpload) return;
+    setUploading(true);
+    try {
+      const url = await onImageUpload(file);
+      editor.chain().focus().setImage({ src: url, alt: file.name }).run();
+    } catch (err) {
+      console.error('[RichTextEditor] Image upload failed:', err);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  function handleYoutubeEmbed() {
+    if (!editor) return;
+    const url = prompt('Masukkan URL YouTube:');
+    if (url) editor.chain().focus().setYoutubeVideo({ src: url }).run();
+  }
+
   return (
     <div className="relative">
+      {/* Hidden file input for image upload */}
+      <input
+        ref={imageInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) void handleImageFile(file);
+          e.target.value = '';
+        }}
+      />
+
       {editable && editor && (
         <div className="mb-2 flex flex-wrap items-center gap-0.5 rounded-lg border border-border bg-muted p-1">
           <ToolbarButton
@@ -130,6 +168,26 @@ export function RichTextEditor({
           >
             —
           </ToolbarButton>
+          {onImageUpload && (
+            <>
+              <Divider />
+              <ToolbarButton
+                onClick={() => imageInputRef.current?.click()}
+                active={false}
+                title={uploading ? 'Mengunggah gambar…' : 'Unggah gambar'}
+                disabled={uploading}
+              >
+                {uploading ? '⏳' : '🖼'}
+              </ToolbarButton>
+              <ToolbarButton
+                onClick={handleYoutubeEmbed}
+                active={editor.isActive('youtube')}
+                title="Embed YouTube"
+              >
+                ▶
+              </ToolbarButton>
+            </>
+          )}
         </div>
       )}
 
@@ -152,24 +210,25 @@ function ToolbarButton({
   active,
   title,
   children,
+  disabled,
 }: {
   onClick: () => void;
   active: boolean;
   title: string;
   children: React.ReactNode;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       title={title}
+      disabled={disabled}
       onMouseDown={(e) => {
         e.preventDefault();
-        onClick();
+        if (!disabled) onClick();
       }}
-      className={`rounded px-2 py-1 text-sm font-medium transition-colors ${
-        active
-          ? 'bg-foreground text-background'
-          : 'text-foreground hover:bg-background'
+      className={`rounded px-2 py-1 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+        active ? 'bg-foreground text-background' : 'text-foreground hover:bg-background'
       }`}
     >
       {children}

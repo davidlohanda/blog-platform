@@ -7,6 +7,7 @@ import { RichTextEditor } from '@/components/editor/RichTextEditor';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { apiClient } from '@/lib/api/client';
+import { uploadToCloudinary } from '@/lib/cloudinary';
 import { useAuthStore } from '@/store/authStore';
 
 interface Article {
@@ -43,6 +44,8 @@ export default function ArticleEditorPage({ params }: { params: Promise<{ id: st
   const [excerpt, setExcerpt] = useState('');
   const [slug, setSlug] = useState('');
   const [scheduledAt, setScheduledAt] = useState('');
+  const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
+  const [coverUploading, setCoverUploading] = useState(false);
   const [publishing, setPublishing] = useState(false);
 
   const lastSavedRef = useRef<number>(Date.now());
@@ -72,6 +75,7 @@ export default function ArticleEditorPage({ params }: { params: Promise<{ id: st
           setExcerpt(found.excerpt ?? '');
           setSlug(found.slug);
           setScheduledAt(found.scheduledAt ?? '');
+          setCoverImageUrl(found.coverImageUrl);
         }
       } catch {
         // ignore
@@ -103,6 +107,7 @@ export default function ArticleEditorPage({ params }: { params: Promise<{ id: st
         visibility,
         excerpt: excerpt || null,
         slug,
+        coverImageUrl,
       });
       setSaveStatus('saved');
       lastSavedRef.current = Date.now();
@@ -205,6 +210,7 @@ export default function ArticleEditorPage({ params }: { params: Promise<{ id: st
                 setContent(json);
                 markUnsaved();
               }}
+              onImageUpload={(file) => uploadToCloudinary(file, 'lentera/articles')}
             />
           </div>
         </div>
@@ -219,6 +225,84 @@ export default function ArticleEditorPage({ params }: { params: Promise<{ id: st
               <p className="mb-6 text-xs text-muted-foreground">
                 Tersimpan otomatis bersama draft
               </p>
+
+              {/* Cover Image */}
+              <div className="mb-6">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Gambar sampul
+                </p>
+                {coverImageUrl ? (
+                  <div className="space-y-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={coverImageUrl}
+                      alt="Cover"
+                      className="h-32 w-full rounded-lg object-cover"
+                    />
+                    <div className="flex gap-2">
+                      <label className="flex-1 cursor-pointer rounded-lg border border-border px-3 py-1.5 text-center text-xs font-medium text-foreground hover:bg-muted">
+                        {coverUploading ? 'Mengunggah…' : 'Ganti'}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          disabled={coverUploading}
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            setCoverUploading(true);
+                            try {
+                              const url = await uploadToCloudinary(file, 'lentera/covers');
+                              setCoverImageUrl(url);
+                              markUnsaved();
+                            } finally {
+                              setCoverUploading(false);
+                              e.target.value = '';
+                            }
+                          }}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/5"
+                        onClick={() => { setCoverImageUrl(null); markUnsaved(); }}
+                      >
+                        Hapus
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <label className={`flex h-24 w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-border text-sm text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground ${coverUploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                    {coverUploading ? (
+                      <span>Mengunggah…</span>
+                    ) : (
+                      <>
+                        <span className="text-lg">+</span>
+                        <span className="text-xs">Unggah gambar sampul</span>
+                      </>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={coverUploading}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        setCoverUploading(true);
+                        try {
+                          const url = await uploadToCloudinary(file, 'lentera/covers');
+                          setCoverImageUrl(url);
+                          markUnsaved();
+                        } finally {
+                          setCoverUploading(false);
+                          e.target.value = '';
+                        }
+                      }}
+                    />
+                  </label>
+                )}
+              </div>
 
               {/* Visibility */}
               <div className="mb-6">
