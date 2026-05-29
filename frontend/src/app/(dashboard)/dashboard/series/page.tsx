@@ -17,6 +17,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { apiClient } from '@/lib/api/client';
+import { usePublication } from '@/hooks/usePublication';
 
 interface Series {
   id: string;
@@ -29,12 +30,6 @@ interface Series {
   _count: { articles: number };
 }
 
-interface Publication {
-  id: string;
-  slug: string;
-  name: string;
-}
-
 const createSchema = z.object({
   title: z.string().min(2, 'Judul minimal 2 karakter').max(500),
   description: z.string().max(1000).optional(),
@@ -43,7 +38,7 @@ const createSchema = z.object({
 type CreateValues = z.infer<typeof createSchema>;
 
 export default function SeriesPage() {
-  const [pub, setPub] = useState<Publication | null>(null);
+  const { pub, loading: pubLoading } = usePublication(); // redirects to /onboarding if no publication
   const [seriesList, setSeriesList] = useState<Series[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -51,19 +46,14 @@ export default function SeriesPage() {
   const form = useForm<CreateValues>({ resolver: zodResolver(createSchema) });
 
   useEffect(() => {
-    apiClient
-      .get<{ data: Publication[] }>('/publications/mine')
-      .then(({ data }) => { if (data.data[0]) setPub(data.data[0]); })
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
     if (!pub) return;
+    let cancelled = false;
     apiClient
       .get<{ data: Series[] }>(`/publications/${pub.id}/series`)
-      .then(({ data }) => setSeriesList(data.data))
+      .then(({ data }) => { if (!cancelled) setSeriesList(data.data); })
       .catch(() => {})
-      .finally(() => setLoading(false));
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, [pub]);
 
   async function onCreate(values: CreateValues) {
@@ -80,6 +70,14 @@ export default function SeriesPage() {
       const apiErr = err as { response?: { data?: { message?: string } } };
       form.setError('root', { message: apiErr?.response?.data?.message ?? 'Gagal membuat series.' });
     }
+  }
+
+  if (pubLoading) {
+    return (
+      <DashboardShell title="Series">
+        <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">Memuat…</div>
+      </DashboardShell>
+    );
   }
 
   return (

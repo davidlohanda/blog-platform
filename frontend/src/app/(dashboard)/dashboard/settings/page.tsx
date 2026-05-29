@@ -18,6 +18,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { apiClient } from '@/lib/api/client';
+import { usePublication } from '@/hooks/usePublication';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -401,18 +402,9 @@ function AuthorsTab({ pubId }: { pubId: string }) {
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('general');
-  const [pub, setPub] = useState<Publication | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    apiClient
-      .get<{ data: Array<Publication & { role: string }> }>('/publications/mine')
-      .then(({ data }) => {
-        if (data.data[0]) setPub(data.data[0]);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+  const { pub: basePub, loading } = usePublication(); // redirects to /onboarding if no publication
+  const [pubOverride, setPubOverride] = useState<Publication | null>(null);
+  const pub = pubOverride ?? basePub; // local updates (after save) override the hook value
 
   const TABS: Array<{ id: ActiveTab; label: string }> = [
     { id: 'general', label: 'Umum' },
@@ -471,7 +463,7 @@ export default function SettingsPage() {
 
       <div className="p-8">
         {activeTab === 'general' && (
-          <GeneralTab pub={pub} onSaved={setPub} />
+          <GeneralTab pub={pub} onSaved={setPubOverride} />
         )}
         {activeTab === 'authors' && (
           <AuthorsTab pubId={pub.id} />

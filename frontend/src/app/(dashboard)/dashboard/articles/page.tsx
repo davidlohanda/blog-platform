@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { apiClient } from '@/lib/api/client';
+import { usePublication } from '@/hooks/usePublication';
 
 interface Article {
   id: string;
@@ -22,12 +23,6 @@ interface Article {
   tags: Array<{ tag: { id: string; name: string } }>;
 }
 
-interface Publication {
-  id: string;
-  slug: string;
-  name: string;
-}
-
 const STATUS_FILTER = ['Semua', 'Terbit', 'Draft', 'Terjadwal'] as const;
 type StatusFilter = (typeof STATUS_FILTER)[number];
 
@@ -40,20 +35,13 @@ const STATUS_MAP: Record<StatusFilter, string | undefined> = {
 
 export default function ArticlesPage() {
   const router = useRouter();
-  const [pub, setPub] = useState<Publication | null>(null);
+  const { pub, loading: pubLoading } = usePublication();
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<StatusFilter>('Semua');
   const [search, setSearch] = useState('');
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
-
-  useEffect(() => {
-    apiClient
-      .get<{ data: Publication[] }>('/publications/mine')
-      .then(({ data }) => { if (data.data[0]) setPub(data.data[0]); })
-      .catch(() => {});
-  }, []);
 
   useEffect(() => {
     if (!pub) return;
@@ -110,6 +98,15 @@ export default function ArticlesPage() {
 
   const draftCount = articles.filter((a) => a.status === 'draft').length;
   const scheduledCount = articles.filter((a) => a.status === 'scheduled').length;
+
+  // usePublication auto-redirects to /onboarding if no publication
+  if (pubLoading) {
+    return (
+      <DashboardShell title="Artikel">
+        <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">Memuat…</div>
+      </DashboardShell>
+    );
+  }
 
   return (
     <DashboardShell
