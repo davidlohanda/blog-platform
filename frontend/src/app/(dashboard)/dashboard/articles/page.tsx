@@ -74,7 +74,10 @@ export default function ArticlesPage() {
         { title: 'Artikel baru tanpa judul' },
       );
       router.push(`/dashboard/articles/${data.data.id}`);
-    } catch {
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })
+        ?.response?.data?.message ?? 'Gagal membuat artikel. Coba lagi.';
+      alert(msg);
       setCreating(false);
     }
   }
