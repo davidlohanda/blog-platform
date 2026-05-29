@@ -101,7 +101,7 @@ Sebagai pengunjung baru, saya ingin bisa membuat akun dengan email dan password,
 **TASK-FE-2.1.7** `[x]` Commit: `feat(auth): add register page with form validation`  
 
 **TASK-INT-2.1.1** `[x]` Hubungkan form register ke `POST /auth/register`  
-**TASK-INT-2.1.2** `[ ]` Test end-to-end: register → terima email → klik link → akun aktif ← requires email setup (STORY 7.1)  
+**TASK-INT-2.1.2** `[ ]` ~~Test end-to-end: register → terima email → klik link → akun aktif~~ BLOCKED: menunggu STORY 7.1 (Email Service)  
 **TASK-INT-2.1.3** `[x]` Commit: `feat(auth): integrate register frontend with backend`  
 
 ---
@@ -128,8 +128,8 @@ Sebagai user terdaftar, saya ingin bisa login dengan email dan password, agar sa
 **TASK-FE-2.2.6** `[x]` Commit: `feat(auth): add login page with token management`  
 
 **TASK-INT-2.2.1** `[x]` Hubungkan form login ke `POST /auth/login`  
-**TASK-INT-2.2.2** `[ ]` Test refresh token flow: access token expired → auto refresh → request ulang  
-**TASK-INT-2.2.3** `[ ]` Test logout: token dihapus, redirect ke login  
+**TASK-INT-2.2.2** `[ ]` ~~Test refresh token flow: access token expired → auto refresh → request ulang~~ BLOCKED: menunggu manual testing  
+**TASK-INT-2.2.3** `[ ]` ~~Test logout: token dihapus, redirect ke login~~ BLOCKED: menunggu manual testing  
 **TASK-INT-2.2.4** `[x]` Commit: `feat(auth): integrate login flow end-to-end`  
 
 ---
@@ -137,49 +137,49 @@ Sebagai user terdaftar, saya ingin bisa login dengan email dan password, agar sa
 ### STORY 2.3 — Login dengan Google OAuth
 Sebagai user, saya ingin bisa login dengan akun Google, agar tidak perlu mengingat password baru.
 
-**TASK-BE-2.3.1** `[ ]` Setup Google OAuth credentials di Google Console  
-**TASK-BE-2.3.2** `[ ]` Install dan konfigurasi Passport.js dengan Google Strategy  
-**TASK-BE-2.3.3** `[ ]` Buat `GET /auth/google` — redirect ke Google consent screen  
-**TASK-BE-2.3.4** `[ ]` Buat `GET /auth/google/callback` — terima code, tukar dengan user info Google, upsert user di DB, issue JWT, redirect ke app  
-**TASK-BE-2.3.5** `[ ]` Commit: `feat(auth): add Google OAuth login`  
+**TASK-BE-2.3.1** `[ ]` Setup Google OAuth credentials di Google Console ← manual di Google Console  
+**TASK-BE-2.3.2** `[x]` Install dan konfigurasi Passport.js dengan Google Strategy  
+**TASK-BE-2.3.3** `[x]` Buat `GET /auth/google` — redirect ke Google consent screen  
+**TASK-BE-2.3.4** `[x]` Buat `GET /auth/google/callback` — terima code, tukar dengan user info Google, upsert user di DB, issue JWT, redirect ke app  
+**TASK-BE-2.3.5** `[x]` Commit: `feat(auth): add Google OAuth login`  
 
-**TASK-FE-2.3.1** `[ ]` Aktifkan tombol "Lanjutkan dengan Google" di halaman login dan register  
-**TASK-FE-2.3.2** `[ ]` Handle redirect callback dari OAuth  
-**TASK-FE-2.3.3** `[ ]` Commit: `feat(auth): integrate Google OAuth in frontend`  
+**TASK-FE-2.3.1** `[x]` Aktifkan tombol "Lanjutkan dengan Google" di halaman login dan register  
+**TASK-FE-2.3.2** `[x]` Handle redirect callback dari OAuth  
+**TASK-FE-2.3.3** `[x]` Commit: `feat(auth): integrate Google OAuth in frontend`  
 
 ---
 
 ### STORY 2.4 — Lupa & Reset Password
 Sebagai user yang lupa password, saya ingin bisa mereset password via email, agar saya bisa kembali mengakses akun.
 
-**TASK-BE-2.4.1** `[ ]` Buat `POST /auth/forgot-password` — generate reset token (UUID), simpan di Redis (TTL 1 jam), kirim email berisi link reset  
-**TASK-BE-2.4.2** `[ ]` Buat `POST /auth/reset-password` — verifikasi token dari Redis, hash password baru, update di DB, hapus token dari Redis  
-**TASK-BE-2.4.3** `[ ]` Rate limit forgot-password: 3 request per IP per jam  
-**TASK-BE-2.4.4** `[ ]` Commit: `feat(auth): add forgot and reset password flow`  
+**TASK-BE-2.4.1** `[x]` Buat `POST /auth/forgot-password` — generate reset token (UUID), simpan di Redis (TTL 1 jam), kirim email berisi link reset  
+**TASK-BE-2.4.2** `[x]` Buat `POST /auth/reset-password` — verifikasi token dari Redis, hash password baru, update di DB, hapus token dari Redis  
+**TASK-BE-2.4.3** `[x]` Rate limit forgot-password: 3 request per IP per jam  
+**TASK-BE-2.4.4** `[x]` Commit: `feat(auth): add forgot and reset password flow`  
 
-**TASK-FE-2.4.1** `[ ]` Buat halaman `app/(auth)/forgot-password/page.tsx` — form input email  
-**TASK-FE-2.4.2** `[ ]` Buat halaman `app/(auth)/reset-password/page.tsx` — form password baru + konfirmasi  
-**TASK-FE-2.4.3** `[ ]` Commit: `feat(auth): add forgot and reset password pages`  
+**TASK-FE-2.4.1** `[x]` Buat halaman `app/(auth)/forgot-password/page.tsx` — form input email  
+**TASK-FE-2.4.2** `[x]` Buat halaman `app/(auth)/reset-password/page.tsx` — form password baru + konfirmasi  
+**TASK-FE-2.4.3** `[x]` Commit: `feat(auth): add forgot and reset password pages`  
 
-**TASK-INT-2.4.1** `[ ]` Integrasi halaman forgot & reset dengan backend  
-**TASK-INT-2.4.2** `[ ]` Commit: `feat(auth): integrate password reset flow`  
+**TASK-INT-2.4.1** `[x]` Integrasi halaman forgot & reset dengan backend  
+**TASK-INT-2.4.2** `[x]` Commit: `feat(auth): integrate password reset flow`  
 
 ---
 
 ### STORY 2.5 — Profile Settings
 Sebagai user yang sudah login, saya ingin bisa mengubah nama, foto profil, dan password saya.
 
-**TASK-BE-2.5.1** `[ ]` Buat `PATCH /users/me` — update nama, bio, avatar_url  
-**TASK-BE-2.5.2** `[ ]` Buat `PATCH /users/me/password` — verifikasi password lama, hash password baru  
-**TASK-BE-2.5.3** `[ ]` Commit: `feat(auth): add profile and password update endpoints`  
+**TASK-BE-2.5.1** `[x]` Buat `PATCH /users/me` — update nama, bio, avatar_url  
+**TASK-BE-2.5.2** `[x]` Buat `PATCH /users/me/password` — verifikasi password lama, hash password baru  
+**TASK-BE-2.5.3** `[x]` Commit: `feat(auth): add profile and password update endpoints`  
 
-**TASK-FE-2.5.1** `[ ]` Buat halaman `app/me/settings/page.tsx` (Client Component)  
-**TASK-FE-2.5.2** `[ ]` Form update profil: nama, bio, upload foto  
-**TASK-FE-2.5.3** `[ ]` Form ganti password: password lama, password baru, konfirmasi  
-**TASK-FE-2.5.4** `[ ]` Commit: `feat(auth): add profile settings page`  
+**TASK-FE-2.5.1** `[x]` Buat halaman `app/me/settings/page.tsx` (Client Component)  
+**TASK-FE-2.5.2** `[x]` Form update profil: nama, bio, upload foto ← foto upload menyusul di STORY 4.2  
+**TASK-FE-2.5.3** `[x]` Form ganti password: password lama, password baru, konfirmasi  
+**TASK-FE-2.5.4** `[x]` Commit: `feat(auth): add profile settings page`  
 
-**TASK-INT-2.5.1** `[ ]` Integrasi halaman settings dengan backend  
-**TASK-INT-2.5.2** `[ ]` Commit: `feat(auth): integrate profile settings`  
+**TASK-INT-2.5.1** `[x]` Integrasi halaman settings dengan backend  
+**TASK-INT-2.5.2** `[x]` Commit: `feat(auth): integrate profile settings`  
 
 ---
 

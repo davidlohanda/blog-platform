@@ -119,6 +119,50 @@ blog-platform/
 
 ---
 
+## Wajib Sebelum Setiap Commit
+
+Jalankan di **backend** dan **frontend** — pastikan 0 errors sebelum push:
+```bash
+npm run lint        # 0 errors, 0 warnings
+npm run type-check  # 0 errors
+```
+
+Untuk backend: jika ada prettier error, jalankan `npm run lint:fix` terlebih dahulu.
+
+---
+
+## Git Workflow Rules
+- Commit setiap Story selesai
+- Push setiap Story selesai ke branch Epic yang sedang berjalan
+- PR ke main HANYA dibuat setelah SEMUA Story dalam Epic selesai
+- Jika sesi berakhir sebelum Epic selesai:
+  → push Story terakhir yang selesai
+  → JANGAN buat PR
+  → sesi berikutnya: git checkout feat/nama-branch-yang-sama dan lanjut
+
+---
+
+## Aturan Navigasi Antar Epic dan Story
+
+### Kapan lanjut ke Epic berikutnya:
+- Semua Story dalam Epic saat ini sudah [x] selesai → lanjut Epic berikutnya
+- Ada Story yang masih [ ] tapi membutuhkan Epic lain diselesaikan dulu →
+  tandai sebagai BLOCKED, lanjut Epic berikutnya, kembali setelah dependency selesai
+
+### Kapan STOP dan tunggu instruksi:
+- Epic selesai penuh → STOP, buat PR, tunggu instruksi
+- Sesi hampir habis → push Story terakhir, STOP, tunggu instruksi
+- Menemukan keputusan bisnis yang tidak ada di PRD → STOP, tanya user
+
+### Format task yang blocked:
+[ ] ~~TASK-XX-X.X.X~~ BLOCKED: menunggu [nama Epic/Story yang dibutuhkan]
+
+### Prompt simpel yang bisa digunakan user:
+"Lanjutkan dari titik terakhir" → baca USER_STORIES_MVP.md,
+cari checkbox [ ] pertama yang tidak BLOCKED, lanjut dari sana.
+
+---
+
 ## Git Convention (Ringkasan)
 
 ```bash

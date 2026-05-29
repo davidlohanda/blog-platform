@@ -48,4 +48,45 @@ export const authRepository = {
   deleteAllEmailVerificationTokens(userId: string) {
     return prisma.emailVerificationToken.deleteMany({ where: { userId } });
   },
+
+  findByIdWithPassword(id: string) {
+    return prisma.user.findUnique({
+      where: { id },
+      select: { id: true, email: true, passwordHash: true },
+    });
+  },
+
+  updatePassword(userId: string, passwordHash: string) {
+    return prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash },
+    });
+  },
+
+  findByGoogleId(googleId: string) {
+    return prisma.user.findUnique({ where: { googleId } });
+  },
+
+  createGoogleUser(data: { googleId: string; email: string; name: string; avatarUrl?: string }) {
+    return prisma.user.create({
+      data: {
+        googleId: data.googleId,
+        email: data.email,
+        name: data.name,
+        avatarUrl: data.avatarUrl,
+        emailVerifiedAt: new Date(),
+      },
+    });
+  },
+
+  linkGoogleId(userId: string, googleId: string, avatarUrl?: string) {
+    return prisma.user.update({
+      where: { id: userId },
+      data: {
+        googleId,
+        ...(avatarUrl ? { avatarUrl } : {}),
+        emailVerifiedAt: new Date(),
+      },
+    });
+  },
 };

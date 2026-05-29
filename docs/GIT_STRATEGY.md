@@ -238,6 +238,18 @@ test(auth): add integration tests for auth endpoints
 
 ---
 
+## Skenario Multi-Sesi per Epic
+
+Skenario A — Epic selesai dalam satu sesi (ideal):
+  commit per Story → push per Story → PR ke main setelah Epic penuh selesai
+
+Skenario B — Epic tidak selesai dalam satu sesi:
+  commit per Story → push per Story → JANGAN buat PR dulu
+  Sesi berikutnya: checkout branch yang sama → lanjut Story berikutnya
+  PR ke main HANYA dibuat setelah SEMUA Story dalam Epic selesai
+
+---
+
 ## Hotfix Flow (Bug Kritis di Production)
 
 Kalau ada bug kritis yang harus diperbaiki segera:

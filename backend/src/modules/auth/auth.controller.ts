@@ -1,6 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
 import { authService } from './auth.service';
-import type { RegisterInput, LoginInput } from './auth.schema';
+import { config } from '../../config';
+import type {
+  RegisterInput,
+  LoginInput,
+  ForgotPasswordInput,
+  ResetPasswordInput,
+} from './auth.schema';
+import type { GoogleProfile } from '../../config/passport.config';
 
 const REFRESH_COOKIE_OPTIONS = {
   httpOnly: true,
@@ -82,6 +89,40 @@ export const authController = {
 
       res.clearCookie('refreshToken', { path: '/' });
       res.json({ success: true, data: { message: 'Berhasil logout' } });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async forgotPassword(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { email } = req.body as ForgotPasswordInput;
+      const result = await authService.forgotPassword(email);
+      res.json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async resetPassword(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { token, password } = req.body as ResetPasswordInput;
+      const result = await authService.resetPassword(token, password);
+      res.json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async googleCallback(req: Request, res: Response, next: NextFunction) {
+    try {
+      const googleUser = req.user as GoogleProfile;
+      const { accessToken, refreshToken } = await authService.handleGoogleUser(googleUser);
+
+      res.cookie('refreshToken', refreshToken, REFRESH_COOKIE_OPTIONS);
+      res.redirect(
+        `${config.platform.frontendUrl}/auth/google/callback?access_token=${accessToken}`,
+      );
     } catch (error) {
       next(error);
     }
