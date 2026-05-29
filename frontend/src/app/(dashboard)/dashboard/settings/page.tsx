@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -253,18 +253,15 @@ function AuthorsTab({ pubId }: { pubId: string }) {
     defaultValues: { email: '', role: 'author' },
   });
 
-  const loadAuthors = useCallback(async () => {
-    try {
-      const { data } = await apiClient.get<{ data: Author[] }>(`/publications/${pubId}/authors`);
-      setAuthors(data.data);
-    } catch {
-      // ignore
-    } finally {
-      setLoading(false);
-    }
+  useEffect(() => {
+    let cancelled = false;
+    apiClient
+      .get<{ data: Author[] }>(`/publications/${pubId}/authors`)
+      .then(({ data }) => { if (!cancelled) setAuthors(data.data); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, [pubId]);
-
-  useEffect(() => { void loadAuthors(); }, [loadAuthors]);
 
   async function onInvite(values: InviteValues) {
     try {
@@ -273,14 +270,16 @@ function AuthorsTab({ pubId }: { pubId: string }) {
       setInviteSuccess(`Undangan dikirim ke ${values.email}`);
     } catch (err: unknown) {
       const apiErr = err as { response?: { data?: { message?: string } } };
-      inviteForm.setError('root', { message: apiErr?.response?.data?.message ?? 'Gagal mengirim undangan.' });
+      inviteForm.setError('root', {
+        message: apiErr?.response?.data?.message ?? 'Gagal mengirim undangan.',
+      });
     }
   }
 
   async function handleRemove(userId: string) {
     try {
       await apiClient.delete(`/publications/${pubId}/authors/${userId}`);
-      await loadAuthors();
+      setAuthors((prev) => prev.filter((a) => a.userId !== userId));
     } catch {
       // ignore
     }

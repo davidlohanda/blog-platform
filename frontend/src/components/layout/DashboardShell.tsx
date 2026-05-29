@@ -5,12 +5,6 @@ import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 
-interface NavItem {
-  href: string;
-  label: string;
-  icon: ReactNode;
-}
-
 interface DashboardShellProps {
   children: ReactNode;
   title: string;
