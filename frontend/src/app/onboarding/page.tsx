@@ -32,7 +32,7 @@ export default function OnboardingPage() {
   async function onSubmit(values: FormValues) {
     try {
       await apiClient.post('/publications', values);
-      router.push('/dashboard');
+      router.push('/dashboard/articles');
     } catch (err: unknown) {
       const apiErr = err as { response?: { data?: { message?: string } } };
       form.setError('root', {
