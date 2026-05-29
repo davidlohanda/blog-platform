@@ -12,6 +12,7 @@ import { authRouter } from './modules/auth/auth.router';
 import { usersRouter } from './modules/users/users.router';
 import { publicationRouter } from './modules/publication/publication.router';
 import { mediaRouter } from './modules/media/media.router';
+import { subscriptionRouter } from './modules/subscription/subscription.router';
 import { tenantMiddleware } from './middleware/tenant.middleware';
 
 export function createApp() {
@@ -47,6 +48,7 @@ export function createApp() {
   app.use('/users', usersRouter);
   app.use('/publications', publicationRouter);
   app.use('/media', mediaRouter);
+  app.use('/subscriptions', subscriptionRouter);
 
   app.use(errorHandler);
 

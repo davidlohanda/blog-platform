@@ -11,6 +11,7 @@ import {
 import { z } from 'zod';
 import { articleRouter } from '../article/article.router';
 import { seriesRouter } from '../series/series.router';
+import { subscriptionNestedRouter } from '../subscription/subscription.router';
 
 const router = Router();
 
@@ -86,5 +87,7 @@ router.delete(
 // Mount article and series sub-routers with mergeParams
 router.use('/:pubId/articles', articleRouter);
 router.use('/:pubId/series', seriesRouter);
+// Subscription plans + order (mergeParams gives :pubId)
+router.use('/:pubId', subscriptionNestedRouter);
 
 export { router as publicationRouter };
