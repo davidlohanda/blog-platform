@@ -41,7 +41,7 @@ export default function ArticlesPage() {
   const [activeFilter, setActiveFilter] = useState<StatusFilter>('Semua');
   const [search, setSearch] = useState('');
   const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [creating, setCreating] = useState(false);
+  const [creating] = useState(false);
 
   useEffect(() => {
     if (!pub) return;
@@ -65,18 +65,8 @@ export default function ArticlesPage() {
     return () => { cancelled = true; };
   }, [pub, activeFilter, search]);
 
-  async function createNewArticle() {
-    if (!pub) return;
-    setCreating(true);
-    try {
-      const { data } = await apiClient.post<{ data: Article }>(
-        `/publications/${pub.id}/articles`,
-        { title: 'Artikel baru tanpa judul' },
-      );
-      router.push(`/dashboard/articles/${data.data.id}`);
-    } catch {
-      setCreating(false);
-    }
+  function createNewArticle() {
+    router.push('/dashboard/articles/new');
   }
 
   async function deleteArticle(articleId: string) {

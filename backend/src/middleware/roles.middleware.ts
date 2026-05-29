@@ -14,7 +14,9 @@ export function requirePublicationRole(...allowedRoles: Array<'owner' | 'author'
       const userId = (req as AuthRequest).user?.userId;
       if (!userId) return next(AppError.unauthorized());
 
-      const publicationId = req.params.id ?? req.params.publicationId;
+      // pubId first (nested article/series routes where :id is the resource ID, not publication)
+      // then publicationId or id for top-level publication routes
+      const publicationId = req.params.pubId ?? req.params.publicationId ?? req.params.id;
       if (!publicationId) return next(AppError.badRequest('Publication ID wajib ada'));
 
       const membership = await publicationRepository.findAuthor(publicationId, userId);
