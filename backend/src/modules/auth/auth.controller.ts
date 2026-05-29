@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { authService } from './auth.service';
+import { config } from '../../config';
 import type { RegisterInput, LoginInput } from './auth.schema';
+import type { GoogleProfile } from '../../config/passport.config';
 
 const REFRESH_COOKIE_OPTIONS = {
   httpOnly: true,
@@ -82,6 +84,18 @@ export const authController = {
 
       res.clearCookie('refreshToken', { path: '/' });
       res.json({ success: true, data: { message: 'Berhasil logout' } });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async googleCallback(req: Request, res: Response, next: NextFunction) {
+    try {
+      const googleUser = req.user as GoogleProfile;
+      const { accessToken, refreshToken } = await authService.handleGoogleUser(googleUser);
+
+      res.cookie('refreshToken', refreshToken, REFRESH_COOKIE_OPTIONS);
+      res.redirect(`${config.platform.frontendUrl}/auth/google/callback?access_token=${accessToken}`);
     } catch (error) {
       next(error);
     }

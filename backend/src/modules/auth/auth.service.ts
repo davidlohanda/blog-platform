@@ -111,6 +111,36 @@ export const authService = {
     }
   },
 
+  async handleGoogleUser(profile: { googleId: string; email: string; name: string; avatarUrl?: string }) {
+    let user = await authRepository.findByGoogleId(profile.googleId);
+
+    if (!user) {
+      const existingByEmail = await authRepository.findByEmail(profile.email);
+      if (existingByEmail) {
+        user = await authRepository.linkGoogleId(existingByEmail.id, profile.googleId, profile.avatarUrl);
+      } else {
+        user = await authRepository.createGoogleUser(profile);
+      }
+    }
+
+    const tokenId = randomUUID();
+    const accessToken = signAccessToken({ userId: user.id, email: user.email });
+    const refreshToken = signRefreshToken(user.id, tokenId);
+    await redis.setex(`refresh:${user.id}:${tokenId}`, REFRESH_TOKEN_TTL, tokenId);
+
+    return {
+      accessToken,
+      refreshToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        avatarUrl: user.avatarUrl,
+        emailVerifiedAt: user.emailVerifiedAt,
+      },
+    };
+  },
+
   async getMe(userId: string) {
     const user = await authRepository.findById(userId);
     if (!user) throw AppError.notFound('User tidak ditemukan');

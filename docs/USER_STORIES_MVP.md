@@ -137,15 +137,15 @@ Sebagai user terdaftar, saya ingin bisa login dengan email dan password, agar sa
 ### STORY 2.3 — Login dengan Google OAuth
 Sebagai user, saya ingin bisa login dengan akun Google, agar tidak perlu mengingat password baru.
 
-**TASK-BE-2.3.1** `[ ]` Setup Google OAuth credentials di Google Console  
-**TASK-BE-2.3.2** `[ ]` Install dan konfigurasi Passport.js dengan Google Strategy  
-**TASK-BE-2.3.3** `[ ]` Buat `GET /auth/google` — redirect ke Google consent screen  
-**TASK-BE-2.3.4** `[ ]` Buat `GET /auth/google/callback` — terima code, tukar dengan user info Google, upsert user di DB, issue JWT, redirect ke app  
-**TASK-BE-2.3.5** `[ ]` Commit: `feat(auth): add Google OAuth login`  
+**TASK-BE-2.3.1** `[ ]` Setup Google OAuth credentials di Google Console ← manual di Google Console  
+**TASK-BE-2.3.2** `[x]` Install dan konfigurasi Passport.js dengan Google Strategy  
+**TASK-BE-2.3.3** `[x]` Buat `GET /auth/google` — redirect ke Google consent screen  
+**TASK-BE-2.3.4** `[x]` Buat `GET /auth/google/callback` — terima code, tukar dengan user info Google, upsert user di DB, issue JWT, redirect ke app  
+**TASK-BE-2.3.5** `[x]` Commit: `feat(auth): add Google OAuth login`  
 
-**TASK-FE-2.3.1** `[ ]` Aktifkan tombol "Lanjutkan dengan Google" di halaman login dan register  
-**TASK-FE-2.3.2** `[ ]` Handle redirect callback dari OAuth  
-**TASK-FE-2.3.3** `[ ]` Commit: `feat(auth): integrate Google OAuth in frontend`  
+**TASK-FE-2.3.1** `[x]` Aktifkan tombol "Lanjutkan dengan Google" di halaman login dan register  
+**TASK-FE-2.3.2** `[x]` Handle redirect callback dari OAuth  
+**TASK-FE-2.3.3** `[x]` Commit: `feat(auth): integrate Google OAuth in frontend`  
 
 ---
 

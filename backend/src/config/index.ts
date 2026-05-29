@@ -46,8 +46,16 @@ export const config = {
     isProduction: process.env.MIDTRANS_IS_PRODUCTION === 'true',
   },
 
+  google: {
+    clientId: process.env.GOOGLE_CLIENT_ID ?? '',
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '',
+    callbackUrl:
+      process.env.GOOGLE_CALLBACK_URL ?? 'http://localhost:4000/auth/google/callback',
+  },
+
   platform: {
     feePercent: 15,
     baseDomain: process.env.BASE_DOMAIN ?? 'lentera.id',
+    frontendUrl: process.env.FRONTEND_URL ?? 'http://localhost:3000',
   },
 };
