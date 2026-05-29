@@ -51,10 +51,13 @@ export default function SeriesPage() {
   const form = useForm<CreateValues>({ resolver: zodResolver(createSchema) });
 
   useEffect(() => {
+    let cancelled = false;
     apiClient
       .get<{ data: Publication[] }>('/publications/mine')
-      .then(({ data }) => { if (data.data[0]) setPub(data.data[0]); })
-      .catch(() => {});
+      .then(({ data }) => { if (!cancelled && data.data[0]) setPub(data.data[0]); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {

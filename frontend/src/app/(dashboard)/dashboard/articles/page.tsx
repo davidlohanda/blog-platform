@@ -49,10 +49,13 @@ export default function ArticlesPage() {
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
     apiClient
       .get<{ data: Publication[] }>('/publications/mine')
-      .then(({ data }) => { if (data.data[0]) setPub(data.data[0]); })
-      .catch(() => {});
+      .then(({ data }) => { if (!cancelled && data.data[0]) setPub(data.data[0]); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false); }); // stop loading whether pub found or not
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
@@ -111,10 +114,24 @@ export default function ArticlesPage() {
   const draftCount = articles.filter((a) => a.status === 'draft').length;
   const scheduledCount = articles.filter((a) => a.status === 'scheduled').length;
 
+  // No publication yet — show onboarding CTA instead of empty shell
+  if (!loading && !pub) {
+    return (
+      <DashboardShell title="Artikel">
+        <div className="flex h-64 flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
+          <p>Kamu belum punya publication.</p>
+          <a href="/onboarding" className="rounded-lg bg-foreground px-4 py-2 text-sm font-medium text-background hover:opacity-90">
+            Buat publication sekarang
+          </a>
+        </div>
+      </DashboardShell>
+    );
+  }
+
   return (
     <DashboardShell
       title="Artikel"
-      subtitle={`${articles.length} tulisan · ${draftCount} draft · ${scheduledCount} terjadwal`}
+      subtitle={pub ? `${articles.length} tulisan · ${draftCount} draft · ${scheduledCount} terjadwal` : ''}
       publicationName={pub?.name}
       publicationDomain={pub ? `${pub.slug}.lentera.id` : undefined}
       action={
