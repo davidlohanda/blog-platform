@@ -188,62 +188,62 @@ Sebagai user yang sudah login, saya ingin bisa mengubah nama, foto profil, dan p
 ### STORY 3.1 — Membuat Publication
 Sebagai owner baru, saya ingin bisa mendaftarkan publication saya dengan nama, deskripsi, dan logo, agar platform bisa digunakan untuk blog saya.
 
-**TASK-BE-3.1.1** `[ ]` Buat `publication.schema.ts` — Zod schema untuk create/update publication  
-**TASK-BE-3.1.2** `[ ]` Buat `publication.repository.ts` — method `create`, `findBySlug`, `findByDomain`, `update`  
-**TASK-BE-3.1.3** `[ ]` Buat `publication.service.ts` — method `create`: generate slug dari nama, simpan ke DB, set creator sebagai owner  
-**TASK-BE-3.1.4** `[ ]` Buat `publication.controller.ts` dan `publication.router.ts`  
-**TASK-BE-3.1.5** `[ ]` Endpoint `POST /publications` — buat publication baru (authenticated)  
-**TASK-BE-3.1.6** `[ ]` Endpoint `GET /publications/:slug` — detail publication (public)  
-**TASK-BE-3.1.7** `[ ]` Endpoint `PATCH /publications/:id` — update settings (owner only)  
-**TASK-BE-3.1.8** `[ ]` Buat `tenant.middleware.ts` — resolve `publication_id` dari Host header, attach ke `req.publication`  
-**TASK-BE-3.1.9** `[ ]` Setup Redis cache untuk publication by slug dan domain (TTL 1 jam)  
-**TASK-BE-3.1.10** `[ ]` Commit: `feat(publication): add publication CRUD and tenant middleware`  
+**TASK-BE-3.1.1** `[x]` Buat `publication.schema.ts` — Zod schema untuk create/update publication  
+**TASK-BE-3.1.2** `[x]` Buat `publication.repository.ts` — method `create`, `findBySlug`, `findByDomain`, `update`  
+**TASK-BE-3.1.3** `[x]` Buat `publication.service.ts` — method `create`: generate slug dari nama, simpan ke DB, set creator sebagai owner  
+**TASK-BE-3.1.4** `[x]` Buat `publication.controller.ts` dan `publication.router.ts`  
+**TASK-BE-3.1.5** `[x]` Endpoint `POST /publications` — buat publication baru (authenticated)  
+**TASK-BE-3.1.6** `[x]` Endpoint `GET /publications/:slug` — detail publication (public)  
+**TASK-BE-3.1.7** `[x]` Endpoint `PATCH /publications/:id` — update settings (owner only)  
+**TASK-BE-3.1.8** `[x]` Buat `tenant.middleware.ts` — resolve `publication_id` dari Host header, attach ke `req.publication`  
+**TASK-BE-3.1.9** `[x]` Setup Redis cache untuk publication by slug dan domain (TTL 1 jam)  
+**TASK-BE-3.1.10** `[x]` Commit: `feat(publication): add publication CRUD and tenant middleware`  
 
-**TASK-FE-3.1.1** `[ ]` Buat halaman onboarding buat publication baru (Client Component)  
-**TASK-FE-3.1.2** `[ ]` Form: nama publication, deskripsi, upload logo  
-**TASK-FE-3.1.3** `[ ]` Commit: `feat(publication): add create publication onboarding page`  
+**TASK-FE-3.1.1** `[x]` Buat halaman onboarding buat publication baru (Client Component)  
+**TASK-FE-3.1.2** `[x]` Form: nama publication, deskripsi, upload logo ← logo upload menyusul di STORY 4.2  
+**TASK-FE-3.1.3** `[x]` Commit: `feat(publication): add create publication onboarding page`  
 
-**TASK-INT-3.1.1** `[ ]` Integrasi form buat publication dengan backend  
-**TASK-INT-3.1.2** `[ ]` Commit: `feat(publication): integrate publication creation`  
+**TASK-INT-3.1.1** `[x]` Integrasi form buat publication dengan backend  
+**TASK-INT-3.1.2** `[x]` Commit: `feat(publication): integrate publication creation`  
 
 ---
 
 ### STORY 3.2 — Manajemen Author
 Sebagai owner, saya ingin bisa mengundang penulis lain untuk bergabung ke publication saya, agar kami bisa menulis bersama dalam satu platform.
 
-**TASK-BE-3.2.1** `[ ]` Endpoint `POST /publications/:id/authors/invite` — kirim email undangan dengan token, simpan pending invite di DB  
-**TASK-BE-3.2.2** `[ ]` Endpoint `GET /auth/accept-invite?token=xxx` — verifikasi token, tambahkan user sebagai author  
-**TASK-BE-3.2.3** `[ ]` Endpoint `GET /publications/:id/authors` — list semua author  
-**TASK-BE-3.2.4** `[ ]` Endpoint `PATCH /publications/:id/authors/:userId` — update role author  
-**TASK-BE-3.2.5** `[ ]` Endpoint `DELETE /publications/:id/authors/:userId` — remove author (owner only, tidak bisa remove diri sendiri jika satu-satunya owner)  
-**TASK-BE-3.2.6** `[ ]` Buat `roles.middleware.ts` — cek role user di publication (owner/author)  
-**TASK-BE-3.2.7** `[ ]` Commit: `feat(publication): add author invite and management`  
+**TASK-BE-3.2.1** `[x]` Endpoint `POST /publications/:id/authors/invite` — log invite URL (email menyusul STORY 7.1)  
+**TASK-BE-3.2.2** `[ ]` ~~Endpoint `GET /auth/accept-invite?token=xxx`~~ BLOCKED: menunggu STORY 7.1 (Email Service)  
+**TASK-BE-3.2.3** `[x]` Endpoint `GET /publications/:id/authors` — list semua author  
+**TASK-BE-3.2.4** `[x]` Endpoint `PATCH /publications/:id/authors/:userId` — update role author  
+**TASK-BE-3.2.5** `[x]` Endpoint `DELETE /publications/:id/authors/:userId` — remove author (owner only, tidak bisa remove diri sendiri jika satu-satunya owner)  
+**TASK-BE-3.2.6** `[x]` Buat `roles.middleware.ts` — cek role user di publication (owner/author)  
+**TASK-BE-3.2.7** `[x]` Commit: `feat(publication): add author invite and management`  
 
-**TASK-FE-3.2.1** `[ ]` Buat halaman `dashboard/settings/` dengan 3 tab: Umum, Paket Harga, Author  
-**TASK-FE-3.2.2** `[ ]` Tab Author: list author dengan role, form invite via email, tombol remove  
-**TASK-FE-3.2.3** `[ ]` Buat halaman accept invite untuk user yang menerima undangan  
-**TASK-FE-3.2.4** `[ ]` Commit: `feat(publication): add author management UI`  
+**TASK-FE-3.2.1** `[x]` Buat halaman `dashboard/settings/` dengan tab: Umum, Author  
+**TASK-FE-3.2.2** `[x]` Tab Author: list author dengan role, form invite via email, tombol remove  
+**TASK-FE-3.2.3** `[ ]` ~~Buat halaman accept invite~~ BLOCKED: menunggu STORY 7.1 (Email Service)  
+**TASK-FE-3.2.4** `[x]` Commit: `feat(publication): add author management UI`  
 
-**TASK-INT-3.2.1** `[ ]` Integrasi invite dan author management  
-**TASK-INT-3.2.2** `[ ]` Commit: `feat(publication): integrate author management`  
+**TASK-INT-3.2.1** `[x]` Integrasi invite dan author management  
+**TASK-INT-3.2.2** `[x]` Commit: `feat(publication): integrate author management`  
 
 ---
 
 ### STORY 3.3 — Publication Settings
 Sebagai owner, saya ingin bisa mengkonfigurasi nama, deskripsi, logo, dan custom domain publication saya.
 
-**TASK-BE-3.3.1** `[ ]` Endpoint update publication settings (sudah ada di STORY 3.1)  
-**TASK-BE-3.3.2** `[ ]` Endpoint `POST /publications/:id/custom-domain` — simpan custom domain, set status `pending`  
-**TASK-BE-3.3.3** `[ ]` Background job: cek DNS propagation setiap 5 menit, update status ke `verified` jika CNAME sudah benar  
-**TASK-BE-3.3.4** `[ ]` Commit: `feat(publication): add custom domain configuration`  
+**TASK-BE-3.3.1** `[x]` Endpoint update publication settings (sudah ada di STORY 3.1)  
+**TASK-BE-3.3.2** `[x]` Endpoint `POST /publications/:id/custom-domain` — simpan custom domain, set status `pending`  
+**TASK-BE-3.3.3** `[ ]` ~~Background job: cek DNS propagation~~ BLOCKED: menunggu BullMQ setup di STORY 7.1  
+**TASK-BE-3.3.4** `[x]` Commit: `feat(publication): add custom domain configuration`  
 
-**TASK-FE-3.3.1** `[ ]` Tab Umum di settings: form nama, deskripsi, logo, custom domain  
-**TASK-FE-3.3.2** `[ ]` Tampilkan instruksi CNAME setup setelah input custom domain  
-**TASK-FE-3.3.3** `[ ]` Tampilkan status domain: pending / verified / active  
-**TASK-FE-3.3.4** `[ ]` Commit: `feat(publication): add publication settings UI`  
+**TASK-FE-3.3.1** `[x]` Tab Umum di settings: form nama, deskripsi, logo, custom domain  
+**TASK-FE-3.3.2** `[x]` Tampilkan instruksi CNAME setup setelah input custom domain  
+**TASK-FE-3.3.3** `[x]` Tampilkan status domain: pending (DNS check background job menyusul)  
+**TASK-FE-3.3.4** `[x]` Commit: `feat(publication): add publication settings UI`  
 
-**TASK-INT-3.3.1** `[ ]` Integrasi settings dengan backend  
-**TASK-INT-3.3.2** `[ ]` Commit: `feat(publication): integrate publication settings`  
+**TASK-INT-3.3.1** `[x]` Integrasi settings dengan backend  
+**TASK-INT-3.3.2** `[x]` Commit: `feat(publication): integrate publication settings`  
 
 ---
 
