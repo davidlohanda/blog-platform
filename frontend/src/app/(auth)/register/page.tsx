@@ -93,7 +93,14 @@ export default function RegisterPage() {
         </>
       }
     >
-      <Button variant="outline" className="w-full" disabled type="button">
+      <Button
+        variant="outline"
+        className="w-full"
+        type="button"
+        onClick={() => {
+          window.location.href = `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000'}/auth/google`;
+        }}
+      >
         <GoogleIcon />
         Daftar dengan Google
       </Button>
