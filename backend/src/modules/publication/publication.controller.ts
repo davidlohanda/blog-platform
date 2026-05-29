@@ -119,4 +119,23 @@ export const publicationController = {
       next(error);
     }
   },
+
+  // Public: list authors with bio for the publication homepage (no email)
+  async listPublicAuthors(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const authors = await publicationService.listAuthors(id);
+      const safe = authors.map((a) => ({
+        id: a.userId,
+        role: a.role,
+        joinedAt: a.joinedAt,
+        name: a.user.name,
+        avatarUrl: a.user.avatarUrl,
+        bio: a.user.bio,
+      }));
+      res.json({ success: true, data: safe });
+    } catch (error) {
+      next(error);
+    }
+  },
 };

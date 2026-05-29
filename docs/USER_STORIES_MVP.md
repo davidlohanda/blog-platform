@@ -268,7 +268,7 @@ Sebagai author, saya ingin bisa menulis artikel dengan editor yang lengkap, agar
 **TASK-FE-4.1.3** `[x]` Buat halaman editor `app/(dashboard)/dashboard/articles/[id]/page.tsx` — full screen  
 **TASK-FE-4.1.4** `[x]` Settings drawer: visibility, excerpt, jadwal publish, slug URL  
 **TASK-FE-4.1.5** `[x]` Autosave setiap 30 detik — tampilkan status tersimpan/menyimpan  
-**TASK-FE-4.1.6** `[ ]` ~~Tombol Preview~~ BLOCKED: menunggu reader page di EPIC 6  
+**TASK-FE-4.1.6** `[x]` Tombol Preview — reader page tersedia di EPIC 6 (navigate ke /[slug])  
 **TASK-FE-4.1.7** `[x]` Tombol Terbitkan — panggil publish endpoint, redirect ke daftar artikel  
 **TASK-FE-4.1.8** `[x]` Commit: `feat(article): add rich text editor with Tiptap`  
 
@@ -402,73 +402,73 @@ Sebagai member, saya ingin bisa melihat status subscription saya dan riwayat tra
 ### STORY 6.1 — Homepage Publication
 Sebagai pengunjung, saya ingin bisa melihat homepage publication dengan daftar artikel terbaru dan informasi tentang para penulis, agar saya bisa memutuskan apakah ingin berlangganan.
 
-**TASK-BE-6.1.1** `[ ]` Endpoint `GET /publications/:pubId/articles` — list artikel publik dengan pagination, filter author/tag, sort by terbaru (public: hanya free + metadata premium)  
-**TASK-BE-6.1.2** `[ ]` Endpoint `GET /publications/:pubId/authors` — list semua author dengan bio  
-**TASK-BE-6.1.3** `[ ]` Commit: `feat(reader): add public article list and author list endpoints`  
+**TASK-BE-6.1.1** `[x]` Endpoint `GET /publications/:pubId/articles` — list artikel publik dengan pagination, filter author/tag, sort by terbaru (public: hanya free + metadata premium)  
+**TASK-BE-6.1.2** `[x]` Endpoint `GET /publications/:pubId/authors` — list semua author dengan bio  
+**TASK-BE-6.1.3** `[x]` Commit: `feat(reader): add public article list and author list endpoints`  
 
-**TASK-FE-6.1.1** `[ ]` Buat layout `app/(publication)/layout.tsx` — fetch publication dari host header, set metadata dasar  
-**TASK-FE-6.1.2** `[ ]` Buat halaman `app/(publication)/page.tsx` (Cache Component, `cacheLife('minutes')`)  
-**TASK-FE-6.1.3** `[ ]` Section hero: tagline publication, deskripsi, CTA berlangganan + baca gratis, stats (jumlah subscriber, artikel, penulis)  
-**TASK-FE-6.1.4** `[ ]` Section artikel: featured article (besar), grid artikel lainnya, badge PREMIUM untuk artikel premium  
-**TASK-FE-6.1.5** `[ ]` Section penulis: card tiap author dengan foto, nama, spesialisasi, bio singkat, link ke semua tulisannya  
-**TASK-FE-6.1.6** `[ ]` Navbar: logo, menu (Beranda, Series, Roadmap, Penulis, Tentang), search icon, Library icon, tombol Masuk / Berlangganan  
-**TASK-FE-6.1.7** `[ ]` `generateMetadata` untuk SEO: title, description, OG image dari logo publication  
-**TASK-FE-6.1.8** `[ ]` Commit: `feat(reader): add publication homepage`  
+**TASK-FE-6.1.1** `[x]` Buat layout `app/(publication)/layout.tsx` — fetch publication dari host header, set metadata dasar  
+**TASK-FE-6.1.2** `[x]` Buat halaman `app/(publication)/page.tsx` (Cache Component, `cacheLife('minutes')`)  
+**TASK-FE-6.1.3** `[x]` Section hero: tagline publication, deskripsi, CTA berlangganan + baca gratis, stats (jumlah subscriber, artikel, penulis)  
+**TASK-FE-6.1.4** `[x]` Section artikel: featured article (besar), grid artikel lainnya, badge PREMIUM untuk artikel premium  
+**TASK-FE-6.1.5** `[x]` Section penulis: card tiap author dengan foto, nama, spesialisasi, bio singkat, link ke semua tulisannya  
+**TASK-FE-6.1.6** `[x]` Navbar: logo, menu (Beranda, Series, Roadmap, Penulis, Tentang), search icon, Library icon, tombol Masuk / Berlangganan  
+**TASK-FE-6.1.7** `[x]` `generateMetadata` untuk SEO: title, description, OG image dari logo publication  
+**TASK-FE-6.1.8** `[x]` Commit: `feat(reader): add publication homepage`  
 
-**TASK-INT-6.1.1** `[ ]` Integrasi homepage dengan backend  
-**TASK-INT-6.1.2** `[ ]` Commit: `feat(reader): integrate publication homepage`  
+**TASK-INT-6.1.1** `[x]` Integrasi homepage dengan backend  
+**TASK-INT-6.1.2** `[x]` Commit: `feat(reader): integrate publication homepage`  
 
 ---
 
 ### STORY 6.2 — Membaca Artikel
 Sebagai pembaca, saya ingin bisa membaca artikel dengan nyaman, agar pengalaman belajar saya menyenangkan.
 
-**TASK-BE-6.2.1** `[ ]` Endpoint artikel sudah ada — tambahkan: untuk artikel premium, cek subscription user, return konten penuh jika member atau return excerpt saja jika bukan  
-**TASK-BE-6.2.2** `[ ]` Endpoint `POST /publications/:pubId/articles/:id/view` — increment view count  
-**TASK-BE-6.2.3** `[ ]` Commit: `feat(reader): add article access control and view tracking`  
+**TASK-BE-6.2.1** `[x]` Endpoint artikel sudah ada — tambahkan: untuk artikel premium, cek subscription user, return konten penuh jika member atau return excerpt saja jika bukan  
+**TASK-BE-6.2.2** `[x]` Endpoint `POST /publications/:pubId/articles/:id/view` — increment view count  
+**TASK-BE-6.2.3** `[x]` Commit: `feat(reader): add article access control and view tracking`  
 
-**TASK-FE-6.2.1** `[ ]` Buat halaman `app/(publication)/[articleSlug]/page.tsx`  
-**TASK-FE-6.2.2** `[ ]` Artikel free: Cache Component dengan `cacheLife('hours')` dan `cacheTag`  
-**TASK-FE-6.2.3** `[ ]` Artikel premium: request-time (tidak di-cache), cek subscription server-side  
-**TASK-FE-6.2.4** `[ ]` Layout artikel: cover image, badge tag + PREMIUM, judul, excerpt, info author (avatar + nama + tanggal + reading time)  
-**TASK-FE-6.2.5** `[ ]` Konten artikel: render Tiptap JSON ke HTML dengan typography yang baik, max-width ~680px  
-**TASK-FE-6.2.6** `[ ]` Progress bar reading — sticky di atas halaman, update saat scroll (Client Component)  
-**TASK-FE-6.2.7** `[ ]` Action bar: tombol like (semua user), tombol save ke folder (member), tombol share  
-**TASK-FE-6.2.8** `[ ]` Author bio section di bawah artikel: foto, nama, bio, link ke semua tulisannya  
-**TASK-FE-6.2.9** `[ ]` Navigasi prev/next artikel jika bagian dari series  
-**TASK-FE-6.2.10** `[ ]` `generateMetadata` — meta title, description, OG image dari cover artikel  
-**TASK-FE-6.2.11** `[ ]` Commit: `feat(reader): add article reader page`  
+**TASK-FE-6.2.1** `[x]` Buat halaman `app/(publication)/[articleSlug]/page.tsx`  
+**TASK-FE-6.2.2** `[x]` Artikel free: Cache Component dengan `cacheLife('hours')` dan `cacheTag`  
+**TASK-FE-6.2.3** `[x]` Artikel premium: request-time (tidak di-cache), cek subscription server-side  
+**TASK-FE-6.2.4** `[x]` Layout artikel: cover image, badge tag + PREMIUM, judul, excerpt, info author (avatar + nama + tanggal + reading time)  
+**TASK-FE-6.2.5** `[x]` Konten artikel: render Tiptap JSON ke HTML dengan typography yang baik, max-width ~680px  
+**TASK-FE-6.2.6** `[x]` Progress bar reading — sticky di atas halaman, update saat scroll (Client Component)  
+**TASK-FE-6.2.7** `[x]` Action bar: tombol like (semua user), tombol save ke folder (member), tombol share  
+**TASK-FE-6.2.8** `[x]` Author bio section di bawah artikel: foto, nama, bio, link ke semua tulisannya  
+**TASK-FE-6.2.9** `[x]` Navigasi prev/next artikel jika bagian dari series  
+**TASK-FE-6.2.10** `[x]` `generateMetadata` — meta title, description, OG image dari cover artikel  
+**TASK-FE-6.2.11** `[x]` Commit: `feat(reader): add article reader page`  
 
-**TASK-INT-6.2.1** `[ ]` Integrasi halaman artikel dengan backend  
-**TASK-INT-6.2.2** `[ ]` Test: artikel free bisa dibaca semua, artikel premium terblock untuk non-member  
-**TASK-INT-6.2.3** `[ ]` Commit: `feat(reader): integrate article reader`  
+**TASK-INT-6.2.1** `[x]` Integrasi halaman artikel dengan backend  
+**TASK-INT-6.2.2** `[ ]` ~~Test: artikel free bisa dibaca semua, artikel premium terblock untuk non-member~~ BLOCKED: menunggu manual testing  
+**TASK-INT-6.2.3** `[x]` Commit: `feat(reader): integrate article reader`  
 
 ---
 
 ### STORY 6.3 — Paywall
 Sebagai non-member yang membaca artikel premium, saya ingin melihat CTA berlangganan yang menarik, agar saya tertarik untuk subscribe.
 
-**TASK-FE-6.3.1** `[ ]` Buat komponen `ArticlePaywall.tsx` (Server Component)  
-**TASK-FE-6.3.2** `[ ]` Tampilkan preview konten (±200 kata pertama) dengan fade-out effect di bawahnya  
-**TASK-FE-6.3.3** `[ ]` CTA card: "Selebihnya tersedia untuk member" + benefit singkat + tombol Berlangganan + link Masuk (jika sudah punya akun)  
-**TASK-FE-6.3.4** `[ ]` Tidak ada referensi free trial apapun  
-**TASK-FE-6.3.5** `[ ]` Commit: `feat(reader): add paywall component`  
+**TASK-FE-6.3.1** `[x]` Buat komponen `ArticlePaywall.tsx` (Server Component)  
+**TASK-FE-6.3.2** `[x]` Tampilkan preview konten (±200 kata pertama) dengan fade-out effect di bawahnya  
+**TASK-FE-6.3.3** `[x]` CTA card: "Selebihnya tersedia untuk member" + benefit singkat + tombol Berlangganan + link Masuk (jika sudah punya akun)  
+**TASK-FE-6.3.4** `[x]` Tidak ada referensi free trial apapun  
+**TASK-FE-6.3.5** `[x]` Commit: `feat(reader): add paywall component`  
 
 ---
 
 ### STORY 6.4 — Like Artikel
 Sebagai pengunjung, saya ingin bisa memberikan like pada artikel yang saya sukai, agar author tahu konten mana yang disukai audiencenya.
 
-**TASK-BE-6.4.1** `[ ]` Endpoint `POST /publications/:pubId/articles/:id/like` — toggle like (authenticated)  
-**TASK-BE-6.4.2** `[ ]` Endpoint `GET /publications/:pubId/articles/:id/like` — cek apakah user sudah like  
-**TASK-BE-6.4.3** `[ ]` Commit: `feat(reader): add article like endpoint`  
+**TASK-BE-6.4.1** `[x]` Endpoint `POST /publications/:pubId/articles/:id/like` — toggle like (authenticated)  
+**TASK-BE-6.4.2** `[x]` Endpoint `GET /publications/:pubId/articles/:id/like` — cek apakah user sudah like  
+**TASK-BE-6.4.3** `[x]` Commit: `feat(reader): add article like endpoint`  
 
-**TASK-FE-6.4.1** `[ ]` Buat komponen `ArticleLikeButton.tsx` (Client Component) — tombol like dengan jumlah, toggle state  
-**TASK-FE-6.4.2** `[ ]` Non-member bisa like artikel free; member bisa like semua artikel  
-**TASK-FE-6.4.3** `[ ]` Commit: `feat(reader): add article like button`  
+**TASK-FE-6.4.1** `[x]` Buat komponen `ArticleLikeButton.tsx` (Client Component) — tombol like dengan jumlah, toggle state  
+**TASK-FE-6.4.2** `[x]` Non-member bisa like artikel free; member bisa like semua artikel  
+**TASK-FE-6.4.3** `[x]` Commit: `feat(reader): add article like button`  
 
-**TASK-INT-6.4.1** `[ ]` Integrasi like button dengan backend  
-**TASK-INT-6.4.2** `[ ]` Commit: `feat(reader): integrate article like`  
+**TASK-INT-6.4.1** `[x]` Integrasi like button dengan backend  
+**TASK-INT-6.4.2** `[x]` Commit: `feat(reader): integrate article like`  
 
 ---
 

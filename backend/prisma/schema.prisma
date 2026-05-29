@@ -27,6 +27,7 @@ model User {
   subscriptions       Subscription[]
   articles            Article[]
   series              Series[]
+  articleLikes        ArticleLike[]
   comments            Comment[]
   qaQuestions         QaQuestion[]
   qaAnswers           QaAnswer[]
@@ -185,6 +186,7 @@ model Article {
   metaDescription String?       @db.Text
   readingTime     Int?
   viewsCount      Int           @default(0)
+  likesCount      Int           @default(0)
   deletedAt       DateTime?     @db.Timestamptz
   createdAt       DateTime      @default(now()) @db.Timestamptz
   updatedAt       DateTime      @updatedAt @db.Timestamptz
@@ -196,6 +198,7 @@ model Article {
   comments    Comment[]
   reads       ArticleRead[]
   savedIn     SavedArticle[]
+  likes       ArticleLike[]
 
   @@unique([publicationId, slug])
   @@index([publicationId, status, publishedAt(sort: Desc)])
@@ -236,6 +239,19 @@ model ArticleTag {
 
   @@id([articleId, tagId])
   @@map("article_tags")
+}
+
+model ArticleLike {
+  articleId String   @db.Uuid
+  userId    String   @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz
+
+  article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([articleId, userId])
+  @@index([articleId])
+  @@map("article_likes")
 }
 
 model Series {
