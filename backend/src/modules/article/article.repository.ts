@@ -165,4 +165,18 @@ export const articleRepository = {
       }),
     ]);
   },
+
+  upsertReadProgress(articleId: string, userId: string, completionPercent: number) {
+    return prisma.articleRead.upsert({
+      where: { articleId_userId: { articleId, userId } },
+      create: { articleId, userId, completionPercent },
+      update: { completionPercent, readAt: new Date() },
+    });
+  },
+
+  findReadProgress(articleId: string, userId: string) {
+    return prisma.articleRead.findUnique({
+      where: { articleId_userId: { articleId, userId } },
+    });
+  },
 };

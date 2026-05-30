@@ -77,8 +77,9 @@ model Publication {
   description        String?  @db.Text
   logoUrl            String?  @db.Text
   coverUrl           String?  @db.Text
-  customDomain       String?  @unique @db.VarChar(255)
-  platformFeePercent Decimal  @default(15.00) @db.Decimal(5, 2)
+  customDomain       String?           @unique @db.VarChar(255)
+  customDomainStatus DomainStatus?
+  platformFeePercent Decimal           @default(15.00) @db.Decimal(5, 2)
   feeEnabled         Boolean  @default(true)
   createdAt          DateTime @default(now()) @db.Timestamptz
   updatedAt          DateTime @updatedAt @db.Timestamptz
@@ -115,6 +116,12 @@ model PublicationAuthor {
 enum AuthorRole {
   owner
   author
+}
+
+enum DomainStatus {
+  pending
+  verified
+  failed
 }
 
 // =============================================

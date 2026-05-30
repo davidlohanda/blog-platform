@@ -59,6 +59,11 @@ router.delete('/:id', authenticate, requirePublicationRole('owner', 'author'), (
 // View count (public, fire-and-forget)
 router.post('/:id/view', (req, res, next) => articleController.view(req, res, next));
 
+// Read progress (authenticated members)
+router.patch('/:id/read-progress', authenticate, (req, res, next) =>
+  articleController.updateReadProgress(req, res, next),
+);
+
 // Like toggle (authenticated)
 router.post('/:id/like', authenticate, (req, res, next) =>
   articleController.toggleLike(req, res, next),

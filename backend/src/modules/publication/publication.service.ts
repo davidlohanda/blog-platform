@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
 import { publicationRepository } from './publication.repository';
+import { prisma } from '../../config/database.config';
 import { AppError } from '../../lib/AppError';
 import { redis } from '../../config/redis.config';
 import type {
@@ -118,7 +119,14 @@ export const publicationService = {
     await invalidateCache(pub);
     const updated = await publicationRepository.setCustomDomain(publicationId, input.domain);
     await cachePublication(updated);
-    return updated;
+
+    // Reset domain status to pending (DNS job will verify)
+    await prisma.publication.update({
+      where: { id: publicationId },
+      data: { customDomainStatus: 'pending' },
+    });
+
+    return { ...updated, customDomainStatus: 'pending' as const };
   },
 
   async listAuthors(publicationId: string) {

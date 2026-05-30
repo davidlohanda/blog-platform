@@ -148,3 +148,46 @@ export async function getSeriesForArticle(
   );
   return res.data;
 }
+
+export interface PublicSeries {
+  id: string;
+  title: string;
+  slug: string;
+  description: string | null;
+  coverImageUrl: string | null;
+  author: { id: string; name: string; avatarUrl: string | null };
+  articles: Array<{
+    orderIndex: number;
+    article: {
+      id: string;
+      title: string;
+      slug: string;
+      excerpt: string | null;
+      status: string;
+      visibility: 'free' | 'members_only';
+      readingTime: number | null;
+      publishedAt: string | null;
+      coverImageUrl: string | null;
+    };
+  }>;
+}
+
+export async function getPublicSeriesList(pubId: string): Promise<PublicSeries[]> {
+  'use cache';
+  cacheTag(`series-list:${pubId}`);
+  cacheLife('hours');
+  const res = await serverFetch<{ success: true; data: PublicSeries[] }>(
+    `/publications/${pubId}/series`,
+  );
+  return res.data;
+}
+
+export async function getPublicSeriesDetail(pubId: string, slug: string): Promise<PublicSeries> {
+  'use cache';
+  cacheTag(`series-public:${pubId}:${slug}`);
+  cacheLife('hours');
+  const res = await serverFetch<{ success: true; data: PublicSeries }>(
+    `/publications/${pubId}/series/${slug}`,
+  );
+  return res.data;
+}

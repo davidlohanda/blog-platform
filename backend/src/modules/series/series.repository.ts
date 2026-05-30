@@ -98,4 +98,16 @@ export const seriesRepository = {
       where: { seriesId_articleId: { seriesId, articleId } },
     });
   },
+
+  // Reorder: update orderIndex for each article in the series
+  reorderArticles(seriesId: string, orderedArticleIds: string[]) {
+    return prisma.$transaction(
+      orderedArticleIds.map((articleId, index) =>
+        prisma.seriesArticle.update({
+          where: { seriesId_articleId: { seriesId, articleId } },
+          data: { orderIndex: index },
+        }),
+      ),
+    );
+  },
 };
