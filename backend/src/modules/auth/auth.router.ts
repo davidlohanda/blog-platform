@@ -7,6 +7,7 @@ import { authenticate } from '../../middleware/auth.middleware';
 import {
   authRateLimiter,
   forgotPasswordRateLimiter,
+  registerRateLimiter,
 } from '../../middleware/rateLimiter.middleware';
 import {
   registerSchema,
@@ -21,7 +22,7 @@ const router = Router();
 
 router.use(cookieParser());
 
-router.post('/register', validate(registerSchema), (req, res, next) =>
+router.post('/register', registerRateLimiter, validate(registerSchema), (req, res, next) =>
   authController.register(req, res, next),
 );
 router.get('/verify-email', validate(verifyEmailQuerySchema, 'query'), (req, res, next) =>

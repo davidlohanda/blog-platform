@@ -170,10 +170,10 @@ export const articleService = {
       if (scheduledDate <= new Date()) {
         throw AppError.badRequest('Waktu jadwal harus di masa depan', 'INVALID_SCHEDULE');
       }
-      return articleRepository.schedule(id, scheduledDate);
+      return articleRepository.schedule(id, publicationId, scheduledDate);
     }
 
-    const published = await articleRepository.publish(id, new Date());
+    const published = await articleRepository.publish(id, publicationId, new Date());
 
     // Notify subscribers (fire-and-forget — don't block the response)
     const pub = await publicationRepository.findById(publicationId);

@@ -75,10 +75,11 @@ export const seriesRepository = {
   },
 
   update(
+    publicationId: string,
     id: string,
     data: { title?: string; description?: string | null; coverImageUrl?: string | null },
   ) {
-    return prisma.series.update({ where: { id }, data });
+    return prisma.series.update({ where: { id, publicationId }, data });
   },
 
   slugExists(publicationId: string, slug: string) {

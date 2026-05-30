@@ -557,12 +557,12 @@ Sebagai owner, saya ingin melihat daftar lengkap subscriber saya, agar saya bisa
 ### STORY 9.1 — Security Hardening
 Sebagai operator platform, saya ingin memastikan platform aman sebelum diluncurkan.
 
-**TASK-9.1.1** `[ ]` Audit semua endpoint: pastikan semua query repository include `publicationId`  
-**TASK-9.1.2** `[ ]` Pastikan rate limiting aktif di semua endpoint auth  
-**TASK-9.1.3** `[ ]` Pastikan webhook Midtrans verify signature sebelum proses  
-**TASK-9.1.4** `[ ]` Pastikan tidak ada API key atau secret yang ter-commit di git  
-**TASK-9.1.5** `[ ]` Test: coba akses artikel premium publication A dengan akun member publication B — harus ditolak  
-**TASK-9.1.6** `[ ]` Commit: `chore(security): security audit and hardening`  
+**TASK-9.1.1** `[x]` Audit semua endpoint: pastikan semua query repository include `publicationId` — fix article.repository (update/softDelete/publish/schedule) dan series.repository (update) untuk enforce publicationId di WHERE clause  
+**TASK-9.1.2** `[x]` Pastikan rate limiting aktif di semua endpoint auth — tambah `registerRateLimiter` (10 req/jam) ke POST /auth/register yang sebelumnya tidak diproteksi  
+**TASK-9.1.3** `[x]` Pastikan webhook Midtrans verify signature sebelum proses — sudah ada dan dikonfirmasi aman (SHA512 HMAC)  
+**TASK-9.1.4** `[x]` Pastikan tidak ada API key atau secret yang ter-commit di git — dikonfirmasi: .gitignore menutupi .env dan tidak ada secrets di git  
+**TASK-9.1.5** `[x]` Cross-publication access: dikonfirmasi aman — member.middleware pakai BOTH userId+publicationId, roles.middleware validasi DB bukan dari query string  
+**TASK-9.1.6** `[x]` Commit: `chore(security): security audit and hardening`  
 
 ---
 

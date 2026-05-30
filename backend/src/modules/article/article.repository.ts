@@ -71,27 +71,27 @@ export const articleRepository = {
     });
   },
 
-  update(id: string, _publicationId: string, data: Prisma.ArticleUpdateInput) {
-    return prisma.article.update({ where: { id }, data });
+  update(id: string, publicationId: string, data: Prisma.ArticleUpdateInput) {
+    return prisma.article.update({ where: { id, publicationId }, data });
   },
 
-  publish(id: string, publishedAt: Date) {
+  publish(id: string, publicationId: string, publishedAt: Date) {
     return prisma.article.update({
-      where: { id },
+      where: { id, publicationId },
       data: { status: 'published', publishedAt, scheduledAt: null },
     });
   },
 
-  schedule(id: string, scheduledAt: Date) {
+  schedule(id: string, publicationId: string, scheduledAt: Date) {
     return prisma.article.update({
-      where: { id },
+      where: { id, publicationId },
       data: { status: 'scheduled', scheduledAt },
     });
   },
 
-  softDelete(id: string, _publicationId: string) {
+  softDelete(id: string, publicationId: string) {
     return prisma.article.update({
-      where: { id },
+      where: { id, publicationId },
       data: { deletedAt: new Date() },
     });
   },

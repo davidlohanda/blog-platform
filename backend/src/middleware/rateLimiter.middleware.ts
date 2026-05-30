@@ -38,3 +38,16 @@ export const forgotPasswordRateLimiter = rateLimit({
     message: 'Too many password reset requests, please try again in an hour.',
   },
 });
+
+export const registerRateLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    statusCode: 429,
+    error: 'TOO_MANY_REQUESTS',
+    message: 'Too many registration attempts, please try again in an hour.',
+  },
+});
