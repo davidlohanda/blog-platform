@@ -6,6 +6,30 @@ interface FetchOptions extends RequestInit {
   tags?: string[];
 }
 
+// For 'use cache' contexts — no dynamic data (cookies) allowed
+export async function cachedFetch<T>(path: string, options: FetchOptions = {}): Promise<T> {
+  const { tags, ...fetchOptions } = options;
+
+  const res = await fetch(`${API_URL}${path}`, {
+    ...fetchOptions,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(fetchOptions.headers as Record<string, string>),
+    },
+    ...(tags ? { next: { tags } } : {}),
+  });
+
+  if (!res.ok) {
+    const error = (await res.json().catch(() => ({ message: 'Request failed' }))) as {
+      message?: string;
+    };
+    throw new Error(error.message ?? `HTTP ${res.status}`);
+  }
+
+  return res.json() as Promise<T>;
+}
+
+// For request-time (dynamic) contexts — reads cookies for auth
 export async function serverFetch<T>(path: string, options: FetchOptions = {}): Promise<T> {
   const { tags, ...fetchOptions } = options;
 

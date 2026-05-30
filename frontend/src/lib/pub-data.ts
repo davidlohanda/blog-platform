@@ -1,5 +1,5 @@
 import { cacheLife, cacheTag } from 'next/cache';
-import { serverFetch } from './api/server';
+import { cachedFetch, serverFetch } from './api/server';
 
 export interface Publication {
   id: string;
@@ -81,7 +81,7 @@ export async function getPublicationBySlug(slug: string): Promise<Publication> {
   'use cache';
   cacheTag(`pub:${slug}`);
   cacheLife('hours');
-  const res = await serverFetch<{ success: true; data: Publication }>(
+  const res = await cachedFetch<{ success: true; data: Publication }>(
     `/publications/${slug}`,
   );
   return res.data;
@@ -98,14 +98,14 @@ export async function getPublicArticles(
   if (opts.authorId) params.set('authorId', opts.authorId);
   if (opts.tag) params.set('tag', opts.tag);
   if (opts.cursor) params.set('cursor', opts.cursor);
-  return serverFetch(`/publications/${pubId}/articles/public?${params}`);
+  return cachedFetch(`/publications/${pubId}/articles/public?${params}`);
 }
 
 export async function getPublicAuthors(pubId: string): Promise<PublicAuthor[]> {
   'use cache';
   cacheTag(`authors:${pubId}`);
   cacheLife('hours');
-  const res = await serverFetch<{ success: true; data: PublicAuthor[] }>(
+  const res = await cachedFetch<{ success: true; data: PublicAuthor[] }>(
     `/publications/${pubId}/authors/public`,
   );
   return res.data;
@@ -119,7 +119,7 @@ export async function getPublicArticle(
   'use cache';
   cacheTag(`article:${pubId}:${slug}`);
   cacheLife('hours');
-  const res = await serverFetch<{ success: true; data: FullArticle }>(
+  const res = await cachedFetch<{ success: true; data: FullArticle }>(
     `/publications/${pubId}/articles/read/${slug}`,
   );
   return res.data;
@@ -143,7 +143,7 @@ export async function getSeriesForArticle(
   'use cache';
   cacheTag(`series:${pubId}:${seriesSlug}`);
   cacheLife('hours');
-  const res = await serverFetch<{ success: true; data: SeriesWithArticles }>(
+  const res = await cachedFetch<{ success: true; data: SeriesWithArticles }>(
     `/publications/${pubId}/series/${seriesSlug}`,
   );
   return res.data;
@@ -176,7 +176,7 @@ export async function getPublicSeriesList(pubId: string): Promise<PublicSeries[]
   'use cache';
   cacheTag(`series-list:${pubId}`);
   cacheLife('hours');
-  const res = await serverFetch<{ success: true; data: PublicSeries[] }>(
+  const res = await cachedFetch<{ success: true; data: PublicSeries[] }>(
     `/publications/${pubId}/series`,
   );
   return res.data;
@@ -186,7 +186,7 @@ export async function getPublicSeriesDetail(pubId: string, slug: string): Promis
   'use cache';
   cacheTag(`series-public:${pubId}:${slug}`);
   cacheLife('hours');
-  const res = await serverFetch<{ success: true; data: PublicSeries }>(
+  const res = await cachedFetch<{ success: true; data: PublicSeries }>(
     `/publications/${pubId}/series/${slug}`,
   );
   return res.data;
