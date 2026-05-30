@@ -1,5 +1,10 @@
+import { randomUUID } from 'crypto';
 import { Request, Response, NextFunction } from 'express';
 import { publicationService } from './publication.service';
+import { emailService } from '../email/email.service';
+import { redis } from '../../config/redis.config';
+import { config } from '../../config';
+import { authRepository } from '../auth/auth.repository';
 import type { AuthRequest } from '../../middleware/auth.middleware';
 import type { PublicationRoleRequest } from '../../middleware/roles.middleware';
 import type {
@@ -77,19 +82,36 @@ export const publicationController = {
   async inviteAuthor(req: Request, res: Response, next: NextFunction) {
     try {
       const { publicationId } = req as PublicationRoleRequest;
+      const inviterId = (req as AuthRequest).user.userId;
       const { email, role } = req.body as { email: string; role: 'owner' | 'author' };
 
-      // TODO STORY 7.1: send invite email via Resend
-      // For now, log the invite so development is unblocked
-      const token = (await import('crypto')).randomUUID();
-      const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
-      console.log(
-        `[Publication] Invite URL for ${email}: ${frontendUrl}/accept-invite?token=${token}&pub=${publicationId}&role=${role}`,
+      const [pub, inviter] = await Promise.all([
+        publicationService.getById(publicationId),
+        authRepository.findById(inviterId),
+      ]);
+
+      const token = randomUUID();
+      // Store invite payload in Redis for 7 days
+      await redis.setex(
+        `invite:${token}`,
+        7 * 24 * 60 * 60,
+        JSON.stringify({ email, publicationId, role }),
       );
+
+      const frontendUrl = config.platform.frontendUrl;
+      const inviteUrl = `${frontendUrl}/accept-invite?token=${token}`;
+
+      await emailService.sendAuthorInvite({
+        to: email,
+        publicationName: pub.name,
+        invitedBy: inviter?.name ?? 'Admin',
+        role,
+        inviteUrl,
+      });
 
       res.status(202).json({
         success: true,
-        data: { message: `Undangan akan dikirim ke ${email} (email setup pending STORY 7.1)` },
+        data: { message: `Undangan berhasil dikirim ke ${email}` },
       });
     } catch (error) {
       next(error);

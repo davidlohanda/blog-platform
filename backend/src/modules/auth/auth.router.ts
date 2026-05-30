@@ -42,6 +42,9 @@ router.post('/reset-password', validate(resetPasswordSchema), (req, res, next) =
 router.post('/refresh', (req, res, next) => authController.refresh(req, res, next));
 router.post('/logout', authenticate, (req, res, next) => authController.logout(req, res, next));
 router.get('/me', authenticate, (req, res, next) => authController.getMe(req, res, next));
+router.get('/accept-invite', authenticate, (req, res, next) =>
+  authController.acceptInvite(req, res, next),
+);
 
 // Google OAuth — only mount if credentials are configured
 if (config.google.clientId && config.google.clientSecret) {
