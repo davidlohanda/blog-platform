@@ -198,4 +198,16 @@ export const articleService = {
     if (!article) throw AppError.notFound('Artikel tidak ditemukan');
     return articleRepository.softDelete(id, publicationId);
   },
+
+  async updateReadProgress(
+    publicationId: string,
+    articleId: string,
+    userId: string,
+    completionPercent: number,
+  ) {
+    const article = await articleRepository.findById(publicationId, articleId);
+    if (!article) throw AppError.notFound('Artikel tidak ditemukan');
+    const pct = Math.max(0, Math.min(100, Math.round(completionPercent)));
+    return articleRepository.upsertReadProgress(articleId, userId, pct);
+  },
 };

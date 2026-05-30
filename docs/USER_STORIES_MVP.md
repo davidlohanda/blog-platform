@@ -234,7 +234,7 @@ Sebagai owner, saya ingin bisa mengkonfigurasi nama, deskripsi, logo, dan custom
 
 **TASK-BE-3.3.1** `[x]` Endpoint update publication settings (sudah ada di STORY 3.1)  
 **TASK-BE-3.3.2** `[x]` Endpoint `POST /publications/:id/custom-domain` — simpan custom domain, set status `pending`  
-**TASK-BE-3.3.3** `[ ]` ~~Background job: cek DNS propagation~~ BLOCKED: menunggu BullMQ setup di STORY 7.1  
+**TASK-BE-3.3.3** `[x]` Background job: cek DNS propagation — BullMQ hourly job + migration `customDomainStatus` (pending/verified/failed)  
 **TASK-BE-3.3.4** `[x]` Commit: `feat(publication): add custom domain configuration`  
 
 **TASK-FE-3.3.1** `[x]` Tab Umum di settings: form nama, deskripsi, logo, custom domain  
@@ -260,7 +260,7 @@ Sebagai author, saya ingin bisa menulis artikel dengan editor yang lengkap, agar
 **TASK-BE-4.1.6** `[x]` Endpoint `PATCH /publications/:pubId/articles/:id` — update artikel  
 **TASK-BE-4.1.7** `[x]` Endpoint `DELETE /publications/:pubId/articles/:id` — soft delete  
 **TASK-BE-4.1.8** `[x]` Endpoint `POST /publications/:pubId/articles/:id/publish` — publish atau schedule artikel  
-**TASK-BE-4.1.9** `[ ]` ~~Background job: publish scheduled articles~~ BLOCKED: menunggu BullMQ setup di STORY 7.1  
+**TASK-BE-4.1.9** `[x]` Background job: publish scheduled articles — BullMQ job tiap 5 menit, auto-notify subscribers  
 **TASK-BE-4.1.10** `[x]` Commit: `feat(article): add article CRUD and publish flow`  
 
 **TASK-FE-4.1.1** `[x]` Install dan setup Tiptap editor  
@@ -322,14 +322,14 @@ Sebagai author, saya ingin bisa mengelompokkan artikel ke dalam sebuah series, a
 **TASK-BE-4.4.5** `[x]` Endpoint `PATCH /publications/:pubId/series/:id` — update series  
 **TASK-BE-4.4.6** `[x]` Endpoint `POST /publications/:pubId/series/:id/articles` — tambah artikel ke series + atur urutan  
 **TASK-BE-4.4.7** `[x]` Endpoint `DELETE /publications/:pubId/series/:id/articles/:articleId` — remove artikel dari series  
-**TASK-BE-4.4.8** `[ ]` ~~Tracking read progress~~ BLOCKED: menunggu EPIC 6 (Reader Experience)  
+**TASK-BE-4.4.8** `[x]` Tracking read progress — PATCH /publications/:pubId/articles/:id/read-progress (upsert ArticleRead.completionPercent)  
 **TASK-BE-4.4.9** `[x]` Commit: `feat(series): add series management endpoints`  
 
 **TASK-FE-4.4.1** `[x]` Buat halaman `dashboard/series/page.tsx` — list semua series + form create  
-**TASK-FE-4.4.2** `[ ]` ~~Drag-and-drop urutan artikel dalam series~~ BLOCKED: menunggu @dnd-kit setup  
-**TASK-FE-4.4.3** `[ ]` ~~Halaman series publik~~ BLOCKED: menunggu EPIC 6 (Reader Experience)  
-**TASK-FE-4.4.4** `[ ]` ~~Progress bar series~~ BLOCKED: menunggu EPIC 6  
-**TASK-FE-4.4.5** `[ ]` ~~Navigasi prev/next series di artikel~~ BLOCKED: menunggu EPIC 6  
+**TASK-FE-4.4.2** `[x]` Drag-and-drop urutan artikel dalam series — @dnd-kit/sortable, dashboard/series/[id]/page.tsx  
+**TASK-FE-4.4.3** `[x]` Halaman series publik — app/(publication)/series/[slug]/page.tsx dengan artikel list  
+**TASK-FE-4.4.4** `[x]` Progress bar series — visual progress indicator (0/N selesai) di halaman series publik  
+**TASK-FE-4.4.5** `[x]` Navigasi prev/next series di artikel — SeriesNav sudah ada sejak EPIC 6  
 **TASK-FE-4.4.6** `[x]` Commit: `feat(series): add series pages frontend`  
 
 **TASK-INT-4.4.1** `[x]` Integrasi series dashboard dengan backend  

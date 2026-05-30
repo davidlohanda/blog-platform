@@ -73,4 +73,11 @@ export const seriesService = {
     await seriesRepository.removeArticle(seriesId, articleId);
     return { message: 'Artikel berhasil dihapus dari series' };
   },
+
+  async reorderArticles(publicationId: string, seriesId: string, orderedArticleIds: string[]) {
+    const series = await seriesRepository.findById(publicationId, seriesId);
+    if (!series) throw AppError.notFound('Series tidak ditemukan');
+    await seriesRepository.reorderArticles(seriesId, orderedArticleIds);
+    return seriesRepository.findById(publicationId, seriesId);
+  },
 };

@@ -28,6 +28,16 @@ export const seriesController = {
     }
   },
 
+  async getById(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { pubId, id } = req.params;
+      const series = await seriesService.getById(pubId, id);
+      res.json({ success: true, data: series });
+    } catch (error) {
+      next(error);
+    }
+  },
+
   async getBySlug(req: Request, res: Response, next: NextFunction) {
     try {
       const { pubId, slug } = req.params;
@@ -62,6 +72,17 @@ export const seriesController = {
     try {
       const { pubId, id, articleId } = req.params;
       const result = await seriesService.removeArticle(pubId, id, articleId);
+      res.json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async reorderArticles(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { pubId, id } = req.params;
+      const { orderedArticleIds } = req.body as { orderedArticleIds: string[] };
+      const result = await seriesService.reorderArticles(pubId, id, orderedArticleIds);
       res.json({ success: true, data: result });
     } catch (error) {
       next(error);

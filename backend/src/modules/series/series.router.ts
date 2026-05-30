@@ -42,4 +42,16 @@ router.delete(
   (req, res, next) => seriesController.removeArticle(req, res, next),
 );
 
+router.patch(
+  '/:id/articles/reorder',
+  authenticate,
+  requirePublicationRole('owner', 'author'),
+  (req, res, next) => seriesController.reorderArticles(req, res, next),
+);
+
+// Get series by ID (for dashboard, returns full detail with articles)
+router.get('/:id', authenticate, requirePublicationRole('owner', 'author'), (req, res, next) =>
+  seriesController.getById(req, res, next),
+);
+
 export { router as seriesRouter };

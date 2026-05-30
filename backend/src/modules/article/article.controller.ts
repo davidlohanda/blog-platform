@@ -132,4 +132,16 @@ export const articleController = {
       next(error);
     }
   },
+
+  async updateReadProgress(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { pubId, id } = req.params;
+      const userId = (req as AuthRequest).user.userId;
+      const { completionPercent } = req.body as { completionPercent: number };
+      await articleService.updateReadProgress(pubId, id, userId, completionPercent);
+      res.json({ success: true, data: { completionPercent } });
+    } catch (error) {
+      next(error);
+    }
+  },
 };
