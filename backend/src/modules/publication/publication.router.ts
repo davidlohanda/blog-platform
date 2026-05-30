@@ -12,6 +12,7 @@ import { z } from 'zod';
 import { articleRouter } from '../article/article.router';
 import { seriesRouter } from '../series/series.router';
 import { subscriptionNestedRouter } from '../subscription/subscription.router';
+import { analyticsRouter } from '../analytics/analytics.router';
 
 const router = Router();
 
@@ -94,5 +95,7 @@ router.use('/:pubId/articles', articleRouter);
 router.use('/:pubId/series', seriesRouter);
 // Subscription plans + order (mergeParams gives :pubId)
 router.use('/:pubId', subscriptionNestedRouter);
+// Analytics (mergeParams gives :pubId)
+router.use('/:pubId/analytics', analyticsRouter);
 
 export { router as publicationRouter };
