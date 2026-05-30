@@ -57,7 +57,7 @@ export const seriesService = {
   async update(publicationId: string, id: string, input: UpdateSeriesInput) {
     const series = await seriesRepository.findById(publicationId, id);
     if (!series) throw AppError.notFound('Series tidak ditemukan');
-    return seriesRepository.update(id, input);
+    return seriesRepository.update(publicationId, id, input);
   },
 
   async addArticle(publicationId: string, seriesId: string, input: AddArticleToSeriesInput) {

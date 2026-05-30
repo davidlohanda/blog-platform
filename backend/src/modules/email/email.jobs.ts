@@ -60,7 +60,7 @@ async function publishScheduledArticles() {
 
   for (const article of due) {
     await prisma.article.update({
-      where: { id: article.id },
+      where: { id: article.id, publicationId: article.publicationId },
       data: { status: 'published', publishedAt: now },
     });
 
