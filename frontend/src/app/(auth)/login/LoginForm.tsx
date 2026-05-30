@@ -9,6 +9,7 @@ import { AuthShell } from '@/components/layout/AuthShell';
 import { GoogleIcon } from '@/components/ui/GoogleIcon';
 import { Divider } from '@/components/ui/Divider';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import {
   Form,
@@ -130,11 +131,9 @@ export function LoginForm() {
             render={({ field }) => (
               <FormItem className="flex items-center gap-2 space-y-0">
                 <FormControl>
-                  <input
-                    type="checkbox"
-                    className="h-3.5 w-3.5 accent-primary"
+                  <Checkbox
                     checked={field.value ?? false}
-                    onChange={(e) => field.onChange(e.target.checked)}
+                    onCheckedChange={field.onChange}
                   />
                 </FormControl>
                 <FormLabel className="text-sm font-normal text-muted-foreground">

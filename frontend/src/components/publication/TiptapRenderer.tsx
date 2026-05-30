@@ -18,8 +18,10 @@ function renderMarks(text: string, marks: TiptapNode['marks']): ReactNode {
     if (mark.type === 'strike') return <s>{acc}</s>;
     if (mark.type === 'code') return <code>{acc}</code>;
     if (mark.type === 'link') {
+      const href = mark.attrs?.href as string | undefined;
+      const safeHref = href && /^https?:\/\/|^\//.test(href) ? href : '#';
       return (
-        <a href={mark.attrs?.href as string} target="_blank" rel="noopener noreferrer">
+        <a href={safeHref} target="_blank" rel="noopener noreferrer">
           {acc}
         </a>
       );

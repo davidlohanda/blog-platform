@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { prisma } from '../../config/database.config';
-import { verifyUnsubscribeToken } from './email.service';
+import { emailService, verifyUnsubscribeToken } from './email.service';
 import { AppError } from '../../lib/AppError';
 
 export const emailController = {
@@ -13,13 +12,7 @@ export const emailController = {
       if (!payload)
         throw AppError.badRequest('Token tidak valid atau sudah kedaluwarsa', 'INVALID_TOKEN');
 
-      await prisma.emailPreference.upsert({
-        where: {
-          userId_publicationId: { userId: payload.userId, publicationId: payload.publicationId },
-        },
-        update: { newArticle: false },
-        create: { userId: payload.userId, publicationId: payload.publicationId, newArticle: false },
-      });
+      await emailService.processUnsubscribe(payload.userId, payload.publicationId);
 
       res.json({
         success: true,

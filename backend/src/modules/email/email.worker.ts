@@ -1,5 +1,6 @@
 import { Worker } from 'bullmq';
 import { config } from '../../config';
+import { log } from '../../lib/logger';
 import { resend } from '../../config/email.config';
 import { templates } from './email.templates';
 import type { EmailJobData } from './email.types';
@@ -99,16 +100,16 @@ export function startEmailWorker() {
   });
 
   worker.on('completed', (job) => {
-    console.log(`[Email] Job ${job.id} (${(job.data as { name: string }).name}) completed`);
+    log.info(`[Email] Job ${job.id} (${(job.data as { name: string }).name}) completed`);
   });
 
   worker.on('failed', (job, err) => {
-    console.error(
+    log.error(
       `[Email] Job ${job?.id} (${(job?.data as { name: string } | undefined)?.name}) failed:`,
       err.message,
     );
   });
 
-  console.log('[Email] Worker started');
+  log.info('[Email] Worker started');
   return worker;
 }

@@ -7,6 +7,7 @@ import { authenticate } from '../../middleware/auth.middleware';
 import {
   authRateLimiter,
   forgotPasswordRateLimiter,
+  refreshRateLimiter,
   registerRateLimiter,
 } from '../../middleware/rateLimiter.middleware';
 import {
@@ -40,7 +41,9 @@ router.post(
 router.post('/reset-password', validate(resetPasswordSchema), (req, res, next) =>
   authController.resetPassword(req, res, next),
 );
-router.post('/refresh', (req, res, next) => authController.refresh(req, res, next));
+router.post('/refresh', refreshRateLimiter, (req, res, next) =>
+  authController.refresh(req, res, next),
+);
 router.post('/logout', authenticate, (req, res, next) => authController.logout(req, res, next));
 router.get('/me', authenticate, (req, res, next) => authController.getMe(req, res, next));
 router.get('/accept-invite', authenticate, (req, res, next) =>

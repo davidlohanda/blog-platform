@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { authService } from './auth.service';
+import { AppError } from '../../lib/AppError';
 import { config } from '../../config';
 import type {
   RegisterInput,
@@ -63,9 +64,7 @@ export const authController = {
     try {
       const refreshTokenCookie = req.cookies?.refreshToken as string | undefined;
       if (!refreshTokenCookie) {
-        res
-          .status(401)
-          .json({ success: false, error: 'NO_REFRESH_TOKEN', message: 'Tidak ada refresh token' });
+        next(AppError.unauthorized('Tidak ada refresh token', 'NO_REFRESH_TOKEN'));
         return;
       }
 

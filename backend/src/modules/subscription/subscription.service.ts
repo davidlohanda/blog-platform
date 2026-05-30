@@ -117,6 +117,11 @@ export const subscriptionService = {
     const subscription = await subscriptionRepository.findByPaymentId(payload.order_id);
     if (!subscription) throw AppError.notFound('Subscription tidak ditemukan');
 
+    // Cross-check gross_amount against stored value to detect tampered payloads
+    if (Number(payload.gross_amount) !== Number(subscription.grossAmount)) {
+      throw AppError.badRequest('Jumlah pembayaran tidak sesuai', 'AMOUNT_MISMATCH');
+    }
+
     // Idempotency: skip if already finalized
     if (subscription.status === 'active' || subscription.status === 'cancelled') {
       return { message: 'Already processed' };

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { RichTextEditor } from '@/components/editor/RichTextEditor';
@@ -161,8 +162,9 @@ export default function NewArticlePage() {
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Gambar sampul</p>
                 {coverImageUrl ? (
                   <div className="space-y-2">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={coverImageUrl} alt="Cover" className="h-32 w-full rounded-lg object-cover" />
+                    <div className="relative h-32 w-full">
+                      <Image src={coverImageUrl} alt="Cover" fill className="rounded-lg object-cover" />
+                    </div>
                     <div className="flex gap-2">
                       <label className="flex-1 cursor-pointer rounded-lg border border-border px-3 py-1.5 text-center text-xs font-medium text-foreground hover:bg-muted">
                         {coverUploading ? 'Mengunggah…' : 'Ganti'}

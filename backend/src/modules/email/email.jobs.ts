@@ -1,5 +1,6 @@
 import { Queue, Worker } from 'bullmq';
 import { config } from '../../config';
+import { log } from '../../lib/logger';
 import { emailService } from './email.service';
 import { prisma } from '../../config/database.config';
 
@@ -40,7 +41,7 @@ export async function scheduleRecurringJobs() {
       },
     ),
   ]);
-  console.log('[Jobs] Recurring jobs scheduled');
+  log.info('[Jobs] Recurring jobs scheduled');
 }
 
 async function publishScheduledArticles() {
@@ -73,7 +74,7 @@ async function publishScheduledArticles() {
         coverImageUrl: article.coverImageUrl,
       })
       .catch((err: Error) =>
-        console.error(`[Jobs] Failed to notify for article ${article.id}:`, err.message),
+        log.error(`[Jobs] Failed to notify for article ${article.id}:`, err.message),
       );
   }
 
@@ -116,18 +117,17 @@ export function startSystemWorker() {
       switch (job.name) {
         case 'subscription-expiry-reminders': {
           const count = await emailService.sendExpiryReminders();
-          console.log(`[Jobs] Sent ${count} expiry reminder(s)`);
+          log.info(`[Jobs] Sent ${count} expiry reminder(s)`);
           break;
         }
         case 'publish-scheduled-articles': {
           const count = await publishScheduledArticles();
-          if (count > 0) console.log(`[Jobs] Published ${count} scheduled article(s)`);
+          if (count > 0) log.info(`[Jobs] Published ${count} scheduled article(s)`);
           break;
         }
         case 'check-custom-domains': {
           const { checked, verified } = await checkCustomDomains();
-          if (checked > 0)
-            console.log(`[Jobs] DNS check: ${verified}/${checked} domain(s) verified`);
+          if (checked > 0) log.info(`[Jobs] DNS check: ${verified}/${checked} domain(s) verified`);
           break;
         }
       }
@@ -136,7 +136,7 @@ export function startSystemWorker() {
   );
 
   worker.on('failed', (job, err) => {
-    console.error(`[Jobs] Job ${job?.name} failed:`, err.message);
+    log.error(`[Jobs] Job ${job?.name} failed:`, err.message);
   });
 
   return worker;

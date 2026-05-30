@@ -210,6 +210,7 @@ model Article {
   @@unique([publicationId, slug])
   @@index([publicationId, status, publishedAt(sort: Desc)])
   @@index([publicationId, slug])
+  @@index([authorId])
   @@map("articles")
 }
 
@@ -276,6 +277,7 @@ model Series {
   articles    SeriesArticle[]
 
   @@unique([publicationId, slug])
+  @@index([authorId])
   @@map("series")
 }
 
@@ -355,6 +357,7 @@ model Comment {
   parent  Comment?  @relation("Replies", fields: [parentId], references: [id])
   replies Comment[] @relation("Replies")
 
+  @@index([articleId])
   @@map("comments")
 }
 

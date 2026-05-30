@@ -3,6 +3,7 @@ import { articleRepository } from './article.repository';
 import { publicationRepository } from '../publication/publication.repository';
 import { emailService } from '../email/email.service';
 import { AppError } from '../../lib/AppError';
+import { log } from '../../lib/logger';
 import type { Prisma } from '@prisma/client';
 import type {
   CreateArticleInput,
@@ -186,7 +187,7 @@ export const articleService = {
           coverImageUrl: article.coverImageUrl,
         })
         .catch((err: Error) =>
-          console.error('[Email] Failed to enqueue article notifications:', err.message),
+          log.error('[Email] Failed to enqueue article notifications:', err.message),
         );
     }
 

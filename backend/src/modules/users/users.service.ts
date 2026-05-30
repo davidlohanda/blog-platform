@@ -9,6 +9,15 @@ export const usersService = {
     return usersRepository.updateProfile(userId, input);
   },
 
+  getEmailPreferences(userId: string) {
+    return usersRepository.getEmailPreferences(userId);
+  },
+
+  async updateEmailPreference(userId: string, publicationId: string, newArticle: boolean) {
+    await usersRepository.upsertEmailPreference(userId, publicationId, newArticle);
+    return { newArticle };
+  },
+
   async updatePassword(userId: string, input: UpdatePasswordInput) {
     const user = await authRepository.findByIdWithPassword(userId);
     if (!user) throw AppError.notFound('User tidak ditemukan');

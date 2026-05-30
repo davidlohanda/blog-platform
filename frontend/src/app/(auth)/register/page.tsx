@@ -9,6 +9,7 @@ import { AuthShell } from '@/components/layout/AuthShell';
 import { GoogleIcon } from '@/components/ui/GoogleIcon';
 import { Divider } from '@/components/ui/Divider';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import {
   Form,
@@ -158,11 +159,10 @@ export default function RegisterPage() {
             render={({ field }) => (
               <FormItem className="flex items-start gap-2 space-y-0 pt-1">
                 <FormControl>
-                  <input
-                    type="checkbox"
-                    className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-primary"
+                  <Checkbox
                     checked={field.value === true}
-                    onChange={(e) => field.onChange(e.target.checked || undefined)}
+                    onCheckedChange={(checked) => field.onChange(checked || undefined)}
+                    className="mt-0.5 shrink-0"
                   />
                 </FormControl>
                 <div className="space-y-1">

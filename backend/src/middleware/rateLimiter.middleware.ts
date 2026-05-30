@@ -51,3 +51,16 @@ export const registerRateLimiter = rateLimit({
     message: 'Too many registration attempts, please try again in an hour.',
   },
 });
+
+export const refreshRateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    statusCode: 429,
+    error: 'TOO_MANY_REQUESTS',
+    message: 'Too many token refresh attempts, please try again in a minute.',
+  },
+});

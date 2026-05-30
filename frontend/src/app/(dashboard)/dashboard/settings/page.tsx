@@ -18,6 +18,13 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { apiClient } from '@/lib/api/client';
 import { usePublication } from '@/hooks/usePublication';
 
@@ -328,15 +335,17 @@ function AuthorsTab({ pubId }: { pubId: string }) {
                 name="role"
                 render={({ field }) => (
                   <FormItem>
-                    <FormControl>
-                      <select
-                        className="border-input bg-background h-9 rounded-lg border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                        {...field}
-                      >
-                        <option value="author">Author</option>
-                        <option value="owner">Owner</option>
-                      </select>
-                    </FormControl>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="author">Author</SelectItem>
+                        <SelectItem value="owner">Owner</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </FormItem>
                 )}
               />

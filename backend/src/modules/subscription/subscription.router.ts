@@ -3,7 +3,7 @@ import { subscriptionController } from './subscription.controller';
 import { authenticate } from '../../middleware/auth.middleware';
 import { requirePublicationRole } from '../../middleware/roles.middleware';
 import { validate } from '../../middleware/validate.middleware';
-import { updatePlansSchema, createOrderSchema } from './subscription.schema';
+import { updatePlansSchema, createOrderSchema, webhookPayloadSchema } from './subscription.schema';
 
 // ─── Nested under /publications/:pubId ───────────────────────────
 // mergeParams so :pubId is available
@@ -35,7 +35,7 @@ nestedRouter.post(
 const topRouter = Router();
 
 // Webhook — no auth (verified by signature), Midtrans posts here
-topRouter.post('/webhook/midtrans', (req, res, next) =>
+topRouter.post('/webhook/midtrans', validate(webhookPayloadSchema), (req, res, next) =>
   subscriptionController.webhook(req, res, next),
 );
 

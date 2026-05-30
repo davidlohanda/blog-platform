@@ -14,5 +14,10 @@ export const updatePasswordSchema = z.object({
     .regex(/(?=.*[a-zA-Z])(?=.*\d)/, 'Password harus mengandung huruf dan angka'),
 });
 
+export const emailPreferenceUpdateSchema = z.object({
+  newArticle: z.boolean(),
+});
+
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 export type UpdatePasswordInput = z.infer<typeof updatePasswordSchema>;
+export type EmailPreferenceUpdateInput = z.infer<typeof emailPreferenceUpdateSchema>;

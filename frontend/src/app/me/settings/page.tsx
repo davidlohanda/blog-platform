@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -148,11 +149,12 @@ export default function ProfileSettingsPage() {
             <p className="text-sm text-muted-foreground">JPG, PNG, atau GIF. Maksimum 2 MB.</p>
             <div className="mt-3 flex items-center gap-4">
               {user?.avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <Image
                   src={user.avatarUrl}
                   alt={user.name}
-                  className="h-16 w-16 rounded-full object-cover"
+                  width={64}
+                  height={64}
+                  className="rounded-full object-cover"
                 />
               ) : (
                 <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted text-lg font-semibold text-muted-foreground">

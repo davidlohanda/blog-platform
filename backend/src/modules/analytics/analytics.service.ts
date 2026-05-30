@@ -76,6 +76,74 @@ export const analyticsService = {
     };
   },
 
+  async listSubscribers(
+    publicationId: string,
+    opts: {
+      status?: string;
+      planId?: string;
+      search?: string;
+      cursor?: string;
+      take: number;
+    },
+  ) {
+    const { status, planId, search, cursor, take } = opts;
+    const subs = await prisma.subscription.findMany({
+      where: {
+        publicationId,
+        ...(status ? { status: status as 'active' | 'expired' | 'cancelled' | 'pending' } : {}),
+        ...(planId ? { planId } : {}),
+        ...(search
+          ? {
+              user: {
+                OR: [
+                  { name: { contains: search, mode: 'insensitive' } },
+                  { email: { contains: search, mode: 'insensitive' } },
+                ],
+              },
+            }
+          : {}),
+        ...(cursor ? { id: { lt: cursor } } : {}),
+      },
+      include: {
+        user: { select: { id: true, name: true, email: true, avatarUrl: true } },
+        plan: { select: { durationMonths: true, price: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: take + 1,
+    });
+
+    const hasMore = subs.length > take;
+    const data = hasMore ? subs.slice(0, take) : subs;
+    const nextCursor = hasMore ? data[data.length - 1]?.id : null;
+    return { data, nextCursor, hasMore };
+  },
+
+  async exportSubscribersCSV(publicationId: string): Promise<string> {
+    const subs = await prisma.subscription.findMany({
+      where: { publicationId },
+      include: {
+        user: { select: { name: true, email: true } },
+        plan: { select: { durationMonths: true, price: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const rows = [
+      ['Nama', 'Email', 'Status', 'Paket (Bulan)', 'Harga/Bulan', 'Mulai', 'Berakhir'],
+      ...subs.map((s) => [
+        s.user.name,
+        s.user.email,
+        s.status,
+        String(s.plan.durationMonths),
+        String(s.plan.price),
+        s.startedAt?.toISOString().slice(0, 10) ?? '-',
+        s.expiresAt?.toISOString().slice(0, 10) ?? '-',
+      ]),
+    ];
+
+    return rows.map((r) => r.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(',')).join('\n');
+  },
+
   async getSubscriberChart(publicationId: string, range: '30d' | '6m' | '12m') {
     const now = new Date();
 

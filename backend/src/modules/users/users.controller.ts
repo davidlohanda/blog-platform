@@ -1,8 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
 import { usersService } from './users.service';
-import { prisma } from '../../config/database.config';
 import type { AuthRequest } from '../../middleware/auth.middleware';
-import type { UpdateProfileInput, UpdatePasswordInput } from './users.schema';
+import type {
+  UpdateProfileInput,
+  UpdatePasswordInput,
+  EmailPreferenceUpdateInput,
+} from './users.schema';
 
 export const usersController = {
   async updateProfile(req: Request, res: Response, next: NextFunction) {
@@ -30,33 +33,7 @@ export const usersController = {
   async getEmailPreferences(req: Request, res: Response, next: NextFunction) {
     try {
       const userId = (req as AuthRequest).user.userId;
-      // Return active subscriptions with their email preferences
-      const subscriptions = await prisma.subscription.findMany({
-        where: { userId, status: 'active', expiresAt: { gt: new Date() } },
-        include: {
-          publication: { select: { id: true, name: true, slug: true, logoUrl: true } },
-        },
-        orderBy: { expiresAt: 'desc' },
-        distinct: ['publicationId'],
-      });
-
-      const prefRecords = await prisma.emailPreference.findMany({
-        where: {
-          userId,
-          publicationId: { in: subscriptions.map((s) => s.publicationId) },
-        },
-      });
-
-      const prefMap = new Map(prefRecords.map((p) => [p.publicationId, p.newArticle]));
-
-      const result = subscriptions.map((sub) => ({
-        publicationId: sub.publicationId,
-        publicationName: sub.publication.name,
-        publicationSlug: sub.publication.slug,
-        logoUrl: sub.publication.logoUrl,
-        newArticle: prefMap.get(sub.publicationId) ?? true, // default true
-      }));
-
+      const result = await usersService.getEmailPreferences(userId);
       res.json({ success: true, data: result });
     } catch (error) {
       next(error);
@@ -67,15 +44,9 @@ export const usersController = {
     try {
       const userId = (req as AuthRequest).user.userId;
       const { publicationId } = req.params;
-      const { newArticle } = req.body as { newArticle: boolean };
-
-      await prisma.emailPreference.upsert({
-        where: { userId_publicationId: { userId, publicationId } },
-        update: { newArticle },
-        create: { userId, publicationId, newArticle },
-      });
-
-      res.json({ success: true, data: { newArticle } });
+      const { newArticle } = req.body as EmailPreferenceUpdateInput;
+      const result = await usersService.updateEmailPreference(userId, publicationId, newArticle);
+      res.json({ success: true, data: result });
     } catch (error) {
       next(error);
     }

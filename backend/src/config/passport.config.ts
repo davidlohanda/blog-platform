@@ -1,6 +1,7 @@
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { config } from './index';
+import { log } from '../lib/logger';
 
 export interface GoogleProfile {
   googleId: string;
@@ -11,7 +12,7 @@ export interface GoogleProfile {
 
 export function configurePassport(): void {
   if (!config.google.clientId || !config.google.clientSecret) {
-    console.warn(
+    log.warn(
       '[Passport] Google OAuth not configured — GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET missing',
     );
     return;

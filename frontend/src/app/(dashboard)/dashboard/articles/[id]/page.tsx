@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useState, useEffect, useRef, use } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { RichTextEditor } from '@/components/editor/RichTextEditor';
@@ -241,12 +242,14 @@ function ArticleEditorContent({ params }: { params: Promise<{ id: string }> }) {
                 </p>
                 {coverImageUrl ? (
                   <div className="space-y-2">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={coverImageUrl}
-                      alt="Cover"
-                      className="h-32 w-full rounded-lg object-cover"
-                    />
+                    <div className="relative h-32 w-full">
+                      <Image
+                        src={coverImageUrl}
+                        alt="Cover"
+                        fill
+                        className="rounded-lg object-cover"
+                      />
+                    </div>
                     <div className="flex gap-2">
                       <label className="flex-1 cursor-pointer rounded-lg border border-border px-3 py-1.5 text-center text-xs font-medium text-foreground hover:bg-muted">
                         {coverUploading ? 'Mengunggah…' : 'Ganti'}

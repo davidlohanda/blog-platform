@@ -45,6 +45,7 @@ export async function generateMetadata({
 // ─── Series content (reads dynamic headers — wrapped in Suspense) ─────────────
 
 async function SeriesPageContent({ params }: { params: Promise<{ slug: string }> }) {
+  'use cache';
   const { slug } = await params;
   const pubSlug = await getPubSlug();
   if (!pubSlug) notFound();

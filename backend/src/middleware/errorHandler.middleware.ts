@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
 import { AppError } from '../lib/AppError';
+import { log } from '../lib/logger';
 
 export function errorHandler(err: Error, _req: Request, res: Response, _next: NextFunction): void {
   if (err instanceof AppError) {
@@ -27,7 +28,7 @@ export function errorHandler(err: Error, _req: Request, res: Response, _next: Ne
     return;
   }
 
-  console.error('[UnhandledError]', err);
+  log.error('[UnhandledError]', err);
 
   res.status(500).json({
     success: false,

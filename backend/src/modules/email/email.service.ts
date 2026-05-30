@@ -129,6 +129,14 @@ export const emailService = {
     return jobs.length;
   },
 
+  async processUnsubscribe(userId: string, publicationId: string) {
+    await prisma.emailPreference.upsert({
+      where: { userId_publicationId: { userId, publicationId } },
+      update: { newArticle: false },
+      create: { userId, publicationId, newArticle: false },
+    });
+  },
+
   // Daily job: find subscriptions expiring in ~7 days and send reminder
   async sendExpiryReminders() {
     const now = new Date();
