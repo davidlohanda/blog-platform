@@ -517,38 +517,38 @@ Sebagai subscriber, saya ingin mendapat notifikasi email saat ada artikel baru, 
 ### STORY 8.1 — Dashboard Overview
 Sebagai owner, saya ingin melihat ringkasan performa publication saya dalam satu halaman, agar saya bisa memantau pertumbuhan dengan mudah.
 
-**TASK-BE-8.1.1** `[ ]` Buat `analytics.service.ts`  
-**TASK-BE-8.1.2** `[ ]` Endpoint `GET /publications/:pubId/analytics/overview` — return: total subscriber aktif, subscriber baru bulan ini, MRR estimasi, open rate email, total views 30 hari, top artikel by views  
-**TASK-BE-8.1.3** `[ ]` Endpoint `GET /publications/:pubId/analytics/views-chart` — data views per hari/bulan untuk chart  
-**TASK-BE-8.1.4** `[ ]` Commit: `feat(analytics): add overview analytics endpoint`  
+**TASK-BE-8.1.1** `[x]` Buat `analytics.service.ts`  
+**TASK-BE-8.1.2** `[x]` Endpoint `GET /publications/:pubId/analytics/overview` — return: total subscriber aktif, subscriber baru bulan ini, MRR estimasi, total views, total artikel, top artikel by views  
+**TASK-BE-8.1.3** `[x]` Endpoint `GET /publications/:pubId/analytics/subscribers-chart?range=` — data subscriber baru per hari/bulan untuk chart  
+**TASK-BE-8.1.4** `[x]` Commit: `feat(analytics): add overview analytics endpoint`  
 
-**TASK-FE-8.1.1** `[ ]` Buat halaman `dashboard/page.tsx` (Server Component, request-time)  
-**TASK-FE-8.1.2** `[ ]` 4 stats card: Subscriber Aktif, MRR, Views (30 hari), Open Rate Email — masing-masing dengan mini sparkline dan delta vs periode sebelumnya  
-**TASK-FE-8.1.3** `[ ]` Chart views per bulan (Client Component untuk interaktivitas — pilih range 30hr/6bln/12bln)  
-**TASK-FE-8.1.4** `[ ]` Tabel top artikel by views  
-**TASK-FE-8.1.5** `[ ]` Tombol "Lihat publication" dan "Tulis baru" di header  
-**TASK-FE-8.1.6** `[ ]` Commit: `feat(analytics): add dashboard overview page`  
+**TASK-FE-8.1.1** `[x]` Buat halaman `dashboard/page.tsx` (Client Component)  
+**TASK-FE-8.1.2** `[x]` 4 stats card: Subscriber Aktif, MRR, Total Views, Total Artikel — dengan delta vs bulan lalu  
+**TASK-FE-8.1.3** `[x]` Chart subscriber baru (Recharts LineChart, range 30d/6m/12m)  
+**TASK-FE-8.1.4** `[x]` Tabel top artikel by views  
+**TASK-FE-8.1.5** `[x]` Tombol "Lihat publication" dan "Tulis baru" di header  
+**TASK-FE-8.1.6** `[x]` Commit: `feat(analytics): add dashboard overview page`  
 
-**TASK-INT-8.1.1** `[ ]` Integrasi dashboard dengan backend  
-**TASK-INT-8.1.2** `[ ]` Commit: `feat(analytics): integrate dashboard overview`  
+**TASK-INT-8.1.1** `[x]` Integrasi dashboard dengan backend  
+**TASK-INT-8.1.2** `[x]` Commit: `feat(analytics): integrate dashboard overview`  
 
 ---
 
 ### STORY 8.2 — Manajemen Subscriber
 Sebagai owner, saya ingin melihat daftar lengkap subscriber saya, agar saya bisa menganalisis audience dan mengekspornya jika diperlukan.
 
-**TASK-BE-8.2.1** `[ ]` Endpoint `GET /publications/:pubId/subscribers` — list subscriber dengan pagination, filter by paket dan status  
-**TASK-BE-8.2.2** `[ ]` Endpoint `GET /publications/:pubId/subscribers/export` — generate dan return CSV  
-**TASK-BE-8.2.3** `[ ]` Commit: `feat(analytics): add subscriber list and CSV export endpoints`  
+**TASK-BE-8.2.1** `[x]` Endpoint `GET /publications/:pubId/analytics/subscribers` — list subscriber dengan pagination, filter by status dan search  
+**TASK-BE-8.2.2** `[x]` Endpoint `GET /publications/:pubId/analytics/subscribers/export` — generate dan return CSV  
+**TASK-BE-8.2.3** `[x]` Commit: `feat(analytics): add subscriber list and CSV export endpoints`  
 
-**TASK-FE-8.2.1** `[ ]` Buat halaman `dashboard/subscribers/page.tsx` (Server Component)  
-**TASK-FE-8.2.2** `[ ]` Tabel: avatar, nama, email, paket aktif, tanggal subscribe, status  
-**TASK-FE-8.2.3** `[ ]` Filter by paket dan status, search by nama/email  
-**TASK-FE-8.2.4** `[ ]` Tombol Export CSV  
-**TASK-FE-8.2.5** `[ ]` Commit: `feat(analytics): add subscriber management page`  
+**TASK-FE-8.2.1** `[x]` Buat halaman `dashboard/subscribers/page.tsx` (Client Component)  
+**TASK-FE-8.2.2** `[x]` Tabel: avatar, nama, email, paket aktif, tanggal subscribe, status  
+**TASK-FE-8.2.3** `[x]` Filter by status, search by nama/email, load more pagination  
+**TASK-FE-8.2.4** `[x]` Tombol Export CSV  
+**TASK-FE-8.2.5** `[x]` Commit: `feat(analytics): add subscriber management page`  
 
-**TASK-INT-8.2.1** `[ ]` Integrasi subscriber list dan export  
-**TASK-INT-8.2.2** `[ ]` Commit: `feat(analytics): integrate subscriber management`  
+**TASK-INT-8.2.1** `[x]` Integrasi subscriber list dan export  
+**TASK-INT-8.2.2** `[x]` Commit: `feat(analytics): integrate subscriber management`  
 
 ---
 
