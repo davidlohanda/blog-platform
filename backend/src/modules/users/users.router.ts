@@ -14,4 +14,11 @@ router.patch('/me/password', authenticate, validate(updatePasswordSchema), (req,
   usersController.updatePassword(req, res, next),
 );
 
+router.get('/me/email-preferences', authenticate, (req, res, next) =>
+  usersController.getEmailPreferences(req, res, next),
+);
+router.patch('/me/email-preferences/:publicationId', authenticate, (req, res, next) =>
+  usersController.updateEmailPreference(req, res, next),
+);
+
 export { router as usersRouter };

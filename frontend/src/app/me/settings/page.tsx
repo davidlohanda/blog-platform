@@ -23,6 +23,14 @@ import { apiClient } from '@/lib/api/client';
 import { uploadToCloudinary } from '@/lib/cloudinary';
 import type { AuthUser } from '@/store/authStore';
 
+interface EmailPreference {
+  publicationId: string;
+  publicationName: string;
+  publicationSlug: string;
+  logoUrl: string | null;
+  newArticle: boolean;
+}
+
 const profileSchema = z.object({
   name: z.string().min(2, 'Nama minimal 2 karakter').max(255),
   bio: z.string().max(160, 'Bio maksimal 160 karakter').optional(),
@@ -54,6 +62,8 @@ export default function ProfileSettingsPage() {
   const [passwordSuccess, setPasswordSuccess] = useState(false);
   const [bioLength, setBioLength] = useState(0);
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const [emailPrefs, setEmailPrefs] = useState<EmailPreference[]>([]);
+  const [prefUpdating, setPrefUpdating] = useState<string | null>(null);
 
   const profileForm = useForm<ProfileValues>({
     resolver: zodResolver(profileSchema),
@@ -68,6 +78,15 @@ export default function ProfileSettingsPage() {
       profileForm.reset({ name: user.name, bio: '' });
     }
   }, [user, profileForm]);
+
+  // Fetch email preferences
+  useEffect(() => {
+    if (!user) return;
+    apiClient
+      .get<{ data: EmailPreference[] }>('/users/me/email-preferences')
+      .then(({ data }) => setEmailPrefs(data.data))
+      .catch(() => {});
+  }, [user]);
 
   async function onProfileSubmit(values: ProfileValues) {
     try {
@@ -337,6 +356,58 @@ export default function ProfileSettingsPage() {
             </form>
           </Form>
         </Card>
+
+        {/* Email Preferences Card */}
+        {emailPrefs.length > 0 && (
+          <Card className="mb-6 p-6">
+            <h2 className="mb-1 font-serif text-xl font-medium text-foreground">
+              Notifikasi email
+            </h2>
+            <p className="mb-6 text-sm text-muted-foreground">
+              Pilih publikasi mana yang boleh mengirimkan notifikasi artikel baru ke emailmu.
+            </p>
+            <div className="divide-y divide-border">
+              {emailPrefs.map((pref) => (
+                <div key={pref.publicationId} className="flex items-center justify-between py-3">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{pref.publicationName}</p>
+                    <p className="text-xs text-muted-foreground">Artikel baru</p>
+                  </div>
+                  <button
+                    role="switch"
+                    aria-checked={pref.newArticle}
+                    disabled={prefUpdating === pref.publicationId}
+                    onClick={async () => {
+                      setPrefUpdating(pref.publicationId);
+                      try {
+                        await apiClient.patch(
+                          `/users/me/email-preferences/${pref.publicationId}`,
+                          { newArticle: !pref.newArticle },
+                        );
+                        setEmailPrefs((prev) =>
+                          prev.map((p) =>
+                            p.publicationId === pref.publicationId
+                              ? { ...p, newArticle: !p.newArticle }
+                              : p,
+                          ),
+                        );
+                      } catch {
+                        // ignore
+                      } finally {
+                        setPrefUpdating(null);
+                      }
+                    }}
+                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 ${pref.newArticle ? 'bg-primary' : 'bg-input'}`}
+                  >
+                    <span
+                      className={`pointer-events-none block h-3.5 w-3.5 rounded-full bg-background shadow-lg ring-0 transition-transform ${pref.newArticle ? 'translate-x-4' : 'translate-x-0'}`}
+                    />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
 
         {/* Danger Zone */}
         <Card className="border-destructive/30 p-6">

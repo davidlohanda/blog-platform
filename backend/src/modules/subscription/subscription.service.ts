@@ -2,6 +2,7 @@ import { subscriptionRepository } from './subscription.repository';
 import { publicationRepository } from '../publication/publication.repository';
 import { authRepository } from '../auth/auth.repository';
 import { midtransService } from './midtrans.service';
+import { emailService } from '../email/email.service';
 import { AppError } from '../../lib/AppError';
 import { config } from '../../config';
 import { redis } from '../../config/redis.config';
@@ -141,9 +142,45 @@ export const subscriptionService = {
 
       // Invalidate member cache so access check picks up new status
       await redis.del(`member:${subscription.userId}:${subscription.publicationId}`);
-      // TODO STORY 7.2: send subscription confirmation email
+
+      // Send subscription confirmation email
+      const [subUser, subPub] = await Promise.all([
+        authRepository.findById(subscription.userId),
+        publicationRepository.findById(subscription.publicationId),
+      ]);
+      if (subUser && subPub && expiresAt) {
+        const expiresAtStr = expiresAt.toLocaleDateString('id-ID', {
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+        });
+        await emailService.sendSubscriptionConfirmed({
+          to: subUser.email,
+          name: subUser.name,
+          publicationName: subPub.name,
+          planDurationMonths: plan?.durationMonths ?? 1,
+          expiresAt: expiresAtStr,
+        });
+      }
     } else if (status === 'deny' || status === 'cancel' || status === 'expire') {
       await subscriptionRepository.setStatus(subscription.id, 'expired');
+
+      // Send subscription expired email
+      if (status === 'expire') {
+        const [subUser, subPub] = await Promise.all([
+          authRepository.findById(subscription.userId),
+          publicationRepository.findById(subscription.publicationId),
+        ]);
+        if (subUser && subPub) {
+          const frontendUrl = config.platform.frontendUrl;
+          await emailService.sendSubscriptionExpired({
+            to: subUser.email,
+            name: subUser.name,
+            publicationName: subPub.name,
+            resubscribeUrl: `${frontendUrl}/subscribe?pub=${subPub.slug}`,
+          });
+        }
+      }
     }
     // 'pending' status: leave as-is
 

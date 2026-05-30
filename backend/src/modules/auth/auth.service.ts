@@ -1,9 +1,12 @@
 import { randomUUID } from 'crypto';
 import { authRepository } from './auth.repository';
+import { publicationRepository } from '../publication/publication.repository';
 import { AppError } from '../../lib/AppError';
 import { hash, verify } from '../../lib/password';
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../../lib/jwt';
 import { redis } from '../../config/redis.config';
+import { emailService } from '../email/email.service';
+import { config } from '../../config';
 import type { RegisterInput, LoginInput } from './auth.schema';
 
 const REFRESH_TOKEN_TTL = 30 * 24 * 60 * 60; // 30 days in seconds
@@ -26,9 +29,9 @@ export const authService = {
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
     await authRepository.createEmailVerificationToken({ userId: user.id, token, expiresAt });
 
-    // TODO STORY 7.1: send verification email via Resend
-    // For now, log the token so development is unblocked
-    console.log(`[Auth] Verification URL: /auth/verify-email?token=${token}`);
+    const frontendUrl = config.platform.frontendUrl;
+    const verifyUrl = `${frontendUrl}/verify-email?token=${token}`;
+    await emailService.sendVerification({ to: user.email, name: user.name, verifyUrl });
 
     return { id: user.id, email: user.email, name: user.name };
   },
@@ -120,9 +123,9 @@ export const authService = {
     const token = randomUUID();
     await redis.setex(`reset:${token}`, 60 * 60, user.id); // TTL 1 hour
 
-    // TODO STORY 7.1: send reset email via Resend
-    const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
-    console.log(`[Auth] Password reset URL: ${frontendUrl}/reset-password?token=${token}`);
+    const frontendUrl = config.platform.frontendUrl;
+    const resetUrl = `${frontendUrl}/reset-password?token=${token}`;
+    await emailService.sendResetPassword({ to: user.email, name: user.name, resetUrl });
 
     return { message: 'Jika email terdaftar, link reset akan dikirim dalam beberapa menit.' };
   },
@@ -183,5 +186,33 @@ export const authService = {
     const user = await authRepository.findById(userId);
     if (!user) throw AppError.notFound('User tidak ditemukan');
     return user;
+  },
+
+  async acceptInvite(userId: string, token: string) {
+    const raw = await redis.get(`invite:${token}`);
+    if (!raw)
+      throw AppError.badRequest('Undangan tidak valid atau sudah kedaluwarsa', 'INVALID_INVITE');
+
+    const invite = JSON.parse(raw) as {
+      email: string;
+      publicationId: string;
+      role: 'owner' | 'author';
+    };
+
+    const user = await authRepository.findById(userId);
+    if (!user) throw AppError.notFound('User tidak ditemukan');
+    if (user.email !== invite.email) {
+      throw AppError.forbidden('Undangan ini bukan untuk akun kamu');
+    }
+
+    // Check if already a member
+    const existing = await publicationRepository.findAuthor(invite.publicationId, userId);
+    if (existing)
+      throw AppError.conflict('Kamu sudah menjadi member publikasi ini', 'ALREADY_MEMBER');
+
+    await publicationRepository.addAuthor(invite.publicationId, userId, invite.role);
+    await redis.del(`invite:${token}`);
+
+    return { message: 'Kamu berhasil bergabung ke publikasi', publicationId: invite.publicationId };
   },
 };

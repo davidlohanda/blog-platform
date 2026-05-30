@@ -101,7 +101,7 @@ Sebagai pengunjung baru, saya ingin bisa membuat akun dengan email dan password,
 **TASK-FE-2.1.7** `[x]` Commit: `feat(auth): add register page with form validation`  
 
 **TASK-INT-2.1.1** `[x]` Hubungkan form register ke `POST /auth/register`  
-**TASK-INT-2.1.2** `[ ]` ~~Test end-to-end: register → terima email → klik link → akun aktif~~ BLOCKED: menunggu STORY 7.1 (Email Service)  
+**TASK-INT-2.1.2** `[ ]` ~~Test end-to-end: register → terima email → klik link → akun aktif~~ BLOCKED: menunggu manual testing  
 **TASK-INT-2.1.3** `[x]` Commit: `feat(auth): integrate register frontend with backend`  
 
 ---
@@ -212,7 +212,7 @@ Sebagai owner baru, saya ingin bisa mendaftarkan publication saya dengan nama, d
 Sebagai owner, saya ingin bisa mengundang penulis lain untuk bergabung ke publication saya, agar kami bisa menulis bersama dalam satu platform.
 
 **TASK-BE-3.2.1** `[x]` Endpoint `POST /publications/:id/authors/invite` — log invite URL (email menyusul STORY 7.1)  
-**TASK-BE-3.2.2** `[ ]` ~~Endpoint `GET /auth/accept-invite?token=xxx`~~ BLOCKED: menunggu STORY 7.1 (Email Service)  
+**TASK-BE-3.2.2** `[x]` Endpoint `GET /auth/accept-invite?token=xxx` — unblocked dan selesai di STORY 7.1  
 **TASK-BE-3.2.3** `[x]` Endpoint `GET /publications/:id/authors` — list semua author  
 **TASK-BE-3.2.4** `[x]` Endpoint `PATCH /publications/:id/authors/:userId` — update role author  
 **TASK-BE-3.2.5** `[x]` Endpoint `DELETE /publications/:id/authors/:userId` — remove author (owner only, tidak bisa remove diri sendiri jika satu-satunya owner)  
@@ -221,7 +221,7 @@ Sebagai owner, saya ingin bisa mengundang penulis lain untuk bergabung ke public
 
 **TASK-FE-3.2.1** `[x]` Buat halaman `dashboard/settings/` dengan tab: Umum, Author  
 **TASK-FE-3.2.2** `[x]` Tab Author: list author dengan role, form invite via email, tombol remove  
-**TASK-FE-3.2.3** `[ ]` ~~Buat halaman accept invite~~ BLOCKED: menunggu STORY 7.1 (Email Service)  
+**TASK-FE-3.2.3** `[x]` Buat halaman accept invite — unblocked dan selesai di STORY 7.1  
 **TASK-FE-3.2.4** `[x]` Commit: `feat(publication): add author management UI`  
 
 **TASK-INT-3.2.1** `[x]` Integrasi invite dan author management  
@@ -477,38 +477,38 @@ Sebagai pengunjung, saya ingin bisa memberikan like pada artikel yang saya sukai
 ### STORY 7.1 — Setup Email Service
 Sebagai developer, saya ingin sistem email ter-setup dengan benar, agar semua email transaksional dan newsletter bisa dikirim dengan andal.
 
-**TASK-BE-7.1.1** `[ ]` Setup Resend SDK  
-**TASK-BE-7.1.2** `[ ]` Buat `email.service.ts` — method generic `sendEmail`  
-**TASK-BE-7.1.3** `[ ]` Setup BullMQ untuk email queue dengan Redis  
-**TASK-BE-7.1.4** `[ ]` Buat email worker yang consume job dari queue  
-**TASK-BE-7.1.5** `[ ]` Commit: `feat(email): setup Resend email service with BullMQ queue`  
+**TASK-BE-7.1.1** `[x]` Setup Resend SDK  
+**TASK-BE-7.1.2** `[x]` Buat `email.service.ts` — method generic `sendEmail`  
+**TASK-BE-7.1.3** `[x]` Setup BullMQ untuk email queue dengan Redis  
+**TASK-BE-7.1.4** `[x]` Buat email worker yang consume job dari queue  
+**TASK-BE-7.1.5** `[x]` Commit: `feat(email): setup Resend email service with BullMQ queue`  
 
 ---
 
 ### STORY 7.2 — Email Transaksional
 Sebagai user, saya ingin menerima email konfirmasi untuk setiap aksi penting, agar saya tahu bahwa tindakan saya berhasil.
 
-**TASK-BE-7.2.1** `[ ]` Buat template email verifikasi akun  
-**TASK-BE-7.2.2** `[ ]` Buat template email reset password  
-**TASK-BE-7.2.3** `[ ]` Buat template email konfirmasi subscription berhasil  
-**TASK-BE-7.2.4** `[ ]` Buat template email reminder subscription akan berakhir (7 hari sebelum)  
-**TASK-BE-7.2.5** `[ ]` Buat template email notifikasi subscription berakhir  
-**TASK-BE-7.2.6** `[ ]` Background job: cek subscription yang akan berakhir dalam 7 hari, kirim reminder  
-**TASK-BE-7.2.7** `[ ]` Commit: `feat(email): add all transactional email templates and jobs`  
+**TASK-BE-7.2.1** `[x]` Buat template email verifikasi akun  
+**TASK-BE-7.2.2** `[x]` Buat template email reset password  
+**TASK-BE-7.2.3** `[x]` Buat template email konfirmasi subscription berhasil  
+**TASK-BE-7.2.4** `[x]` Buat template email reminder subscription akan berakhir (7 hari sebelum)  
+**TASK-BE-7.2.5** `[x]` Buat template email notifikasi subscription berakhir  
+**TASK-BE-7.2.6** `[x]` Background job: cek subscription yang akan berakhir dalam 7 hari, kirim reminder  
+**TASK-BE-7.2.7** `[x]` Commit: `feat(email): add all transactional email templates and jobs`  
 
 ---
 
 ### STORY 7.3 — Notifikasi Artikel Baru
 Sebagai subscriber, saya ingin mendapat notifikasi email saat ada artikel baru, agar saya tidak melewatkan konten terbaru.
 
-**TASK-BE-7.3.1** `[ ]` Buat template email notifikasi artikel baru: judul, excerpt, cover image, CTA baca artikel  
-**TASK-BE-7.3.2** `[ ]` Saat artikel dipublish: enqueue email job ke semua subscriber yang opt-in  
-**TASK-BE-7.3.3** `[ ]` Endpoint `GET /email/unsubscribe?token=xxx` — update `email_preferences.new_article = false`  
-**TASK-BE-7.3.4** `[ ]` Setiap email newsletter menyertakan unsubscribe link dengan signed token  
-**TASK-BE-7.3.5** `[ ]` Commit: `feat(email): add new article notification email`  
+**TASK-BE-7.3.1** `[x]` Buat template email notifikasi artikel baru: judul, excerpt, cover image, CTA baca artikel  
+**TASK-BE-7.3.2** `[x]` Saat artikel dipublish: enqueue email job ke semua subscriber yang opt-in  
+**TASK-BE-7.3.3** `[x]` Endpoint `GET /email/unsubscribe?token=xxx` — update `email_preferences.new_article = false`  
+**TASK-BE-7.3.4** `[x]` Setiap email newsletter menyertakan unsubscribe link dengan signed token  
+**TASK-BE-7.3.5** `[x]` Commit: `feat(email): add new article notification email`  
 
-**TASK-FE-7.3.1** `[ ]` Di profile settings, tambahkan toggle preferensi email notifikasi artikel baru  
-**TASK-FE-7.3.2** `[ ]` Commit: `feat(email): add email preferences UI`  
+**TASK-FE-7.3.1** `[x]` Di profile settings, tambahkan toggle preferensi email notifikasi artikel baru  
+**TASK-FE-7.3.2** `[x]` Commit: `feat(email): add email preferences UI`  
 
 ---
 

@@ -137,4 +137,15 @@ export const authController = {
       next(error);
     }
   },
+
+  async acceptInvite(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = (req as Request & { user?: { userId: string } }).user!.userId;
+      const { token } = req.query as { token: string };
+      const result = await authService.acceptInvite(userId, token);
+      res.json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  },
 };

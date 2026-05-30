@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto';
 import { articleRepository } from './article.repository';
 import { publicationRepository } from '../publication/publication.repository';
+import { emailService } from '../email/email.service';
 import { AppError } from '../../lib/AppError';
 import type { Prisma } from '@prisma/client';
 import type {
@@ -172,7 +173,24 @@ export const articleService = {
       return articleRepository.schedule(id, scheduledDate);
     }
 
-    return articleRepository.publish(id, new Date());
+    const published = await articleRepository.publish(id, new Date());
+
+    // Notify subscribers (fire-and-forget — don't block the response)
+    const pub = await publicationRepository.findById(publicationId);
+    if (pub) {
+      emailService
+        .enqueueNewArticleNotifications(publicationId, pub.name, {
+          title: article.title,
+          excerpt: article.excerpt,
+          slug: article.slug,
+          coverImageUrl: article.coverImageUrl,
+        })
+        .catch((err: Error) =>
+          console.error('[Email] Failed to enqueue article notifications:', err.message),
+        );
+    }
+
+    return published;
   },
 
   async softDelete(publicationId: string, id: string) {
