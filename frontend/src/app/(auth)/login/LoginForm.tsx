@@ -20,6 +20,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useAuth } from '@/hooks/useAuth';
+import { apiClient } from '@/lib/api/client';
 
 const schema = z.object({
   email: z.string().email('Format email tidak valid'),
@@ -33,15 +34,31 @@ export function LoginForm() {
   const { login } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get('next') ?? '/dashboard';
+  const next = searchParams.get('next');
 
   const form = useForm<FormValues>({ resolver: zodResolver(schema) });
   const { isSubmitting } = form.formState;
 
+  async function resolveRedirect(role: string): Promise<string> {
+    // Explicit next param (from proxy redirect) takes priority, except generic /dashboard default
+    if (next && next !== '/dashboard' && next !== '/') return next;
+
+    if (role === 'platform_admin') return '/admin/dashboard';
+
+    // Check if user has any publications (owner/author)
+    try {
+      const { data } = await apiClient.get<{ data: Array<unknown> }>('/publications/mine');
+      return (data.data as Array<unknown>).length > 0 ? '/dashboard' : '/';
+    } catch {
+      return '/dashboard';
+    }
+  }
+
   async function onSubmit(values: FormValues) {
     try {
-      await login(values.email, values.password);
-      router.push(next);
+      const result = await login(values.email, values.password);
+      const destination = await resolveRedirect(result.user.role);
+      router.push(destination);
     } catch (err: unknown) {
       const apiErr = err as { response?: { data?: { error?: string; message?: string } } };
       const code = apiErr?.response?.data?.error;

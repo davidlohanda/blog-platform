@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
-import { headers } from 'next/headers';
+import { headers, cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -271,19 +272,56 @@ async function SubscribeBand({ pub }: { pub: Publication }) {
   );
 }
 
+function PlatformLanding() {
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
+      <div className="w-full max-w-sm text-center">
+        {/* Logo */}
+        <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-foreground">
+          <span className="font-serif text-2xl font-semibold italic text-background">L</span>
+        </div>
+
+        <h1 className="mb-2 font-serif text-3xl font-medium tracking-tight text-foreground">
+          Lentera
+        </h1>
+        <p className="mb-8 text-base leading-relaxed text-muted-foreground">
+          Platform blog subscription untuk penulis Indonesia.
+        </p>
+
+        <Link
+          href="/login"
+          className="inline-flex w-full items-center justify-center rounded-lg bg-foreground px-4 py-2.5 text-sm font-semibold text-background transition-colors hover:bg-foreground/90"
+        >
+          Masuk
+        </Link>
+
+        <p className="mt-4 text-xs text-muted-foreground">
+          Ingin membuat publication?{' '}
+          <Link href="/register" className="font-medium text-foreground hover:underline">
+            Hubungi kami
+          </Link>
+        </p>
+      </div>
+    </div>
+  );
+}
+
 async function HomepageContent() {
   const h = await headers();
   const slug =
     h.get('x-publication-slug') ?? process.env.NEXT_PUBLIC_DEV_PUBLICATION_SLUG ?? '';
 
   if (!slug) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-muted-foreground">
-          Set <code>NEXT_PUBLIC_DEV_PUBLICATION_SLUG</code> for local dev.
-        </p>
-      </div>
-    );
+    // Platform context (localhost / app domain without publication header)
+    // Redirect logged-in users to the right place based on role cookie
+    const jar = await cookies();
+    const refreshToken = jar.get('refreshToken');
+    if (refreshToken) {
+      const role = jar.get('user-role')?.value ?? '';
+      if (role === 'platform_admin') redirect('/admin/dashboard');
+      else redirect('/dashboard');
+    }
+    return <PlatformLanding />;
   }
 
   const pub = await getPublicationBySlug(slug);

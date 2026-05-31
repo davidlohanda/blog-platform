@@ -669,22 +669,22 @@ agar brand publication saya terlihat di homepage.
 Sebagai user yang login, saya ingin diarahkan ke halaman yang tepat
 berdasarkan role saya, agar tidak bingung harus ke mana.
 
-**TASK-BE-12.1.1** `[ ]` Pastikan JWT payload include role: platform_admin, owner, author, atau member
-**TASK-FE-12.1.1** `[ ]` Update redirect setelah login: platform_admin → /admin/dashboard, owner/author → /dashboard, member/reader → / (homepage publication)
-**TASK-FE-12.1.2** `[ ]` Update proxy.ts: akses /admin tanpa role platform_admin → redirect ke /404
-**TASK-FE-12.1.3** `[ ]` Update proxy.ts: akses /dashboard tanpa login → redirect ke /login
-**TASK-INT-12.1.1** `[ ]` Test semua skenario: login admin → /admin ✅, login owner → /dashboard ✅, login member → / ✅, akses /admin tanpa admin → 404 ✅
-**TASK-INT-12.1.2** `[ ]` Commit: `feat(auth): add role-based redirect after login`
+**TASK-BE-12.1.1** `[x]` Pastikan JWT payload include role: platform_admin, owner, author, atau member
+**TASK-FE-12.1.1** `[x]` Update redirect setelah login: platform_admin → /admin/dashboard, owner/author → /dashboard, member/reader → / (homepage publication)
+**TASK-FE-12.1.2** `[x]` Update proxy.ts: akses /admin tanpa role platform_admin → redirect ke /404
+**TASK-FE-12.1.3** `[x]` Update proxy.ts: akses /dashboard tanpa login → redirect ke /login
+**TASK-INT-12.1.1** `[x]` Test semua skenario: login admin → /admin ✅, login owner → /dashboard ✅, login member → / ✅, akses /admin tanpa admin → 404 ✅
+**TASK-INT-12.1.2** `[x]` Commit: `feat(auth): add role-based redirect after login`
 
 ### STORY 12.2 — Homepage Platform
 Sebagai user yang buka aplikasi tanpa context publication,
 saya ingin melihat halaman yang informatif bukan halaman default Next.js.
 
-**TASK-FE-12.2.1** `[ ]` Buat halaman / untuk konteks platform (bukan publication): belum login → landing page simpel dengan logo, tagline, tombol Masuk
-**TASK-FE-12.2.2** `[ ]` Landing page: logo Lentera, tagline singkat, tombol Masuk → /login. Tidak perlu marketing page panjang untuk MVP
-**TASK-FE-12.2.3** `[ ]` Jika sudah login: platform_admin → redirect /admin/dashboard, owner → redirect /dashboard
-**TASK-INT-12.2.1** `[ ]` Test: buka localhost:3000 → lihat landing page atau redirect sesuai role
-**TASK-INT-12.2.2** `[ ]` Commit: `feat(ux): add platform homepage with role-based redirect`
+**TASK-FE-12.2.1** `[x]` Buat halaman / untuk konteks platform (bukan publication): belum login → landing page simpel dengan logo, tagline, tombol Masuk
+**TASK-FE-12.2.2** `[x]` Landing page: logo Lentera, tagline singkat, tombol Masuk → /login. Tidak perlu marketing page panjang untuk MVP
+**TASK-FE-12.2.3** `[x]` Jika sudah login: platform_admin → redirect /admin/dashboard, owner → redirect /dashboard
+**TASK-INT-12.2.1** `[x]` Test: buka localhost:3000 → lihat landing page atau redirect sesuai role
+**TASK-INT-12.2.2** `[x]` Commit: `feat(ux): add platform homepage with role-based redirect`
 
 ---
 

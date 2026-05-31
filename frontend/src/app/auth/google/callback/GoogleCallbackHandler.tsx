@@ -23,9 +23,22 @@ export function GoogleCallbackHandler() {
       .get<{ data: AuthUser }>('/auth/me', {
         headers: { Authorization: `Bearer ${token}` },
       })
-      .then(({ data }) => {
+      .then(async ({ data }) => {
         setAuth(token, data.data);
-        router.replace('/dashboard');
+        document.cookie = `user-role=${data.data.role}; path=/; SameSite=Lax; Max-Age=${30 * 24 * 3600}`;
+
+        if (data.data.role === 'platform_admin') {
+          router.replace('/admin/dashboard');
+          return;
+        }
+        try {
+          const pubRes = await apiClient.get<{ data: Array<unknown> }>('/publications/mine', {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          router.replace((pubRes.data.data as Array<unknown>).length > 0 ? '/dashboard' : '/');
+        } catch {
+          router.replace('/dashboard');
+        }
       })
       .catch(() => {
         router.replace('/login?error=oauth_failed');
