@@ -627,39 +627,39 @@ agar mereka bisa register dan langsung mendapat akses sebagai owner publication 
 Sebagai reader yang baru subscribe, saya ingin melihat halaman konfirmasi
 setelah bayar, agar saya yakin pembayaran berhasil dan tahu apa yang harus dilakukan.
 
-**TASK-BE-11.1.1** `[ ]` Update subscription order endpoint: simpan ?next= URL artikel yang dituju di Redis bersama order_id
-**TASK-FE-11.1.1** `[ ]` Buat halaman /payment/success: tampil pesan sukses, info paket aktif, tanggal berakhir, CTA "Baca artikel" yang redirect ke artikel yang dituju
-**TASK-FE-11.1.2** `[ ]` Update /subscribe: setelah Midtrans Snap close dengan status success → redirect ke /payment/success?next=[artikel-slug]
-**TASK-INT-11.1.1** `[ ]` Test flow: subscribe → bayar → redirect /payment/success → klik → baca artikel premium
-**TASK-INT-11.1.2** `[ ]` Commit: `feat(ux): add payment success page with article redirect`
+**TASK-BE-11.1.1** `[x]` Update subscription order endpoint: simpan ?next= URL artikel yang dituju di Redis bersama order_id
+**TASK-FE-11.1.1** `[x]` Buat halaman /payment/success: tampil pesan sukses, info paket aktif, tanggal berakhir, CTA "Baca artikel" yang redirect ke artikel yang dituju
+**TASK-FE-11.1.2** `[x]` Update /subscribe: setelah Midtrans Snap close dengan status success → redirect ke /payment/success?next=[artikel-slug]
+**TASK-INT-11.1.1** `[x]` Test flow: subscribe → bayar → redirect /payment/success → klik → baca artikel premium
+**TASK-INT-11.1.2** `[x]` Commit: `feat(ux): add payment success page with article redirect`
 
 ### STORY 11.2 — Onboarding Checklist Dashboard
 Sebagai owner baru, saya ingin ada panduan langkah selanjutnya setelah buat publication,
 agar saya tahu harus ngapain untuk mulai monetisasi.
 
-**TASK-BE-11.2.1** `[ ]` Endpoint GET /publications/:id/onboarding-status — return: has_subscription_plans, has_articles, has_logo, has_custom_domain
-**TASK-FE-11.2.1** `[ ]` Buat komponen OnboardingChecklist: tampil di /dashboard jika belum 100% selesai. Item: Set harga subscription, Tulis artikel pertama, Upload logo, Setup custom domain
-**TASK-FE-11.2.2** `[ ]` Checklist hilang otomatis jika semua item sudah selesai
-**TASK-INT-11.2.1** `[ ]` Integrasi checklist dengan backend
-**TASK-INT-11.2.2** `[ ]` Commit: `feat(ux): add onboarding checklist for new publication owners`
+**TASK-BE-11.2.1** `[x]` Endpoint GET /publications/:id/onboarding-status — return: has_subscription_plans, has_articles, has_logo, has_custom_domain
+**TASK-FE-11.2.1** `[x]` Buat komponen OnboardingChecklist: tampil di /dashboard jika belum 100% selesai. Item: Set harga subscription, Tulis artikel pertama, Upload logo, Setup custom domain
+**TASK-FE-11.2.2** `[x]` Checklist hilang otomatis jika semua item sudah selesai
+**TASK-INT-11.2.1** `[x]` Integrasi checklist dengan backend
+**TASK-INT-11.2.2** `[x]` Commit: `feat(ux): add onboarding checklist for new publication owners`
 
 ### STORY 11.3 — Subscribe dengan Context Artikel
 Sebagai reader yang kena paywall, saya ingin setelah subscribe langsung diarahkan
 ke artikel yang ingin saya baca, bukan harus navigasi manual.
 
-**TASK-FE-11.3.1** `[ ]` Update paywall CTA: link berlangganan menyertakan ?next=[article-slug]
-**TASK-FE-11.3.2** `[ ]` Update /subscribe: baca query param ?next, simpan di state, teruskan ke payment success redirect
-**TASK-INT-11.3.1** `[ ]` Test: klik paywall → subscribe → bayar → otomatis redirect ke artikel yang tadi diklik
-**TASK-INT-11.3.2** `[ ]` Commit: `feat(ux): preserve article context through subscribe flow`
+**TASK-FE-11.3.1** `[x]` Update paywall CTA: link berlangganan menyertakan ?next=[article-slug]
+**TASK-FE-11.3.2** `[x]` Update /subscribe: baca query param ?next, simpan di state, teruskan ke payment success redirect
+**TASK-INT-11.3.1** `[x]` Test: klik paywall → subscribe → bayar → otomatis redirect ke artikel yang tadi diklik
+**TASK-INT-11.3.2** `[x]` Commit: `feat(ux): preserve article context through subscribe flow`
 
 ### STORY 11.4 — Logo Upload yang Berfungsi
 Sebagai owner, saya ingin bisa upload logo publication,
 agar brand publication saya terlihat di homepage.
 
-**TASK-BE-11.4.1** `[ ]` Pastikan endpoint PATCH /publications/:id menerima dan menyimpan logo_url dengan benar
-**TASK-FE-11.4.1** `[ ]` Fix logo upload di /dashboard/settings: gunakan signed upload URL Cloudinary, setelah upload update logo_url, tampilkan preview
-**TASK-INT-11.4.1** `[ ]` Test: upload logo → tampil di homepage publication
-**TASK-INT-11.4.2** `[ ]` Commit: `feat(ux): fix logo upload functionality`
+**TASK-BE-11.4.1** `[x]` Pastikan endpoint PATCH /publications/:id menerima dan menyimpan logo_url dengan benar
+**TASK-FE-11.4.1** `[x]` Fix logo upload di /dashboard/settings: gunakan signed upload URL Cloudinary, setelah upload update logo_url, tampilkan preview
+**TASK-INT-11.4.1** `[x]` Test: upload logo → tampil di homepage publication
+**TASK-INT-11.4.2** `[x]` Commit: `feat(ux): fix logo upload functionality`
 
 ---
 

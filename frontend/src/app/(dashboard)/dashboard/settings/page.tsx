@@ -9,6 +9,8 @@ import { DashboardShell } from '@/components/layout/DashboardShell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
+import Image from 'next/image';
+import { uploadToCloudinary } from '@/lib/cloudinary';
 import {
   Form,
   FormControl,
@@ -90,6 +92,25 @@ type InviteValues = z.infer<typeof inviteSchema>;
 function GeneralTab({ pub, onSaved }: { pub: Publication; onSaved: (p: Publication) => void }) {
   const [success, setSuccess] = useState(false);
   const [descLen, setDescLen] = useState(pub.description?.length ?? 0);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [logoUrl, setLogoUrl] = useState<string | null>(pub.logoUrl);
+
+  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLogoUploading(true);
+    try {
+      const url = await uploadToCloudinary(file, 'lentera/publications');
+      await apiClient.patch<{ data: Publication }>(`/publications/${pub.id}`, { logoUrl: url });
+      setLogoUrl(url);
+      onSaved({ ...pub, logoUrl: url });
+    } catch {
+      // silently ignore — user can retry
+    } finally {
+      setLogoUploading(false);
+      e.target.value = '';
+    }
+  }
 
   const form = useForm<GeneralValues>({
     resolver: zodResolver(generalSchema),
@@ -157,13 +178,42 @@ function GeneralTab({ pub, onSaved }: { pub: Publication; onSaved: (p: Publicati
             <div className="space-y-1.5">
               <FormLabel className="text-sm font-medium">Logo</FormLabel>
               <div className="flex items-center gap-4">
-                <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-foreground font-serif text-2xl font-semibold italic text-background">
-                  {pub.name.slice(0, 1)}
+                {logoUrl ? (
+                  <Image
+                    src={logoUrl}
+                    alt="Logo publication"
+                    width={64}
+                    height={64}
+                    className="h-16 w-16 rounded-xl object-cover"
+                  />
+                ) : (
+                  <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-foreground font-serif text-2xl font-semibold italic text-background">
+                    {pub.name.slice(0, 1)}
+                  </div>
+                )}
+                <div className="flex flex-col gap-1.5">
+                  <label className="cursor-pointer">
+                    <Button
+                      variant="outline"
+                      type="button"
+                      size="sm"
+                      disabled={logoUploading}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        (e.currentTarget.parentElement?.querySelector('input') as HTMLInputElement | null)?.click();
+                      }}
+                    >
+                      {logoUploading ? 'Mengunggah…' : logoUrl ? 'Ganti logo' : 'Unggah logo'}
+                    </Button>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleLogoUpload}
+                    />
+                  </label>
+                  <span className="text-xs text-muted-foreground">PNG, JPG, atau SVG. Maks 2MB.</span>
                 </div>
-                <Button variant="outline" type="button" disabled>
-                  Unggah logo baru
-                </Button>
-                <span className="text-xs text-muted-foreground">Upload tersedia setelah EPIC 4</span>
               </div>
             </div>
 
