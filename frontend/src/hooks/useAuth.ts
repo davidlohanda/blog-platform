@@ -16,6 +16,8 @@ export function useAuth() {
         { email, password },
       );
       setAuth(data.data.accessToken, data.data.user);
+      // Set role cookie for proxy-level routing (not security-critical; backend validates JWT)
+      document.cookie = `user-role=${data.data.user.role}; path=/; SameSite=Lax; Max-Age=${30 * 24 * 3600}`;
       return data.data;
     },
     [setAuth],
@@ -26,6 +28,8 @@ export function useAuth() {
       await apiClient.post('/auth/logout');
     } finally {
       clearAuth();
+      // Clear role cookie
+      document.cookie = 'user-role=; path=/; Max-Age=0';
       router.push('/login');
     }
   }, [clearAuth, router]);

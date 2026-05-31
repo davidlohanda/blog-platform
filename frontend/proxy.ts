@@ -14,7 +14,26 @@ export function proxy(req: NextRequest): NextResponse {
   // Strip port for local dev
   const host = hostname.replace(/:.*$/, '');
 
-  // Dashboard traffic — pass through without modification
+  const refreshToken = req.cookies.get('refreshToken');
+  const userRole = req.cookies.get('user-role')?.value ?? '';
+
+  // Protect /admin routes: only platform_admin may access
+  if (pathname.startsWith('/admin')) {
+    if (!refreshToken || userRole !== 'platform_admin') {
+      return NextResponse.redirect(new URL('/', req.url));
+    }
+  }
+
+  // Protect /dashboard and /me: must be logged in
+  const protectedPaths = ['/dashboard', '/me'];
+  const isProtected = protectedPaths.some((p) => pathname.startsWith(p));
+  if (isProtected && !refreshToken) {
+    const loginUrl = new URL('/login', req.url);
+    loginUrl.searchParams.set('next', pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // Platform app domain or localhost — pass through (no publication context)
   if (host === APP_DOMAIN || host === 'localhost') {
     return NextResponse.next();
   }
@@ -31,17 +50,5 @@ export function proxy(req: NextRequest): NextResponse {
   // Custom domain — forward the full host as publication identifier
   const res = NextResponse.next();
   res.headers.set('x-publication-host', host);
-
-  // Auth redirect — if protected route and no refresh token cookie, send to login
-  const refreshToken = req.cookies.get('refreshToken');
-  const protectedPaths = ['/dashboard', '/me'];
-  const isProtected = protectedPaths.some((p) => pathname.startsWith(p));
-
-  if (isProtected && !refreshToken) {
-    const loginUrl = new URL('/login', req.url);
-    loginUrl.searchParams.set('next', pathname);
-    return NextResponse.redirect(loginUrl);
-  }
-
   return res;
 }

@@ -4,6 +4,7 @@ import { config } from '../config';
 export interface AccessTokenPayload {
   userId: string;
   email: string;
+  role: string;
 }
 
 export function signAccessToken(payload: AccessTokenPayload): string {

@@ -98,7 +98,7 @@ export const authService = {
     if (!valid) throw AppError.unauthorized('Email atau password salah', 'INVALID_CREDENTIALS');
 
     const tokenId = randomUUID();
-    const accessToken = signAccessToken({ userId: user.id, email: user.email });
+    const accessToken = signAccessToken({ userId: user.id, email: user.email, role: user.role });
     const refreshToken = signRefreshToken(user.id, tokenId);
 
     await redis.setex(`refresh:${user.id}:${tokenId}`, REFRESH_TOKEN_TTL, tokenId);
@@ -111,6 +111,7 @@ export const authService = {
         email: user.email,
         name: user.name,
         avatarUrl: user.avatarUrl,
+        role: user.role,
         emailVerifiedAt: user.emailVerifiedAt,
       },
     };
@@ -135,7 +136,7 @@ export const authService = {
     if (!user) throw AppError.unauthorized('User tidak ditemukan', 'USER_NOT_FOUND');
 
     const newTokenId = randomUUID();
-    const newAccessToken = signAccessToken({ userId: user.id, email: user.email });
+    const newAccessToken = signAccessToken({ userId: user.id, email: user.email, role: user.role });
     const newRefreshToken = signRefreshToken(user.id, newTokenId);
 
     await redis.setex(`refresh:${user.id}:${newTokenId}`, REFRESH_TOKEN_TTL, newTokenId);
@@ -203,7 +204,7 @@ export const authService = {
     }
 
     const tokenId = randomUUID();
-    const accessToken = signAccessToken({ userId: user.id, email: user.email });
+    const accessToken = signAccessToken({ userId: user.id, email: user.email, role: user.role });
     const refreshToken = signRefreshToken(user.id, tokenId);
     await redis.setex(`refresh:${user.id}:${tokenId}`, REFRESH_TOKEN_TTL, tokenId);
 
@@ -215,6 +216,7 @@ export const authService = {
         email: user.email,
         name: user.name,
         avatarUrl: user.avatarUrl,
+        role: user.role,
         emailVerifiedAt: user.emailVerifiedAt,
       },
     };
