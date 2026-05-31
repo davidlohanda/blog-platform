@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -21,6 +22,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useAuth } from '@/hooks/useAuth';
+import { apiClient } from '@/lib/api/client';
 
 const schema = z.object({
   name: z.string().min(2, 'Nama minimal 2 karakter'),
@@ -34,16 +36,50 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
-export default function RegisterPage() {
-  const { register: registerUser } = useAuth();
+function RegisterForm() {
+  const { register: registerUser, login } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [success, setSuccess] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState('');
 
-  const form = useForm<FormValues>({ resolver: zodResolver(schema) });
+  const inviteToken = searchParams.get('invite');
+  const inviteEmail = searchParams.get('email') ?? '';
+  const isOwnerInvite = !!inviteToken;
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: { email: inviteEmail },
+  });
   const { isSubmitting } = form.formState;
+
+  // Sync email field jika ada invite email dari URL
+  useEffect(() => {
+    if (inviteEmail) {
+      form.setValue('email', inviteEmail);
+    }
+  }, [inviteEmail, form]);
 
   async function onSubmit(values: FormValues) {
     try {
+      if (isOwnerInvite) {
+        // Register dengan owner invite — langsung login setelahnya
+        const { data } = await apiClient.post<{
+          data: { user: { email: string } };
+        }>('/auth/register', {
+          name: values.name,
+          email: values.email,
+          password: values.password,
+          ownerInviteToken: inviteToken,
+        });
+
+        // Auto-login setelah register dengan invite (email sudah verified)
+        await login(data.data.user.email, values.password);
+        router.push('/dashboard');
+        return;
+      }
+
+      // Register normal
       const result = await registerUser(values.name, values.email, values.password);
       setRegisteredEmail(result.user.email);
       setSuccess(true);
@@ -83,8 +119,12 @@ export default function RegisterPage() {
 
   return (
     <AuthShell
-      title="Buat akun Lentera"
-      subtitle="Gratis untuk membaca artikel free dan menyimpan ke library kamu sendiri."
+      title={isOwnerInvite ? 'Buat akun owner' : 'Buat akun Lentera'}
+      subtitle={
+        isOwnerInvite
+          ? 'Kamu diundang sebagai owner publication di Lentera. Buat akun untuk mulai.'
+          : 'Gratis untuk membaca artikel free dan menyimpan ke library kamu sendiri.'
+      }
       footer={
         <>
           Sudah punya akun?{' '}
@@ -94,19 +134,23 @@ export default function RegisterPage() {
         </>
       }
     >
-      <Button
-        variant="outline"
-        className="w-full"
-        type="button"
-        onClick={() => {
-          window.location.href = `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000'}/auth/google`;
-        }}
-      >
-        <GoogleIcon />
-        Daftar dengan Google
-      </Button>
+      {!isOwnerInvite && (
+        <>
+          <Button
+            variant="outline"
+            className="w-full"
+            type="button"
+            onClick={() => {
+              window.location.href = `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000'}/auth/google`;
+            }}
+          >
+            <GoogleIcon />
+            Daftar dengan Google
+          </Button>
 
-      <Divider />
+          <Divider />
+        </>
+      )}
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -131,8 +175,17 @@ export default function RegisterPage() {
               <FormItem>
                 <FormLabel>Email</FormLabel>
                 <FormControl>
-                  <Input type="email" placeholder="nama@email.com" {...field} />
+                  <Input
+                    type="email"
+                    placeholder="nama@email.com"
+                    readOnly={isOwnerInvite}
+                    className={isOwnerInvite ? 'bg-muted text-muted-foreground' : ''}
+                    {...field}
+                  />
                 </FormControl>
+                {isOwnerInvite && (
+                  <FormDescription>Email ini sudah ditentukan oleh undangan.</FormDescription>
+                )}
                 <FormMessage />
               </FormItem>
             )}
@@ -190,10 +243,20 @@ export default function RegisterPage() {
           )}
 
           <Button type="submit" className="mt-2 w-full" disabled={isSubmitting}>
-            {isSubmitting ? 'Membuat akun…' : 'Buat akun'}
+            {isSubmitting
+              ? isOwnerInvite ? 'Membuat akun…' : 'Membuat akun…'
+              : isOwnerInvite ? 'Buat akun & mulai' : 'Buat akun'}
           </Button>
         </form>
       </Form>
     </AuthShell>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense>
+      <RegisterForm />
+    </Suspense>
   );
 }
