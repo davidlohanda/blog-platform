@@ -18,6 +18,7 @@ export const updatePlansSchema = z.object({
 
 export const createOrderSchema = z.object({
   planId: z.string().min(1, 'Plan ID wajib diisi'),
+  next: z.string().max(500).optional(),
 });
 
 export const webhookPayloadSchema = z.object({
@@ -34,5 +35,5 @@ export const webhookPayloadSchema = z.object({
 });
 
 export type UpdatePlansInput = z.infer<typeof updatePlansSchema>;
-export type CreateOrderInput = z.infer<typeof createOrderSchema>;
+export type CreateOrderInput = z.infer<typeof createOrderSchema> & { next?: string };
 export type WebhookPayload = z.infer<typeof webhookPayloadSchema>;

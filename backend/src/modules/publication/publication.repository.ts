@@ -95,4 +95,26 @@ export const publicationRepository = {
   countOwners(publicationId: string) {
     return prisma.publicationAuthor.count({ where: { publicationId, role: 'owner' } });
   },
+
+  async getOnboardingStatus(publicationId: string) {
+    const [pub, articleCount, planCount] = await Promise.all([
+      prisma.publication.findUnique({
+        where: { id: publicationId },
+        select: { logoUrl: true, customDomain: true },
+      }),
+      prisma.article.count({
+        where: { publicationId, status: 'published', deletedAt: null },
+      }),
+      prisma.subscriptionPlan.count({
+        where: { publicationId, isActive: true },
+      }),
+    ]);
+
+    return {
+      has_subscription_plans: planCount > 0,
+      has_articles: articleCount > 0,
+      has_logo: !!pub?.logoUrl,
+      has_custom_domain: !!pub?.customDomain,
+    };
+  },
 };

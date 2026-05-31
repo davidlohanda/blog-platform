@@ -29,8 +29,8 @@ export const subscriptionController = {
     try {
       const { pubId } = req.params;
       const userId = (req as AuthRequest).user.userId;
-      const { planId } = req.body as CreateOrderInput;
-      const result = await subscriptionService.createOrder(pubId, userId, planId);
+      const { planId, next: nextUrl } = req.body as CreateOrderInput;
+      const result = await subscriptionService.createOrder(pubId, userId, planId, nextUrl);
       res.status(201).json({ success: true, data: result });
     } catch (error) {
       next(error);

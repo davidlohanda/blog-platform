@@ -142,6 +142,16 @@ export const publicationController = {
     }
   },
 
+  async getOnboardingStatus(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { publicationId } = req as PublicationRoleRequest;
+      const data = await publicationService.getOnboardingStatus(publicationId);
+      res.json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  },
+
   // Public: list authors with bio for the publication homepage (no email)
   async listPublicAuthors(req: Request, res: Response, next: NextFunction) {
     try {

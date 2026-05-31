@@ -47,6 +47,14 @@ router.post(
   (req, res, next) => publicationController.setCustomDomain(req, res, next),
 );
 
+// Onboarding status (owner only)
+router.get(
+  '/:id/onboarding-status',
+  authenticate,
+  requirePublicationRole('owner', 'author'),
+  (req, res, next) => publicationController.getOnboardingStatus(req, res, next),
+);
+
 // Authors — public list for reader homepage (no email)
 router.get('/:id/authors/public', (req, res, next) =>
   publicationController.listPublicAuthors(req, res, next),
