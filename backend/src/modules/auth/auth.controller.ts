@@ -21,10 +21,8 @@ const REFRESH_COOKIE_OPTIONS = {
 export const authController = {
   async register(req: Request, res: Response, next: NextFunction) {
     try {
-      const body = req.body as RegisterInput & { ownerInviteToken?: string };
-      const data: RegisterInput = body;
-      const ownerInviteToken = body.ownerInviteToken;
-      const user = await authService.register(data, ownerInviteToken);
+      const data = req.body as RegisterInput;
+      const user = await authService.register(data, data.ownerInviteToken);
       res.status(201).json({
         success: true,
         data: {

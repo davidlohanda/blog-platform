@@ -7,6 +7,7 @@ export const registerSchema = z.object({
     .string()
     .min(8, 'Password minimal 8 karakter')
     .regex(/(?=.*[a-zA-Z])(?=.*\d)/, 'Password harus mengandung huruf dan angka'),
+  ownerInviteToken: z.string().optional(),
 });
 
 export const loginSchema = z.object({
@@ -30,7 +31,7 @@ export const resetPasswordSchema = z.object({
     .regex(/(?=.*[a-zA-Z])(?=.*\d)/, 'Password harus mengandung huruf dan angka'),
 });
 
-export type RegisterInput = z.infer<typeof registerSchema>;
+export type RegisterInput = z.infer<typeof registerSchema> & { ownerInviteToken?: string };
 export type LoginInput = z.infer<typeof loginSchema>;
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;

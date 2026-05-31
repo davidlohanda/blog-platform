@@ -14,13 +14,35 @@ export const subscriptionRepository = {
     return prisma.subscriptionPlan.findFirst({ where: { id: planId, publicationId } });
   },
 
-  // Replace all plans for a publication atomically
+  // Replace plans for a publication: soft-delete old plans, insert new ones.
+  // Plans with existing subscriptions cannot be hard-deleted (FK constraint),
+  // so they are deactivated instead. New plans are always inserted fresh.
   replacePlans(
     publicationId: string,
     plans: Array<{ durationMonths: number; price: number; isActive: boolean }>,
   ) {
     return prisma.$transaction(async (tx) => {
-      await tx.subscriptionPlan.deleteMany({ where: { publicationId } });
+      // Find plans that have at least one subscription (cannot delete)
+      const plansWithSubs = await tx.subscriptionPlan.findMany({
+        where: { publicationId, subscriptions: { some: {} } },
+        select: { id: true },
+      });
+      const lockedIds = new Set(plansWithSubs.map((p) => p.id));
+
+      // Hard-delete plans with no subscriptions
+      await tx.subscriptionPlan.deleteMany({
+        where: { publicationId, id: { notIn: [...lockedIds] } },
+      });
+
+      // Soft-deactivate plans that are locked (have subscriptions)
+      if (lockedIds.size > 0) {
+        await tx.subscriptionPlan.updateMany({
+          where: { publicationId, id: { in: [...lockedIds] } },
+          data: { isActive: false },
+        });
+      }
+
+      // Insert incoming plans as new rows
       await tx.subscriptionPlan.createMany({
         data: plans.map((p) => ({
           publicationId,
@@ -29,8 +51,10 @@ export const subscriptionRepository = {
           isActive: p.isActive,
         })),
       });
+
+      // Return only active plans (exclude soft-deleted locked ones)
       return tx.subscriptionPlan.findMany({
-        where: { publicationId },
+        where: { publicationId, isActive: true },
         orderBy: { durationMonths: 'asc' },
       });
     });
