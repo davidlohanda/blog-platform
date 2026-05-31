@@ -4,6 +4,7 @@ import {
   ArticleStatus,
   Visibility,
   SubscriptionStatus,
+  UserRole,
 } from '@prisma/client';
 import argon2 from 'argon2';
 
@@ -236,13 +237,14 @@ async function main() {
   // ── 2. Users ────────────────────────────────────────────────────────────────
   const owner = await prisma.user.upsert({
     where: { email: 'admin@lentera.id' },
-    update: { passwordHash: ownerHash, name: 'Anya Permata', emailVerifiedAt: new Date() },
+    update: { passwordHash: ownerHash, name: 'Anya Permata', emailVerifiedAt: new Date(), role: UserRole.platform_admin },
     create: {
       email: 'admin@lentera.id',
       name: 'Anya Permata',
       passwordHash: ownerHash,
       bio: 'Penulis dan pembaca buku sejak usia delapan tahun. Percaya bahwa tulisan yang baik bisa mengubah cara seseorang melihat dunia.',
       emailVerifiedAt: new Date(),
+      role: UserRole.platform_admin,
     },
   });
   console.log(`✓ Owner: ${owner.email}`);
@@ -455,7 +457,7 @@ async function main() {
 
   // ── Summary ──────────────────────────────────────────────────────────────────
   console.log('\n✅ Seed selesai!\n');
-  console.log('  Login sebagai owner  : admin@lentera.id   / Admin123!');
+  console.log('  Login sebagai admin  : admin@lentera.id   / Admin123! (platform_admin)');
   console.log('  Login sebagai member : member@lentera.id  / Member123!');
   console.log('  Publication URL      : http://lentera.localhost:3000');
   console.log('  Backend              : http://localhost:4000\n');
