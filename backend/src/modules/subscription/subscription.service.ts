@@ -49,7 +49,7 @@ export const subscriptionService = {
     return this.listPlans(publicationId, false);
   },
 
-  async createOrder(publicationId: string, userId: string, planId: string) {
+  async createOrder(publicationId: string, userId: string, planId: string, nextUrl?: string) {
     const plan = await subscriptionRepository.findPlanById(publicationId, planId);
     if (!plan || !plan.isActive) throw AppError.notFound('Paket tidak ditemukan atau tidak aktif');
 
@@ -89,10 +89,16 @@ export const subscriptionService = {
     // Store order id reference on the subscription
     await subscriptionRepository.updateSubscription(subscription.id, { paymentId: orderId });
 
+    // Store next URL in Redis (30 min) so payment/success page can redirect correctly
+    if (nextUrl) {
+      await redis.setex(`order-next:${orderId}`, 30 * 60, nextUrl);
+    }
+
     return {
       snapToken,
       subscriptionId: subscription.id,
       grossAmount,
+      nextUrl: nextUrl ?? null,
       clientKey: config.midtrans.clientKey,
     };
   },

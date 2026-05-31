@@ -140,6 +140,12 @@ export const publicationService = {
     return publicationRepository.updateAuthorRole(publicationId, targetUserId, role);
   },
 
+  async getOnboardingStatus(publicationId: string) {
+    const pub = await publicationRepository.findById(publicationId);
+    if (!pub) throw AppError.notFound('Publication tidak ditemukan');
+    return publicationRepository.getOnboardingStatus(publicationId);
+  },
+
   async removeAuthor(publicationId: string, requestingUserId: string, targetUserId: string) {
     if (requestingUserId === targetUserId) {
       const ownerCount = await publicationRepository.countOwners(publicationId);

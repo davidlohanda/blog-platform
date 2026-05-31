@@ -2,9 +2,13 @@ import Link from 'next/link';
 
 interface Props {
   pubName: string;
+  pubId: string;
+  articleSlug: string;
 }
 
-export function ArticlePaywall({ pubName }: Props) {
+export function ArticlePaywall({ pubName, pubId, articleSlug }: Props) {
+  const subscribeHref = `/subscribe?pub=${pubId}&next=${encodeURIComponent(articleSlug)}`;
+
   return (
     <div className="relative mt-0">
       {/* Fade from content into paywall */}
@@ -26,7 +30,7 @@ export function ArticlePaywall({ pubName }: Props) {
 
         <div className="flex flex-wrap justify-center gap-3">
           <Link
-            href="/subscribe"
+            href={subscribeHref}
             className="rounded-full bg-foreground px-6 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-foreground/90"
           >
             Berlangganan sekarang

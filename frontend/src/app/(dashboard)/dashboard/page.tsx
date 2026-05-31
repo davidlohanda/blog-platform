@@ -17,6 +17,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { apiClient } from '@/lib/api/client';
 import { usePublication } from '@/hooks/usePublication';
+import { OnboardingChecklist } from '@/components/dashboard/OnboardingChecklist';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -167,6 +168,9 @@ export default function DashboardPage() {
       }
     >
       <div className="space-y-6 p-8">
+        {/* Onboarding checklist — tampil sampai semua item selesai */}
+        {pub && <OnboardingChecklist pubId={pub.id} />}
+
         {/* Stat Cards */}
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <StatCard

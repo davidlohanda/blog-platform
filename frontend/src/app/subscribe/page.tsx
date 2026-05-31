@@ -41,7 +41,7 @@ function SubscribeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pubId = searchParams.get('pub') ?? '';
-  const next = searchParams.get('next') ?? '/me/subscription';
+  const next = searchParams.get('next') ?? '';
 
   const [plans, setPlans] = useState<Plan[]>([]);
   const [selected, setSelected] = useState<string>('');
@@ -88,7 +88,7 @@ function SubscribeContent() {
     try {
       const { data } = await apiClient.post<{ data: { snapToken: string } }>(
         `/publications/${pubId}/subscriptions/order`,
-        { planId: plan.id },
+        { planId: plan.id, next: next || undefined },
       );
       const token = data.data.snapToken;
       if (!window.snap) {
@@ -96,8 +96,11 @@ function SubscribeContent() {
         setPaying(false);
         return;
       }
+      const successUrl = next
+        ? `/payment/success?next=${encodeURIComponent(next)}`
+        : '/payment/success';
       window.snap.pay(token, {
-        onSuccess: () => router.push(next),
+        onSuccess: () => router.push(successUrl),
         onPending: () => router.push('/me/subscription'),
         onError: () => { setError('Pembayaran gagal. Coba lagi.'); setPaying(false); },
         onClose: () => setPaying(false),

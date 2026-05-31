@@ -286,7 +286,7 @@ async function ArticlePageContent({
             >
               <TiptapRenderer content={article.content} />
             </div>
-            <ArticlePaywall pubName={pub.name} />
+            <ArticlePaywall pubName={pub.name} pubId={pub.id} articleSlug={articleSlug} />
           </div>
         ) : article.visibility === 'free' ? (
           <FreeArticleContent article={article} />
