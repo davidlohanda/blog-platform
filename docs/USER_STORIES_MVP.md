@@ -587,37 +587,37 @@ Sebagai operator platform, saya ingin platform ter-deploy dan bisa diakses secar
 Sebagai operator platform, saya ingin ada akun admin yang sudah ter-seed,
 agar saya bisa langsung login tanpa perlu setup manual.
 
-**TASK-BE-10.1.1** `[ ]` Tambahkan role platform_admin di Prisma schema dan migration
-**TASK-BE-10.1.2** `[ ]` Update seed.ts — buat user admin: email: admin@lentera.id, password: Admin123!, role: platform_admin
-**TASK-BE-10.1.3** `[ ]` Buat adminGuard middleware — cek role platform_admin, jika bukan → 403
-**TASK-INT-10.1.1** `[ ]` Jalankan seed ulang, verifikasi login admin berhasil
-**TASK-INT-10.1.2** `[ ]` Commit: `feat(admin): add platform admin role and seed`
+**TASK-BE-10.1.1** `[x]` Tambahkan role platform_admin di Prisma schema dan migration
+**TASK-BE-10.1.2** `[x]` Update seed.ts — buat user admin: email: admin@lentera.id, password: Admin123!, role: platform_admin
+**TASK-BE-10.1.3** `[x]` Buat adminGuard middleware — cek role platform_admin, jika bukan → 403
+**TASK-INT-10.1.1** `[x]` Jalankan seed ulang, verifikasi login admin berhasil
+**TASK-INT-10.1.2** `[x]` Commit: `feat(admin): add platform admin role and seed`
 
 ### STORY 10.2 — Admin Dashboard
 Sebagai platform admin, saya ingin lihat overview semua publications dan users,
 agar bisa monitor platform.
 
-**TASK-BE-10.2.1** `[ ]` Endpoint GET /admin/overview — return: total publications, total users, total revenue, platform fee collected
-**TASK-BE-10.2.2** `[ ]` Endpoint GET /admin/publications — list semua publication dengan owner, subscriber count, revenue
-**TASK-BE-10.2.3** `[ ]` Endpoint GET /admin/users — list semua user terdaftar
-**TASK-FE-10.2.1** `[ ]` Halaman /admin — redirect ke /admin/dashboard jika platform_admin, tampil 404 jika bukan
-**TASK-FE-10.2.2** `[ ]` Halaman /admin/dashboard — stats cards + tabel publications + tabel users
-**TASK-FE-10.2.3** `[ ]` Sidebar admin: Dashboard, Publications, Invite Owner
-**TASK-INT-10.2.1** `[ ]` Integrasi admin dashboard dengan backend
-**TASK-INT-10.2.2** `[ ]` Commit: `feat(admin): add admin dashboard page`
+**TASK-BE-10.2.1** `[x]` Endpoint GET /admin/overview — return: total publications, total users, total revenue, platform fee collected
+**TASK-BE-10.2.2** `[x]` Endpoint GET /admin/publications — list semua publication dengan owner, subscriber count, revenue
+**TASK-BE-10.2.3** `[x]` Endpoint GET /admin/users — list semua user terdaftar
+**TASK-FE-10.2.1** `[x]` Halaman /admin — redirect ke /admin/dashboard jika platform_admin, tampil 404 jika bukan
+**TASK-FE-10.2.2** `[x]` Halaman /admin/dashboard — stats cards + tabel publications + tabel users
+**TASK-FE-10.2.3** `[x]` Sidebar admin: Dashboard, Publications, Invite Owner
+**TASK-INT-10.2.1** `[x]` Integrasi admin dashboard dengan backend
+**TASK-INT-10.2.2** `[x]` Commit: `feat(admin): add admin dashboard page`
 
 ### STORY 10.3 — Invite Owner
 Sebagai platform admin, saya ingin invite calon owner via email,
 agar mereka bisa register dan langsung mendapat akses sebagai owner publication baru.
 
-**TASK-BE-10.3.1** `[ ]` Endpoint POST /admin/invite-owner: input nama, email, nama_publication → buat publication draft → buat invite token di Redis TTL 7 hari → kirim email invite via Resend
-**TASK-BE-10.3.2** `[ ]` Endpoint GET /auth/accept-owner-invite?token=xxx → validasi token → redirect ke /register?invite=xxx&email=xxx
-**TASK-BE-10.3.3** `[ ]` Update register flow: jika ada invite token, setelah register langsung jadi owner publication yang sudah disiapkan, skip onboarding buat publication
-**TASK-FE-10.3.1** `[ ]` Halaman /admin/invite — form invite owner (nama, email, nama publication)
-**TASK-FE-10.3.2** `[ ]` Halaman /register?invite=xxx — form register khusus, email pre-filled dan tidak bisa diubah
-**TASK-FE-10.3.3** `[ ]` Email template: invite owner berisi nama, nama publication, dan link accept invite
-**TASK-INT-10.3.1** `[ ]` Test flow lengkap: admin invite → email masuk → klik link → register → langsung masuk dashboard publication
-**TASK-INT-10.3.2** `[ ]` Commit: `feat(admin): add invite owner flow`
+**TASK-BE-10.3.1** `[x]` Endpoint POST /admin/invite-owner: input nama, email, nama_publication → buat publication draft → buat invite token di Redis TTL 7 hari → kirim email invite via Resend
+**TASK-BE-10.3.2** `[x]` Endpoint GET /auth/accept-owner-invite?token=xxx → validasi token → redirect ke /register?invite=xxx&email=xxx
+**TASK-BE-10.3.3** `[x]` Update register flow: jika ada invite token, setelah register langsung jadi owner publication yang sudah disiapkan, skip onboarding buat publication
+**TASK-FE-10.3.1** `[x]` Halaman /admin/invite — form invite owner (nama, email, nama publication)
+**TASK-FE-10.3.2** `[x]` Halaman /register?invite=xxx — form register khusus, email pre-filled dan tidak bisa diubah
+**TASK-FE-10.3.3** `[x]` Email template: invite owner berisi nama, nama publication, dan link accept invite
+**TASK-INT-10.3.1** `[x]` Test flow lengkap: admin invite → email masuk → klik link → register → langsung masuk dashboard publication
+**TASK-INT-10.3.2** `[x]` Commit: `feat(admin): add invite owner flow`
 
 ---
 

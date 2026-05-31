@@ -130,4 +130,18 @@ export const templates = {
       <p>Undangan ini berlaku selama <strong>7 hari</strong>. Jika kamu tidak mengenal pengirim, abaikan email ini.</p>
     `);
   },
+
+  ownerInvite(ownerName: string, publicationName: string, inviteUrl: string) {
+    return base(`
+      <h1>Kamu Diundang Menjadi Owner di Lentera</h1>
+      <p>Halo ${ownerName},</p>
+      <p>Tim Lentera mengundangmu untuk menjadi <strong>Owner</strong> dari publikasi baru:</p>
+      <p style="font-size:20px;font-weight:700;color:#18181b;margin:16px 0;">${publicationName}</p>
+      <p>Klik tombol di bawah untuk membuat akun dan langsung mulai mengelola publikasimu:</p>
+      <a href="${inviteUrl}" class="btn">Mulai Sekarang</a>
+      <p>Link ini berlaku selama <strong>7 hari</strong>. Jika kamu tidak merasa mendaftar, abaikan email ini.</p>
+      <hr class="divider"/>
+      <p style="font-size:13px;color:#71717a;">Atau salin URL ini ke browser:<br/><a href="${inviteUrl}">${inviteUrl}</a></p>
+    `);
+  },
 };

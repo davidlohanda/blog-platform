@@ -14,6 +14,7 @@ export const authRepository = {
         name: true,
         avatarUrl: true,
         bio: true,
+        role: true,
         emailVerifiedAt: true,
       },
     });

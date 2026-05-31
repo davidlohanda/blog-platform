@@ -80,6 +80,12 @@ async function processEmailJob(job: { data: EmailJobData }) {
       );
       break;
 
+    case 'send-owner-invite':
+      to = data.to;
+      subject = `Undangan Owner Publication — ${data.publicationName}`;
+      html = templates.ownerInvite(data.ownerName, data.publicationName, data.inviteUrl);
+      break;
+
     default:
       throw new Error(`Unknown email job: ${(job.data as { name: string }).name}`);
   }
