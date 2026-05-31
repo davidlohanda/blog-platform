@@ -21,8 +21,10 @@ const REFRESH_COOKIE_OPTIONS = {
 export const authController = {
   async register(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = req.body as RegisterInput;
-      const user = await authService.register(data);
+      const body = req.body as RegisterInput & { ownerInviteToken?: string };
+      const data: RegisterInput = body;
+      const ownerInviteToken = body.ownerInviteToken;
+      const user = await authService.register(data, ownerInviteToken);
       res.status(201).json({
         success: true,
         data: {
@@ -143,6 +145,17 @@ export const authController = {
       const { token } = req.query as { token: string };
       const result = await authService.acceptInvite(userId, token);
       res.json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async acceptOwnerInvite(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { token } = req.query as { token: string };
+      if (!token) return next(AppError.badRequest('Token wajib ada'));
+      const { redirectUrl } = await authService.acceptOwnerInvite(token);
+      res.redirect(redirectUrl);
     } catch (error) {
       next(error);
     }

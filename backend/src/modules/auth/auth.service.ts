@@ -12,9 +12,33 @@ import type { RegisterInput, LoginInput } from './auth.schema';
 const REFRESH_TOKEN_TTL = 30 * 24 * 60 * 60; // 30 days in seconds
 
 export const authService = {
-  async register(input: RegisterInput) {
+  async register(input: RegisterInput, ownerInviteToken?: string) {
     const existing = await authRepository.findByEmail(input.email);
     if (existing) throw AppError.conflict('Email sudah terdaftar', 'EMAIL_TAKEN');
+
+    // Jika ada owner invite token, validasi dulu sebelum membuat user
+    let ownerInvitePayload: {
+      email: string;
+      ownerName: string;
+      publicationId: string;
+      publicationName: string;
+    } | null = null;
+
+    if (ownerInviteToken) {
+      const raw = await redis.get(`owner-invite:${ownerInviteToken}`);
+      if (raw) {
+        const parsed = JSON.parse(raw) as {
+          type: string;
+          email: string;
+          ownerName: string;
+          publicationId: string;
+          publicationName: string;
+        };
+        if (parsed.type === 'owner-invite' && parsed.email === input.email) {
+          ownerInvitePayload = parsed;
+        }
+      }
+    }
 
     const passwordHash = await hash(input.password);
     const user = await authRepository.create({
@@ -23,7 +47,21 @@ export const authService = {
       passwordHash,
     });
 
-    // Generate 24-hour email verification token (stored in DB per SAD 7.4)
+    if (ownerInvitePayload) {
+      // Langsung mark email verified & set sebagai owner publication
+      await authRepository.markEmailVerified(user.id);
+      await publicationRepository.addAuthor(ownerInvitePayload.publicationId, user.id, 'owner');
+      await redis.del(`owner-invite:${ownerInviteToken}`);
+      return {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        ownerInvite: true,
+        publicationId: ownerInvitePayload.publicationId,
+      };
+    }
+
+    // Flow register normal: kirim email verifikasi
     await authRepository.deleteAllEmailVerificationTokens(user.id);
     const token = randomUUID();
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
@@ -186,6 +224,29 @@ export const authService = {
     const user = await authRepository.findById(userId);
     if (!user) throw AppError.notFound('User tidak ditemukan');
     return user;
+  },
+
+  async acceptOwnerInvite(token: string) {
+    const raw = await redis.get(`owner-invite:${token}`);
+    if (!raw)
+      throw AppError.badRequest('Token tidak valid atau sudah kedaluwarsa', 'INVALID_INVITE');
+
+    const payload = JSON.parse(raw) as {
+      type: string;
+      email: string;
+      ownerName: string;
+      publicationId: string;
+      publicationName: string;
+    };
+
+    if (payload.type !== 'owner-invite') {
+      throw AppError.badRequest('Token tidak valid', 'INVALID_INVITE');
+    }
+
+    const frontendUrl = config.platform.frontendUrl;
+    return {
+      redirectUrl: `${frontendUrl}/register?invite=${token}&email=${encodeURIComponent(payload.email)}`,
+    };
   },
 
   async acceptInvite(userId: string, token: string) {

@@ -49,6 +49,9 @@ router.get('/me', authenticate, (req, res, next) => authController.getMe(req, re
 router.get('/accept-invite', authenticate, (req, res, next) =>
   authController.acceptInvite(req, res, next),
 );
+router.get('/accept-owner-invite', (req, res, next) =>
+  authController.acceptOwnerInvite(req, res, next),
+);
 
 // Google OAuth — only mount if credentials are configured
 if (config.google.clientId && config.google.clientSecret) {

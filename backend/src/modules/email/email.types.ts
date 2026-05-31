@@ -5,7 +5,8 @@ export type EmailJobName =
   | 'send-subscription-expiring'
   | 'send-subscription-expired'
   | 'send-new-article'
-  | 'send-author-invite';
+  | 'send-author-invite'
+  | 'send-owner-invite';
 
 export interface VerificationEmailData {
   to: string;
@@ -61,6 +62,13 @@ export interface AuthorInviteEmailData {
   inviteUrl: string;
 }
 
+export interface OwnerInviteEmailData {
+  to: string;
+  ownerName: string;
+  publicationName: string;
+  inviteUrl: string;
+}
+
 export type EmailJobData =
   | { name: 'send-verification'; data: VerificationEmailData }
   | { name: 'send-reset-password'; data: ResetPasswordEmailData }
@@ -68,4 +76,5 @@ export type EmailJobData =
   | { name: 'send-subscription-expiring'; data: SubscriptionExpiringEmailData }
   | { name: 'send-subscription-expired'; data: SubscriptionExpiredEmailData }
   | { name: 'send-new-article'; data: NewArticleEmailData }
-  | { name: 'send-author-invite'; data: AuthorInviteEmailData };
+  | { name: 'send-author-invite'; data: AuthorInviteEmailData }
+  | { name: 'send-owner-invite'; data: OwnerInviteEmailData };

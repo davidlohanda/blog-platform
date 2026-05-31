@@ -13,6 +13,12 @@ export const publicationRepository = {
     });
   },
 
+  createDraft(data: { slug: string; name: string }) {
+    return prisma.publication.create({
+      data: { slug: data.slug, name: data.name },
+    });
+  },
+
   findBySlug(slug: string) {
     return prisma.publication.findUnique({ where: { slug } });
   },

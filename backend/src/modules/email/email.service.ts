@@ -10,6 +10,7 @@ import type {
   SubscriptionExpiredEmailData,
   NewArticleEmailData,
   AuthorInviteEmailData,
+  OwnerInviteEmailData,
   EmailJobData,
 } from './email.types';
 
@@ -70,6 +71,10 @@ export const emailService = {
 
   sendAuthorInvite(data: AuthorInviteEmailData) {
     return enqueue({ name: 'send-author-invite', data });
+  },
+
+  sendOwnerInvite(data: OwnerInviteEmailData) {
+    return enqueue({ name: 'send-owner-invite', data });
   },
 
   // Enqueue new-article notifications to all opted-in active subscribers
