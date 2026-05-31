@@ -64,6 +64,10 @@ export function LoginForm() {
       const code = apiErr?.response?.data?.error;
       if (code === 'INVALID_CREDENTIALS') {
         form.setError('root', { message: 'Email atau password salah.' });
+      } else if (code === 'EMAIL_NOT_VERIFIED') {
+        form.setError('root', {
+          message: 'Email belum diverifikasi. Cek inbox dan folder spam kamu.',
+        });
       } else {
         form.setError('root', {
           message: apiErr?.response?.data?.message ?? 'Login gagal, coba lagi.',

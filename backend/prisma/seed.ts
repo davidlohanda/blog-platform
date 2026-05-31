@@ -211,8 +211,9 @@ async function main() {
   console.log('\n🌱 Seeding Lentera development data...\n');
 
   // Password hashing
-  const [ownerHash, memberHash] = await Promise.all([
+  const [ownerHash, pubOwnerHash, memberHash] = await Promise.all([
     argon2.hash('Admin123!'),
+    argon2.hash('Owner123!'),
     argon2.hash('Member123!'),
   ]);
 
@@ -249,6 +250,19 @@ async function main() {
   });
   console.log(`✓ Owner: ${owner.email}`);
 
+  const pubOwner = await prisma.user.upsert({
+    where: { email: 'owner@lentera.id' },
+    update: { passwordHash: pubOwnerHash, name: 'Rina Astari', emailVerifiedAt: new Date() },
+    create: {
+      email: 'owner@lentera.id',
+      name: 'Rina Astari',
+      passwordHash: pubOwnerHash,
+      bio: 'Editor dan kurator konten Lentera. Percaya bahwa tulisan yang baik dimulai dari pertanyaan yang tepat.',
+      emailVerifiedAt: new Date(),
+    },
+  });
+  console.log(`✓ Publication Owner: ${pubOwner.email}`);
+
   const member = await prisma.user.upsert({
     where: { email: 'member@lentera.id' },
     update: { passwordHash: memberHash, emailVerifiedAt: new Date() },
@@ -262,13 +276,22 @@ async function main() {
   });
   console.log(`✓ Member: ${member.email}`);
 
-  // ── 3. Publication Author ───────────────────────────────────────────────────
+  // ── 3. Publication Authors ──────────────────────────────────────────────────
+  // admin@lentera.id tetap sebagai owner (untuk kompatibilitas seed lama)
   await prisma.publicationAuthor.upsert({
     where: { publicationId_userId: { publicationId: publication.id, userId: owner.id } },
     update: { role: AuthorRole.owner },
     create: { publicationId: publication.id, userId: owner.id, role: AuthorRole.owner },
   });
   console.log(`✓ Author role: owner → ${owner.email}`);
+
+  // owner@lentera.id sebagai owner kedua — user khusus untuk test flow owner biasa
+  await prisma.publicationAuthor.upsert({
+    where: { publicationId_userId: { publicationId: publication.id, userId: pubOwner.id } },
+    update: { role: AuthorRole.owner },
+    create: { publicationId: publication.id, userId: pubOwner.id, role: AuthorRole.owner },
+  });
+  console.log(`✓ Author role: owner → ${pubOwner.email}`);
 
   // ── 4. Subscription Plans ───────────────────────────────────────────────────
   // Harga per bulan (bukan total); total = price × durationMonths
@@ -458,6 +481,7 @@ async function main() {
   // ── Summary ──────────────────────────────────────────────────────────────────
   console.log('\n✅ Seed selesai!\n');
   console.log('  Login sebagai admin  : admin@lentera.id   / Admin123! (platform_admin)');
+  console.log('  Login sebagai owner  : owner@lentera.id   / Owner123! (publication owner)');
   console.log('  Login sebagai member : member@lentera.id  / Member123!');
   console.log('  Publication URL      : http://lentera.localhost:3000');
   console.log('  Backend              : http://localhost:4000\n');

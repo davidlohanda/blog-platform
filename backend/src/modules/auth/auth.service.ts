@@ -97,6 +97,13 @@ export const authService = {
     const valid = await verify(user.passwordHash, input.password);
     if (!valid) throw AppError.unauthorized('Email atau password salah', 'INVALID_CREDENTIALS');
 
+    if (!user.emailVerifiedAt) {
+      throw AppError.forbidden(
+        'Silakan verifikasi email kamu terlebih dahulu. Cek inbox dan folder spam.',
+        'EMAIL_NOT_VERIFIED',
+      );
+    }
+
     const tokenId = randomUUID();
     const accessToken = signAccessToken({ userId: user.id, email: user.email, role: user.role });
     const refreshToken = signRefreshToken(user.id, tokenId);
