@@ -581,6 +581,113 @@ Sebagai operator platform, saya ingin platform ter-deploy dan bisa diakses secar
 
 ---
 
+## EPIC 10 — Platform Admin
+
+### STORY 10.1 — Seed Platform Admin
+Sebagai operator platform, saya ingin ada akun admin yang sudah ter-seed,
+agar saya bisa langsung login tanpa perlu setup manual.
+
+**TASK-BE-10.1.1** `[ ]` Tambahkan role platform_admin di Prisma schema dan migration
+**TASK-BE-10.1.2** `[ ]` Update seed.ts — buat user admin: email: admin@lentera.id, password: Admin123!, role: platform_admin
+**TASK-BE-10.1.3** `[ ]` Buat adminGuard middleware — cek role platform_admin, jika bukan → 403
+**TASK-INT-10.1.1** `[ ]` Jalankan seed ulang, verifikasi login admin berhasil
+**TASK-INT-10.1.2** `[ ]` Commit: `feat(admin): add platform admin role and seed`
+
+### STORY 10.2 — Admin Dashboard
+Sebagai platform admin, saya ingin lihat overview semua publications dan users,
+agar bisa monitor platform.
+
+**TASK-BE-10.2.1** `[ ]` Endpoint GET /admin/overview — return: total publications, total users, total revenue, platform fee collected
+**TASK-BE-10.2.2** `[ ]` Endpoint GET /admin/publications — list semua publication dengan owner, subscriber count, revenue
+**TASK-BE-10.2.3** `[ ]` Endpoint GET /admin/users — list semua user terdaftar
+**TASK-FE-10.2.1** `[ ]` Halaman /admin — redirect ke /admin/dashboard jika platform_admin, tampil 404 jika bukan
+**TASK-FE-10.2.2** `[ ]` Halaman /admin/dashboard — stats cards + tabel publications + tabel users
+**TASK-FE-10.2.3** `[ ]` Sidebar admin: Dashboard, Publications, Invite Owner
+**TASK-INT-10.2.1** `[ ]` Integrasi admin dashboard dengan backend
+**TASK-INT-10.2.2** `[ ]` Commit: `feat(admin): add admin dashboard page`
+
+### STORY 10.3 — Invite Owner
+Sebagai platform admin, saya ingin invite calon owner via email,
+agar mereka bisa register dan langsung mendapat akses sebagai owner publication baru.
+
+**TASK-BE-10.3.1** `[ ]` Endpoint POST /admin/invite-owner: input nama, email, nama_publication → buat publication draft → buat invite token di Redis TTL 7 hari → kirim email invite via Resend
+**TASK-BE-10.3.2** `[ ]` Endpoint GET /auth/accept-owner-invite?token=xxx → validasi token → redirect ke /register?invite=xxx&email=xxx
+**TASK-BE-10.3.3** `[ ]` Update register flow: jika ada invite token, setelah register langsung jadi owner publication yang sudah disiapkan, skip onboarding buat publication
+**TASK-FE-10.3.1** `[ ]` Halaman /admin/invite — form invite owner (nama, email, nama publication)
+**TASK-FE-10.3.2** `[ ]` Halaman /register?invite=xxx — form register khusus, email pre-filled dan tidak bisa diubah
+**TASK-FE-10.3.3** `[ ]` Email template: invite owner berisi nama, nama publication, dan link accept invite
+**TASK-INT-10.3.1** `[ ]` Test flow lengkap: admin invite → email masuk → klik link → register → langsung masuk dashboard publication
+**TASK-INT-10.3.2** `[ ]` Commit: `feat(admin): add invite owner flow`
+
+---
+
+## EPIC 11 — UX Gaps Fix
+
+### STORY 11.1 — Payment Success Page
+Sebagai reader yang baru subscribe, saya ingin melihat halaman konfirmasi
+setelah bayar, agar saya yakin pembayaran berhasil dan tahu apa yang harus dilakukan.
+
+**TASK-BE-11.1.1** `[ ]` Update subscription order endpoint: simpan ?next= URL artikel yang dituju di Redis bersama order_id
+**TASK-FE-11.1.1** `[ ]` Buat halaman /payment/success: tampil pesan sukses, info paket aktif, tanggal berakhir, CTA "Baca artikel" yang redirect ke artikel yang dituju
+**TASK-FE-11.1.2** `[ ]` Update /subscribe: setelah Midtrans Snap close dengan status success → redirect ke /payment/success?next=[artikel-slug]
+**TASK-INT-11.1.1** `[ ]` Test flow: subscribe → bayar → redirect /payment/success → klik → baca artikel premium
+**TASK-INT-11.1.2** `[ ]` Commit: `feat(ux): add payment success page with article redirect`
+
+### STORY 11.2 — Onboarding Checklist Dashboard
+Sebagai owner baru, saya ingin ada panduan langkah selanjutnya setelah buat publication,
+agar saya tahu harus ngapain untuk mulai monetisasi.
+
+**TASK-BE-11.2.1** `[ ]` Endpoint GET /publications/:id/onboarding-status — return: has_subscription_plans, has_articles, has_logo, has_custom_domain
+**TASK-FE-11.2.1** `[ ]` Buat komponen OnboardingChecklist: tampil di /dashboard jika belum 100% selesai. Item: Set harga subscription, Tulis artikel pertama, Upload logo, Setup custom domain
+**TASK-FE-11.2.2** `[ ]` Checklist hilang otomatis jika semua item sudah selesai
+**TASK-INT-11.2.1** `[ ]` Integrasi checklist dengan backend
+**TASK-INT-11.2.2** `[ ]` Commit: `feat(ux): add onboarding checklist for new publication owners`
+
+### STORY 11.3 — Subscribe dengan Context Artikel
+Sebagai reader yang kena paywall, saya ingin setelah subscribe langsung diarahkan
+ke artikel yang ingin saya baca, bukan harus navigasi manual.
+
+**TASK-FE-11.3.1** `[ ]` Update paywall CTA: link berlangganan menyertakan ?next=[article-slug]
+**TASK-FE-11.3.2** `[ ]` Update /subscribe: baca query param ?next, simpan di state, teruskan ke payment success redirect
+**TASK-INT-11.3.1** `[ ]` Test: klik paywall → subscribe → bayar → otomatis redirect ke artikel yang tadi diklik
+**TASK-INT-11.3.2** `[ ]` Commit: `feat(ux): preserve article context through subscribe flow`
+
+### STORY 11.4 — Logo Upload yang Berfungsi
+Sebagai owner, saya ingin bisa upload logo publication,
+agar brand publication saya terlihat di homepage.
+
+**TASK-BE-11.4.1** `[ ]` Pastikan endpoint PATCH /publications/:id menerima dan menyimpan logo_url dengan benar
+**TASK-FE-11.4.1** `[ ]` Fix logo upload di /dashboard/settings: gunakan signed upload URL Cloudinary, setelah upload update logo_url, tampilkan preview
+**TASK-INT-11.4.1** `[ ]` Test: upload logo → tampil di homepage publication
+**TASK-INT-11.4.2** `[ ]` Commit: `feat(ux): fix logo upload functionality`
+
+---
+
+## EPIC 12 — Routing & Auth Fix
+
+### STORY 12.1 — Redirect Logic Berdasarkan Role
+Sebagai user yang login, saya ingin diarahkan ke halaman yang tepat
+berdasarkan role saya, agar tidak bingung harus ke mana.
+
+**TASK-BE-12.1.1** `[ ]` Pastikan JWT payload include role: platform_admin, owner, author, atau member
+**TASK-FE-12.1.1** `[ ]` Update redirect setelah login: platform_admin → /admin/dashboard, owner/author → /dashboard, member/reader → / (homepage publication)
+**TASK-FE-12.1.2** `[ ]` Update proxy.ts: akses /admin tanpa role platform_admin → redirect ke /404
+**TASK-FE-12.1.3** `[ ]` Update proxy.ts: akses /dashboard tanpa login → redirect ke /login
+**TASK-INT-12.1.1** `[ ]` Test semua skenario: login admin → /admin ✅, login owner → /dashboard ✅, login member → / ✅, akses /admin tanpa admin → 404 ✅
+**TASK-INT-12.1.2** `[ ]` Commit: `feat(auth): add role-based redirect after login`
+
+### STORY 12.2 — Homepage Platform
+Sebagai user yang buka aplikasi tanpa context publication,
+saya ingin melihat halaman yang informatif bukan halaman default Next.js.
+
+**TASK-FE-12.2.1** `[ ]` Buat halaman / untuk konteks platform (bukan publication): belum login → landing page simpel dengan logo, tagline, tombol Masuk
+**TASK-FE-12.2.2** `[ ]` Landing page: logo Lentera, tagline singkat, tombol Masuk → /login. Tidak perlu marketing page panjang untuk MVP
+**TASK-FE-12.2.3** `[ ]` Jika sudah login: platform_admin → redirect /admin/dashboard, owner → redirect /dashboard
+**TASK-INT-12.2.1** `[ ]` Test: buka localhost:3000 → lihat landing page atau redirect sesuai role
+**TASK-INT-12.2.2** `[ ]` Commit: `feat(ux): add platform homepage with role-based redirect`
+
+---
+
 ## Ringkasan Task Count
 
 | Epic | Total Task |
@@ -594,7 +701,10 @@ Sebagai operator platform, saya ingin platform ter-deploy dan bisa diakses secar
 | EPIC 7 — Email & Notifikasi | 17 tasks |
 | EPIC 8 — Dashboard & Analytics | 18 tasks |
 | EPIC 9 — Pre-Launch | 9 tasks |
-| **Total** | **226 tasks** |
+| EPIC 10 — Platform Admin | 15 tasks |
+| EPIC 11 — UX Gaps Fix | 16 tasks |
+| EPIC 12 — Routing & Auth Fix | 9 tasks |
+| **Total** | **266 tasks** |
 
 ---
 
