@@ -37,36 +37,36 @@ export function proxy(req: NextRequest): NextResponse {
     return NextResponse.next();
   }
 
-  // Localhost: path-based publication routing for dev
-  // localhost:3000              → platform landing page (pass through)
-  // localhost:3000/[slug]/...   → strip slug prefix, set publication headers
+  // ── Localhost: path-based publication routing for dev ──────────────────────
+  // localhost:3000                   → platform landing page (pass through)
+  // localhost:3000/[slug]            → publication homepage
+  // localhost:3000/[slug]/[article]  → publication article page
+  // localhost:3000/[slug]/dashboard  → publication dashboard
+  //
+  // Strategy: proxy sets x-publication-slug via NextResponse.next({ request: { headers } })
+  // (the only way to forward custom headers to server components). URL stripping
+  // is handled by next.config.ts beforeFiles rewrites gated to localhost:3000.
+  // NextResponse.rewrite() cannot be used here because it does not forward
+  // custom request headers to server components.
   if (host === 'localhost') {
     const segments = pathname.split('/').filter(Boolean);
     const firstSegment = segments[0];
 
-    // Root path ('/' produces no segments) or platform route — pass through without publication context
+    // Root path ('/' has no segments) or known platform route → pass through
     if (!firstSegment || PLATFORM_ROUTES.has(firstSegment)) {
       return NextResponse.next();
     }
 
-    // First segment is treated as the publication slug
+    // First segment is the publication slug
     const slug = firstSegment;
-    const rest = segments.slice(1);
-    const newPath = rest.length > 0 ? `/${rest.join('/')}` : '/';
-
-    const url = req.nextUrl.clone();
-    url.pathname = newPath;
-
     const requestHeaders = new Headers(req.headers);
     requestHeaders.set('x-publication-slug', slug);
     requestHeaders.set('x-publication-host', `${slug}.localhost`);
 
-    return NextResponse.rewrite(url, {
-      request: { headers: requestHeaders },
-    });
+    return NextResponse.next({ request: { headers: requestHeaders } });
   }
 
-  // Subdomain publication: slug.lentera.id → extract slug
+  // ── Subdomain: slug.lentera.id → extract slug and pass through ─────────────
   if (host.endsWith(`.${BASE_DOMAIN}`)) {
     const slug = host.replace(`.${BASE_DOMAIN}`, '');
     const requestHeaders = new Headers(req.headers);
@@ -77,7 +77,7 @@ export function proxy(req: NextRequest): NextResponse {
     });
   }
 
-  // Custom domain — forward the full host as publication identifier
+  // ── Custom domain — forward host as publication identifier ─────────────────
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set('x-publication-host', host);
   return NextResponse.next({

@@ -19,6 +19,34 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.resolve(__dirname),
   },
+  async rewrites() {
+    // Platform routes that must never be treated as publication slugs.
+    // Mirrors PLATFORM_ROUTES in proxy.ts.
+    const platformSlugExclude =
+      'admin|dashboard|me|login|register|forgot-password|reset-password|' +
+      'verify-email|accept-invite|onboarding|payment|subscribe|suspended|auth';
+
+    return {
+      // beforeFiles: runs after proxy, before file-system routing.
+      // These rules strip the publication slug prefix from localhost dev URLs
+      // so that Next.js routes to the correct page file.
+      // They are gated to localhost:3000 only, leaving production unaffected.
+      beforeFiles: [
+        // /[slug]/[rest...] → /[rest...]
+        {
+          source: `/:pubSlug((?!${platformSlugExclude})[^/]+)/:rest+`,
+          has: [{ type: 'host', value: 'localhost:3000' }],
+          destination: '/:rest*',
+        },
+        // /[slug] → /  (publication homepage)
+        {
+          source: `/:pubSlug((?!${platformSlugExclude})[^/]+)`,
+          has: [{ type: 'host', value: 'localhost:3000' }],
+          destination: '/',
+        },
+      ],
+    };
+  },
 };
 
 export default nextConfig;
