@@ -35,6 +35,7 @@ export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const next = searchParams.get('next');
+  const errorParam = searchParams.get('error');
 
   const form = useForm<FormValues>({ resolver: zodResolver(schema) });
   const { isSubmitting } = form.formState;
@@ -68,6 +69,10 @@ export function LoginForm() {
         form.setError('root', {
           message: 'Email belum diverifikasi. Cek inbox dan folder spam kamu.',
         });
+      } else if (code === 'LOGIN_LOCKED') {
+        form.setError('root', {
+          message: 'Terlalu banyak percobaan login. Coba lagi dalam 15 menit.',
+        });
       } else {
         form.setError('root', {
           message: apiErr?.response?.data?.message ?? 'Login gagal, coba lagi.',
@@ -89,6 +94,12 @@ export function LoginForm() {
         </>
       }
     >
+      {errorParam === 'use_password' && (
+        <p className="rounded-lg bg-amber-50 px-3 py-2.5 text-sm text-amber-800 dark:bg-amber-900/20 dark:text-amber-400">
+          Akun ini terdaftar dengan email dan password. Silakan login menggunakan form di bawah.
+        </p>
+      )}
+
       <Button
         variant="outline"
         className="w-full"
