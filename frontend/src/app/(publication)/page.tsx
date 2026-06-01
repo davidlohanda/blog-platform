@@ -1,6 +1,5 @@
 import { Suspense } from 'react';
 import { headers, cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -280,7 +279,7 @@ async function SubscribeBand({ pub }: { pub: Publication }) {
   );
 }
 
-function PlatformLanding() {
+function PlatformLanding({ role = '' }: { role?: string }) {
   return (
     <div className="min-h-screen bg-background">
       {/* Navbar */}
@@ -291,12 +290,28 @@ function PlatformLanding() {
           </div>
           <span className="font-serif text-lg font-semibold text-foreground">Lentera</span>
         </div>
-        <Link
-          href="/login"
-          className="rounded-lg border border-border px-4 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-        >
-          Masuk
-        </Link>
+        {role === 'platform_admin' ? (
+          <Link
+            href="/admin/dashboard"
+            className="rounded-lg border border-border px-4 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+          >
+            Dashboard Admin
+          </Link>
+        ) : role ? (
+          <Link
+            href="/dashboard"
+            className="rounded-lg border border-border px-4 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+          >
+            Dashboard
+          </Link>
+        ) : (
+          <Link
+            href="/login"
+            className="rounded-lg border border-border px-4 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+          >
+            Masuk
+          </Link>
+        )}
       </header>
 
       {/* Hero */}
@@ -314,12 +329,28 @@ function PlatformLanding() {
             audiens setia dan penghasilan berulang dari tulisan mereka.
           </p>
           <div className="flex flex-wrap justify-center gap-3">
-            <Link
-              href="/login"
-              className="rounded-full bg-foreground px-6 py-2.5 text-sm font-semibold text-background transition-colors hover:bg-foreground/90"
-            >
-              Mulai sekarang
-            </Link>
+            {role === 'platform_admin' ? (
+              <Link
+                href="/admin/dashboard"
+                className="rounded-full bg-foreground px-6 py-2.5 text-sm font-semibold text-background transition-colors hover:bg-foreground/90"
+              >
+                Ke Dashboard Admin
+              </Link>
+            ) : role ? (
+              <Link
+                href="/dashboard"
+                className="rounded-full bg-foreground px-6 py-2.5 text-sm font-semibold text-background transition-colors hover:bg-foreground/90"
+              >
+                Ke Dashboard
+              </Link>
+            ) : (
+              <Link
+                href="/login"
+                className="rounded-full bg-foreground px-6 py-2.5 text-sm font-semibold text-background transition-colors hover:bg-foreground/90"
+              >
+                Masuk
+              </Link>
+            )}
             <a
               href="#cara-kerja"
               className="rounded-full border border-border px-6 py-2.5 text-sm font-semibold transition-colors hover:bg-muted"
@@ -493,16 +524,11 @@ async function HomepageContent() {
     h.get('x-publication-slug') ?? '';
 
   if (!slug) {
-    // Platform context (localhost / app domain without publication header)
-    // Redirect logged-in users to the right place based on role cookie
     const jar = await cookies();
-    const refreshToken = jar.get('refreshToken');
-    if (refreshToken) {
-      const role = jar.get('user-role')?.value ?? '';
-      if (role === 'platform_admin') redirect('/admin/dashboard');
-      else redirect('/dashboard');
-    }
-    return <PlatformLanding />;
+    const role = jar.get('refreshToken')
+      ? (jar.get('user-role')?.value ?? '')
+      : '';
+    return <PlatformLanding role={role} />;
   }
 
   const pub = await getPublicationBySlug(slug);
