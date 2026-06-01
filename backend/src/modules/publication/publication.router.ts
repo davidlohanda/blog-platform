@@ -30,6 +30,9 @@ router.get('/mine', authenticate, (req, res, next) =>
   publicationController.getMine(req, res, next),
 );
 
+// Check slug availability (public, must come before /:slug)
+router.get('/check-slug', (req, res, next) => publicationController.checkSlug(req, res, next));
+
 // Get publication by slug (public)
 router.get('/:slug', (req, res, next) => publicationController.getBySlug(req, res, next));
 

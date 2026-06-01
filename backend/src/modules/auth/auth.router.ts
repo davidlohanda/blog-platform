@@ -16,6 +16,7 @@ import {
   verifyEmailQuerySchema,
   forgotPasswordSchema,
   resetPasswordSchema,
+  completeOwnerInviteSchema,
 } from './auth.schema';
 import { config } from '../../config';
 
@@ -51,6 +52,9 @@ router.get('/accept-invite', authenticate, (req, res, next) =>
 );
 router.get('/accept-owner-invite', (req, res, next) =>
   authController.acceptOwnerInvite(req, res, next),
+);
+router.post('/complete-owner-invite', validate(completeOwnerInviteSchema), (req, res, next) =>
+  authController.completeOwnerInvite(req, res, next),
 );
 
 // Google OAuth — only mount if credentials are configured

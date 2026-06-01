@@ -55,6 +55,13 @@ export const publicationRepository = {
     return prisma.publication.update({ where: { id }, data });
   },
 
+  updateForOnboarding(
+    id: string,
+    data: { name: string; slug: string; description?: string | null },
+  ) {
+    return prisma.publication.update({ where: { id }, data });
+  },
+
   setCustomDomain(id: string, domain: string) {
     return prisma.publication.update({ where: { id }, data: { customDomain: domain } });
   },
@@ -97,7 +104,7 @@ export const publicationRepository = {
   },
 
   async getOnboardingStatus(publicationId: string) {
-    const [pub, articleCount, planCount] = await Promise.all([
+    const [pub, articleCount, planCount, authorCount] = await Promise.all([
       prisma.publication.findUnique({
         where: { id: publicationId },
         select: { logoUrl: true, customDomain: true },
@@ -108,6 +115,10 @@ export const publicationRepository = {
       prisma.subscriptionPlan.count({
         where: { publicationId, isActive: true },
       }),
+      // Count non-owner authors (co-authors)
+      prisma.publicationAuthor.count({
+        where: { publicationId, role: { not: 'owner' } },
+      }),
     ]);
 
     return {
@@ -115,6 +126,7 @@ export const publicationRepository = {
       has_articles: articleCount > 0,
       has_logo: !!pub?.logoUrl,
       has_custom_domain: !!pub?.customDomain,
+      has_co_author: authorCount > 0,
     };
   },
 };

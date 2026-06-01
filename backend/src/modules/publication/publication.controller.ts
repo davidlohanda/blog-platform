@@ -24,6 +24,19 @@ export const publicationController = {
     }
   },
 
+  async checkSlug(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { slug } = req.query as { slug?: string };
+      if (!slug) {
+        return next(new Error('Slug wajib diisi'));
+      }
+      const result = await publicationService.checkSlugAvailability(slug);
+      res.json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  },
+
   async getBySlug(req: Request, res: Response, next: NextFunction) {
     try {
       const pub = await publicationService.getBySlug(req.params.slug);

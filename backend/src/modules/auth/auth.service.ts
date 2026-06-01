@@ -300,9 +300,91 @@ export const authService = {
       throw AppError.badRequest('Token tidak valid', 'INVALID_INVITE');
     }
 
-    const frontendUrl = config.platform.frontendUrl;
+    // Return invite data — frontend handles multi-step wizard
     return {
-      redirectUrl: `${frontendUrl}/register?invite=${token}&email=${encodeURIComponent(payload.email)}`,
+      email: payload.email,
+      ownerName: payload.ownerName,
+      publicationId: payload.publicationId,
+      publicationName: payload.publicationName,
+    };
+  },
+
+  async completeOwnerInvite(input: {
+    token: string;
+    name: string;
+    password: string;
+    publicationName: string;
+    publicationSlug: string;
+    publicationDescription?: string;
+  }) {
+    // Validate and read invite
+    const raw = await redis.get(`owner-invite:${input.token}`);
+    if (!raw)
+      throw AppError.badRequest('Token tidak valid atau sudah kedaluwarsa', 'INVALID_INVITE');
+
+    const payload = JSON.parse(raw) as {
+      type: string;
+      email: string;
+      ownerName: string;
+      publicationId: string;
+      publicationName: string;
+    };
+    if (payload.type !== 'owner-invite') {
+      throw AppError.badRequest('Token tidak valid', 'INVALID_INVITE');
+    }
+
+    // Ensure slug not taken by another publication
+    const slugOwner = await publicationRepository.findBySlug(input.publicationSlug);
+    if (slugOwner && slugOwner.id !== payload.publicationId) {
+      throw AppError.conflict('Slug sudah digunakan oleh publication lain', 'SLUG_TAKEN');
+    }
+
+    // Ensure email not already registered
+    const existing = await authRepository.findByEmail(payload.email);
+    if (existing) throw AppError.conflict('Email sudah terdaftar', 'EMAIL_TAKEN');
+
+    // Create user with email auto-verified
+    const passwordHash = await hash(input.password);
+    const user = await authRepository.create({
+      email: payload.email,
+      name: input.name,
+      passwordHash,
+    });
+    await authRepository.markEmailVerified(user.id);
+
+    // Update publication with user-chosen name/slug/description
+    await publicationRepository.updateForOnboarding(payload.publicationId, {
+      name: input.publicationName,
+      slug: input.publicationSlug,
+      description: input.publicationDescription ?? null,
+    });
+
+    // Set user as owner
+    await publicationRepository.addAuthor(payload.publicationId, user.id, 'owner');
+
+    // Issue tokens scoped to this publication
+    const tokenId = randomUUID();
+    const accessToken = signAccessToken({ userId: user.id, email: user.email, role: user.role });
+    const refreshToken = signRefreshToken(user.id, tokenId, payload.publicationId);
+    await redis.setex(
+      `refresh:${user.id}:${payload.publicationId}:${tokenId}`,
+      REFRESH_TOKEN_TTL,
+      tokenId,
+    );
+
+    // Clean up invite token
+    await redis.del(`owner-invite:${input.token}`);
+
+    return {
+      accessToken,
+      refreshToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      },
+      publicationSlug: input.publicationSlug,
     };
   },
 

@@ -88,7 +88,7 @@ export const adminController = {
       await redis.setex(`owner-invite:${token}`, 7 * 24 * 60 * 60, JSON.stringify(payload));
 
       const frontendUrl = config.platform.frontendUrl;
-      const inviteUrl = `${frontendUrl}/register?invite=${token}&email=${encodeURIComponent(email)}`;
+      const inviteUrl = `${frontendUrl}/accept-invite?token=${token}`;
 
       await emailService.sendOwnerInvite({
         to: email,
