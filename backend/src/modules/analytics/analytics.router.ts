@@ -1,12 +1,12 @@
 import { Router } from 'express';
 import { analyticsController } from './analytics.controller';
 import { authenticate } from '../../middleware/auth.middleware';
-import { requirePublicationRole } from '../../middleware/roles.middleware';
+import { requireOwnerOrAdmin } from '../../middleware/roles.middleware';
 
 const router = Router({ mergeParams: true });
 
-// All analytics routes require owner or author role
-router.use(authenticate, requirePublicationRole('owner', 'author'));
+// Analytics visible to owner + admin only (not author)
+router.use(authenticate, requireOwnerOrAdmin);
 
 router.get('/overview', (req, res, next) => analyticsController.getOverview(req, res, next));
 router.get('/subscribers-chart', (req, res, next) =>

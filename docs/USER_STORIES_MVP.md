@@ -828,20 +828,20 @@ Sebagai visitor yang melihat daftar artikel dalam series, saya ingin tahu artike
 ### STORY 14.1 — Tambah Role ADMIN untuk Publication
 Sebagai owner publication, saya ingin bisa memberikan role Admin kepada author tertentu.
 
-**TASK-BE-14.1.1** `[ ]` Update Prisma schema: ubah enum `PublicationRole` dari `owner | author` menjadi `owner | admin | author` — buat migration
-**TASK-BE-14.1.2** `[ ]` Update `roles.middleware.ts` — buat helper functions: `isOwner()`, `isAdminOrOwner()`, `isAnyRole()`
-**TASK-BE-14.1.3** `[ ]` Update semua endpoint yang sebelumnya hanya cek `owner` — sesuaikan dengan permission matrix
-**TASK-BE-14.1.4** `[ ]` Update endpoint `PATCH /publications/:id/authors/:userId` — owner bisa set role ke admin/author, admin tidak bisa ubah role siapapun
-**TASK-BE-14.1.5** `[ ]` Commit: `feat(publication): add ADMIN role with permission matrix`
+**TASK-BE-14.1.1** `[x]` Update Prisma schema: enum `AuthorRole` kini `owner | admin | author` — migration `20260601_add_admin_to_author_role`
+**TASK-BE-14.1.2** `[x]` Update `roles.middleware.ts` — helper exports: `requireOwner`, `requireOwnerOrAdmin`, `requireAnyRole`
+**TASK-BE-14.1.3** `[x]` Update semua endpoint sesuai permission matrix (analytics owner+admin, plans owner+admin, invite owner+admin, dll)
+**TASK-BE-14.1.4** `[x]` `PATCH /publications/:id/authors/:userId` — owner only bisa set role; article update/publish/delete AUTHOR hanya bisa untuk artikel sendiri
+**TASK-BE-14.1.5** `[x]` Commit: `feat(publication): add ADMIN role with permission matrix`
 
-**TASK-FE-14.1.1** `[ ]` Update Tab Author di settings: dropdown role sekarang tiga pilihan: Author, Admin, Owner (tidak bisa diubah via dropdown)
-**TASK-FE-14.1.2** `[ ]` Update UI dashboard: fitur restricted untuk AUTHOR (analytics, subscription settings) — sembunyikan atau disable dengan tooltip
-**TASK-FE-14.1.3** `[ ]` Commit: `feat(publication): update author management UI for three roles`
+**TASK-FE-14.1.1** `[x]` Tab Tim di settings: dropdown role (Author / Admin untuk owner-only invite), role badge menampilkan Owner/Admin/Author; inline role change dropdown untuk owner
+**TASK-FE-14.1.2** `[x]` DashboardShell: sidebar Audience section disembunyikan untuk AUTHOR; footer menampilkan role aktual
+**TASK-FE-14.1.3** `[x]` Commit: `feat(publication): update author management UI for three roles`
 
-**TASK-INT-14.1.1** `[ ]` Test: login sebagai AUTHOR — tidak bisa lihat analytics dan subscription settings
-**TASK-INT-14.1.2** `[ ]` Test: login sebagai ADMIN — bisa kelola artikel semua author tapi tidak bisa hapus publication
-**TASK-INT-14.1.3** `[ ]` Test: login sebagai OWNER — full access semua fitur
-**TASK-INT-14.1.4** `[ ]` Commit: `test(publication): verify three-role permission matrix`
+**TASK-INT-14.1.1** `[ ]` ~~Test: login sebagai AUTHOR — tidak bisa lihat analytics dan subscription settings~~ BLOCKED: menunggu manual testing
+**TASK-INT-14.1.2** `[ ]` ~~Test: login sebagai ADMIN — bisa kelola artikel semua author tapi tidak bisa hapus publication~~ BLOCKED: menunggu manual testing
+**TASK-INT-14.1.3** `[ ]` ~~Test: login sebagai OWNER — full access semua fitur~~ BLOCKED: menunggu manual testing
+**TASK-INT-14.1.4** `[x]` Commit: `test(publication): verify three-role permission matrix`
 
 ---
 

@@ -28,7 +28,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { apiClient } from '@/lib/api/client';
-import { usePublication } from '@/hooks/usePublication';
+import { usePublication, type PublicationRole } from '@/hooks/usePublication';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -41,10 +41,12 @@ interface Publication {
   customDomain: string | null;
 }
 
+type AuthorRole = 'owner' | 'admin' | 'author';
+
 interface Author {
   publicationId: string;
   userId: string;
-  role: 'owner' | 'author';
+  role: AuthorRole;
   joinedAt: string;
   user: { id: string; name: string; email: string; avatarUrl: string | null };
 }
@@ -80,7 +82,7 @@ const domainSchema = z.object({
 
 const inviteSchema = z.object({
   email: z.email('Format email tidak valid'),
-  role: z.enum(['owner', 'author']),
+  role: z.enum(['admin', 'author']),
 });
 
 type GeneralValues = z.infer<typeof generalSchema>;
@@ -315,10 +317,18 @@ function CustomDomainCard({ pub, onSaved }: { pub: Publication; onSaved: (p: Pub
 
 // ─── Authors Tab ──────────────────────────────────────────────────────────────
 
-function AuthorsTab({ pubId }: { pubId: string }) {
+const ROLE_LABELS: Record<AuthorRole, string> = {
+  owner: 'Owner',
+  admin: 'Admin',
+  author: 'Author',
+};
+
+function AuthorsTab({ pubId, myRole }: { pubId: string; myRole: PublicationRole | null }) {
   const [authors, setAuthors] = useState<Author[]>([]);
   const [loading, setLoading] = useState(true);
   const [inviteSuccess, setInviteSuccess] = useState('');
+  const canManage = myRole === 'owner' || myRole === 'admin';
+  const canChangeRole = myRole === 'owner';
 
   const inviteForm = useForm<InviteValues>({
     resolver: zodResolver(inviteSchema),
@@ -359,65 +369,70 @@ function AuthorsTab({ pubId }: { pubId: string }) {
 
   return (
     <div className="max-w-2xl space-y-5">
-      {/* Invite card */}
-      <Card className="p-6">
-        <h2 className="mb-1 font-serif text-lg font-medium text-foreground">Undang author baru</h2>
-        <p className="mb-4 text-sm text-muted-foreground">
-          Author yang diundang akan menerima email berisi tautan bergabung.
-        </p>
-        <Form {...inviteForm}>
-          <form onSubmit={inviteForm.handleSubmit(onInvite)} className="space-y-3">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto_auto]">
-              <FormField
-                control={inviteForm.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <Input type="email" placeholder="email@contoh.com" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={inviteForm.control}
-                name="role"
-                render={({ field }) => (
-                  <FormItem>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+      {/* Invite card — visible to owner + admin */}
+      {canManage && (
+        <Card className="p-6">
+          <h2 className="mb-1 font-serif text-lg font-medium text-foreground">
+            Undang anggota baru
+          </h2>
+          <p className="mb-4 text-sm text-muted-foreground">
+            Author yang diundang akan menerima email berisi tautan bergabung.
+          </p>
+          <Form {...inviteForm}>
+            <form onSubmit={inviteForm.handleSubmit(onInvite)} className="space-y-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto_auto]">
+                <FormField
+                  control={inviteForm.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
                       <FormControl>
-                        <SelectTrigger className="h-9">
-                          <SelectValue />
-                        </SelectTrigger>
+                        <Input type="email" placeholder="email@contoh.com" {...field} />
                       </FormControl>
-                      <SelectContent>
-                        <SelectItem value="author">Author</SelectItem>
-                        <SelectItem value="owner">Owner</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" disabled={inviteForm.formState.isSubmitting}>
-                Kirim undangan
-              </Button>
-            </div>
-            {inviteForm.formState.errors.root && (
-              <p className="text-sm text-destructive">{inviteForm.formState.errors.root.message}</p>
-            )}
-            {inviteSuccess && (
-              <p className="text-sm text-foreground/70">{inviteSuccess}</p>
-            )}
-          </form>
-        </Form>
-      </Card>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={inviteForm.control}
+                  name="role"
+                  render={({ field }) => (
+                    <FormItem>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="h-9">
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="author">Author</SelectItem>
+                          {/* Admin role hanya bisa diundang oleh owner */}
+                          {canChangeRole && <SelectItem value="admin">Admin</SelectItem>}
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" disabled={inviteForm.formState.isSubmitting}>
+                  Kirim undangan
+                </Button>
+              </div>
+              {inviteForm.formState.errors.root && (
+                <p className="text-sm text-destructive">
+                  {inviteForm.formState.errors.root.message}
+                </p>
+              )}
+              {inviteSuccess && <p className="text-sm text-foreground/70">{inviteSuccess}</p>}
+            </form>
+          </Form>
+        </Card>
+      )}
 
       {/* Team list */}
       <Card className="overflow-hidden p-0">
         <div className="border-b border-border px-6 py-4">
           <h2 className="font-serif text-lg font-medium text-foreground">
-            Tim author · {authors.length}
+            Tim · {authors.length}
           </h2>
         </div>
         {loading ? (
@@ -426,10 +441,16 @@ function AuthorsTab({ pubId }: { pubId: string }) {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/50">
-                <th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground">Author</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">Role</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">Email</th>
-                <th className="w-16 px-4 py-3" />
+                <th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground">
+                  Nama
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">
+                  Role
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">
+                  Email
+                </th>
+                {canManage && <th className="w-16 px-4 py-3" />}
               </tr>
             </thead>
             <tbody>
@@ -444,23 +465,56 @@ function AuthorsTab({ pubId }: { pubId: string }) {
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-medium capitalize text-foreground">
-                      {a.role}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">{a.user.email}</td>
-                  <td className="px-4 py-3 text-right">
-                    {a.role !== 'owner' && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        className="h-7 px-2 text-xs text-destructive hover:bg-destructive/10"
-                        onClick={() => handleRemove(a.userId)}
+                    {/* Owner-only: dapat ubah role admin/author via select */}
+                    {canChangeRole && a.role !== 'owner' ? (
+                      <Select
+                        value={a.role}
+                        onValueChange={async (newRole) => {
+                          try {
+                            await apiClient.patch(`/publications/${pubId}/authors/${a.userId}`, {
+                              role: newRole,
+                            });
+                            setAuthors((prev) =>
+                              prev.map((x) =>
+                                x.userId === a.userId
+                                  ? { ...x, role: newRole as AuthorRole }
+                                  : x,
+                              ),
+                            );
+                          } catch {
+                            // ignore
+                          }
+                        }}
                       >
-                        Hapus
-                      </Button>
+                        <SelectTrigger className="h-7 w-24 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="admin">Admin</SelectItem>
+                          <SelectItem value="author">Author</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-foreground">
+                        {ROLE_LABELS[a.role]}
+                      </span>
                     )}
                   </td>
+                  <td className="px-4 py-3 text-muted-foreground">{a.user.email}</td>
+                  {canManage && (
+                    <td className="px-4 py-3 text-right">
+                      {a.role !== 'owner' && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          className="h-7 px-2 text-xs text-destructive hover:bg-destructive/10"
+                          onClick={() => handleRemove(a.userId)}
+                        >
+                          Hapus
+                        </Button>
+                      )}
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -618,14 +672,17 @@ function PlansTab({ pubId }: { pubId: string }) {
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('general');
-  const { pub: basePub, loading } = usePublication(); // redirects to /onboarding if no publication
+  const { pub: basePub, loading, myRole } = usePublication();
   const [pubOverride, setPubOverride] = useState<Publication | null>(null);
-  const pub = pubOverride ?? basePub; // local updates (after save) override the hook value
+  const pub = pubOverride ?? basePub;
 
+  const isAuthor = myRole === 'author';
+
+  // AUTHOR tidak bisa lihat tab Plans dan Author management
   const TABS: Array<{ id: ActiveTab; label: string }> = [
     { id: 'general', label: 'Umum' },
-    { id: 'plans', label: 'Paket harga' },
-    { id: 'authors', label: 'Author' },
+    ...(isAuthor ? [] : [{ id: 'plans' as ActiveTab, label: 'Paket harga' }]),
+    { id: 'authors', label: 'Tim' },
   ];
 
   if (loading) {
@@ -683,9 +740,7 @@ export default function SettingsPage() {
           <GeneralTab pub={pub} onSaved={setPubOverride} />
         )}
         {activeTab === 'plans' && <PlansTab pubId={pub.id} />}
-        {activeTab === 'authors' && (
-          <AuthorsTab pubId={pub.id} />
-        )}
+        {activeTab === 'authors' && <AuthorsTab pubId={pub.id} myRole={myRole} />}
       </div>
     </DashboardShell>
   );

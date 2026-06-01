@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { articleService } from './article.service';
 import type { AuthRequest } from '../../middleware/auth.middleware';
 import type { MemberRequest } from '../../middleware/member.middleware';
+import type { PublicationRoleRequest } from '../../middleware/roles.middleware';
 import type {
   CreateArticleInput,
   UpdateArticleInput,
@@ -106,7 +107,9 @@ export const articleController = {
   async update(req: Request, res: Response, next: NextFunction) {
     try {
       const { pubId, id } = req.params;
-      const article = await articleService.update(pubId, id, req.body as UpdateArticleInput);
+      const roleReq = req as PublicationRoleRequest;
+      const opts = { requesterId: roleReq.user?.userId, requesterRole: roleReq.userRole };
+      const article = await articleService.update(pubId, id, req.body as UpdateArticleInput, opts);
       res.json({ success: true, data: article });
     } catch (error) {
       next(error);
@@ -116,7 +119,14 @@ export const articleController = {
   async publish(req: Request, res: Response, next: NextFunction) {
     try {
       const { pubId, id } = req.params;
-      const article = await articleService.publish(pubId, id, req.body as PublishArticleInput);
+      const roleReq = req as PublicationRoleRequest;
+      const opts = { requesterId: roleReq.user?.userId, requesterRole: roleReq.userRole };
+      const article = await articleService.publish(
+        pubId,
+        id,
+        req.body as PublishArticleInput,
+        opts,
+      );
       res.json({ success: true, data: article });
     } catch (error) {
       next(error);
@@ -126,7 +136,9 @@ export const articleController = {
   async softDelete(req: Request, res: Response, next: NextFunction) {
     try {
       const { pubId, id } = req.params;
-      await articleService.softDelete(pubId, id);
+      const roleReq = req as PublicationRoleRequest;
+      const opts = { requesterId: roleReq.user?.userId, requesterRole: roleReq.userRole };
+      await articleService.softDelete(pubId, id, opts);
       res.json({ success: true, data: { message: 'Artikel berhasil dihapus' } });
     } catch (error) {
       next(error);

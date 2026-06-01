@@ -1,9 +1,12 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { apiClient } from '@/lib/api/client';
+import type { PublicationRole } from '@/hooks/usePublication';
 
 interface DashboardShellProps {
   children: ReactNode;
@@ -17,34 +20,36 @@ interface DashboardShellProps {
 function NavIcon({ d }: { d: string }) {
   return (
     <svg width="15" height="15" viewBox="0 0 15 15" fill="none" className="shrink-0">
-      <path d={d} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d={d}
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
 
-const NAV_SECTIONS = [
-  {
-    label: 'Publication',
-    items: [
-      { href: '/dashboard', label: 'Overview', icon: <NavIcon d="M1 1h5v5H1zM9 1h5v5H9zM1 9h5v5H1zM9 9h5v5H9z" /> },
-      { href: '/dashboard/articles', label: 'Artikel', icon: <NavIcon d="M3 4h9M3 7.5h9M3 11h6" /> },
-      { href: '/dashboard/series', label: 'Series', icon: <NavIcon d="M3 3h9M3 7h9M3 11h5" /> },
-    ],
-  },
-  {
-    label: 'Audience',
-    items: [
-      { href: '/dashboard/subscribers', label: 'Subscriber', icon: <NavIcon d="M10 11c0-2-1.3-3-2.5-3S5 9 5 11M7.5 5.5a2 2 0 100-4 2 2 0 000 4z" /> },
-      { href: '/dashboard/analytics', label: 'Analytics', icon: <NavIcon d="M1 11l3-4 3 2 3-5 3 3" /> },
-    ],
-  },
-  {
-    label: 'Pengaturan',
-    items: [
-      { href: '/dashboard/settings', label: 'Umum', icon: <NavIcon d="M7.5 5a2.5 2.5 0 100 5 2.5 2.5 0 000-5zM2 7.5h1M11 7.5h1M7.5 2v1M7.5 11v1" /> },
-    ],
-  },
-];
+const ROLE_LABELS: Record<PublicationRole, string> = {
+  owner: 'Owner',
+  admin: 'Admin',
+  author: 'Author',
+};
+
+function useMyPublicationRole() {
+  const [role, setRole] = useState<PublicationRole | null>(null);
+  useEffect(() => {
+    apiClient
+      .get<{ data: Array<{ role: PublicationRole }> }>('/publications/mine')
+      .then(({ data }) => {
+        const r = data.data[0]?.role;
+        if (r) setRole(r);
+      })
+      .catch(() => {});
+  }, []);
+  return role;
+}
 
 export function DashboardShell({
   children,
@@ -56,6 +61,9 @@ export function DashboardShell({
 }: DashboardShellProps) {
   const pathname = usePathname();
   const { user } = useAuth();
+  const myRole = useMyPublicationRole();
+
+  const isAuthor = myRole === 'author';
 
   function isActive(href: string) {
     if (href === '/dashboard') return pathname === '/dashboard';
@@ -81,12 +89,63 @@ export function DashboardShell({
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-2 py-3">
-          {NAV_SECTIONS.map((section) => (
-            <div key={section.label} className="mb-4">
+          {/* Publication section */}
+          <div className="mb-4">
+            <p className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              Publication
+            </p>
+            {[
+              {
+                href: '/dashboard',
+                label: 'Overview',
+                icon: <NavIcon d="M1 1h5v5H1zM9 1h5v5H9zM1 9h5v5H1zM9 9h5v5H9z" />,
+              },
+              {
+                href: '/dashboard/articles',
+                label: 'Artikel',
+                icon: <NavIcon d="M3 4h9M3 7.5h9M3 11h6" />,
+              },
+              {
+                href: '/dashboard/series',
+                label: 'Series',
+                icon: <NavIcon d="M3 3h9M3 7h9M3 11h5" />,
+              },
+            ].map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm transition-colors ${
+                  isActive(item.href)
+                    ? 'bg-background font-medium text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:bg-background/60 hover:text-foreground'
+                }`}
+              >
+                {item.icon}
+                {item.label}
+              </Link>
+            ))}
+          </div>
+
+          {/* Audience section — hidden for author role */}
+          {!isAuthor && (
+            <div className="mb-4">
               <p className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                {section.label}
+                Audience
               </p>
-              {section.items.map((item) => (
+              {[
+                {
+                  href: '/dashboard/subscribers',
+                  label: 'Subscriber',
+                  icon: (
+                    <NavIcon d="M10 11c0-2-1.3-3-2.5-3S5 9 5 11M7.5 5.5a2 2 0 100-4 2 2 0 000 4z" />
+                  ),
+                },
+                {
+                  href: '/dashboard/analytics',
+                  label: 'Analytics',
+                  icon: <NavIcon d="M1 11l3-4 3 2 3-5 3 3" />,
+                },
+              ].map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
@@ -101,7 +160,25 @@ export function DashboardShell({
                 </Link>
               ))}
             </div>
-          ))}
+          )}
+
+          {/* Settings section */}
+          <div className="mb-4">
+            <p className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              Pengaturan
+            </p>
+            <Link
+              href="/dashboard/settings"
+              className={`flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm transition-colors ${
+                isActive('/dashboard/settings')
+                  ? 'bg-background font-medium text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:bg-background/60 hover:text-foreground'
+              }`}
+            >
+              <NavIcon d="M7.5 5a2.5 2.5 0 100 5 2.5 2.5 0 000-5zM2 7.5h1M11 7.5h1M7.5 2v1M7.5 11v1" />
+              Umum
+            </Link>
+          </div>
         </nav>
 
         {/* User footer */}
@@ -111,7 +188,9 @@ export function DashboardShell({
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate text-xs font-semibold text-foreground">{user?.name ?? '…'}</p>
-            <p className="truncate text-[11px] text-muted-foreground">Owner</p>
+            <p className="truncate text-[11px] text-muted-foreground">
+              {myRole ? ROLE_LABELS[myRole] : '…'}
+            </p>
           </div>
         </div>
       </aside>
@@ -124,17 +203,13 @@ export function DashboardShell({
             <h1 className="font-serif text-2xl font-medium tracking-tight text-foreground">
               {title}
             </h1>
-            {subtitle && (
-              <p className="mt-0.5 text-sm text-muted-foreground">{subtitle}</p>
-            )}
+            {subtitle && <p className="mt-0.5 text-sm text-muted-foreground">{subtitle}</p>}
           </div>
           {action && <div>{action}</div>}
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-auto">
-          {children}
-        </main>
+        <main className="flex-1 overflow-auto">{children}</main>
       </div>
     </div>
   );

@@ -1,7 +1,11 @@
 import { Router } from 'express';
 import { publicationController } from './publication.controller';
 import { authenticate } from '../../middleware/auth.middleware';
-import { requirePublicationRole } from '../../middleware/roles.middleware';
+import {
+  requireOwner,
+  requireOwnerOrAdmin,
+  requireAnyRole,
+} from '../../middleware/roles.middleware';
 import { validate } from '../../middleware/validate.middleware';
 import {
   createPublicationSchema,
@@ -29,11 +33,11 @@ router.get('/mine', authenticate, (req, res, next) =>
 // Get publication by slug (public)
 router.get('/:slug', (req, res, next) => publicationController.getBySlug(req, res, next));
 
-// Update publication settings (owner only)
+// Update publication settings (owner + admin)
 router.patch(
   '/:id',
   authenticate,
-  requirePublicationRole('owner'),
+  requireOwnerOrAdmin,
   validate(updatePublicationSchema),
   (req, res, next) => publicationController.update(req, res, next),
 );
@@ -42,17 +46,14 @@ router.patch(
 router.post(
   '/:id/custom-domain',
   authenticate,
-  requirePublicationRole('owner'),
+  requireOwner,
   validate(setCustomDomainSchema),
   (req, res, next) => publicationController.setCustomDomain(req, res, next),
 );
 
-// Onboarding status (owner only)
-router.get(
-  '/:id/onboarding-status',
-  authenticate,
-  requirePublicationRole('owner', 'author'),
-  (req, res, next) => publicationController.getOnboardingStatus(req, res, next),
+// Onboarding status (any publication role)
+router.get('/:id/onboarding-status', authenticate, requireAnyRole, (req, res, next) =>
+  publicationController.getOnboardingStatus(req, res, next),
 );
 
 // Authors — public list for reader homepage (no email)
@@ -60,42 +61,37 @@ router.get('/:id/authors/public', (req, res, next) =>
   publicationController.listPublicAuthors(req, res, next),
 );
 
-// Authors — list (owner/author, includes email for management)
-router.get(
-  '/:id/authors',
-  authenticate,
-  requirePublicationRole('owner', 'author'),
-  (req, res, next) => publicationController.listAuthors(req, res, next),
+// Authors — list (any publication role, includes email for management)
+router.get('/:id/authors', authenticate, requireAnyRole, (req, res, next) =>
+  publicationController.listAuthors(req, res, next),
 );
 
-// Authors — invite (owner only)
+// Authors — invite (owner + admin)
+// Note: owner cannot be invited — only admin and author roles can be assigned via invite
 const inviteSchema = z.object({
   email: z.email('Format email tidak valid'),
-  role: z.enum(['owner', 'author']),
+  role: z.enum(['admin', 'author']),
 });
 router.post(
   '/:id/authors/invite',
   authenticate,
-  requirePublicationRole('owner'),
+  requireOwnerOrAdmin,
   validate(inviteSchema),
   (req, res, next) => publicationController.inviteAuthor(req, res, next),
 );
 
-// Authors — update role (owner only)
+// Authors — update role (owner only — per permission matrix: only owner can change roles)
 router.patch(
   '/:id/authors/:userId',
   authenticate,
-  requirePublicationRole('owner'),
-  validate(z.object({ role: z.enum(['owner', 'author']) })),
+  requireOwner,
+  validate(z.object({ role: z.enum(['admin', 'author']) })),
   (req, res, next) => publicationController.updateAuthorRole(req, res, next),
 );
 
-// Authors — remove (owner only)
-router.delete(
-  '/:id/authors/:userId',
-  authenticate,
-  requirePublicationRole('owner'),
-  (req, res, next) => publicationController.removeAuthor(req, res, next),
+// Authors — remove (owner + admin)
+router.delete('/:id/authors/:userId', authenticate, requireOwnerOrAdmin, (req, res, next) =>
+  publicationController.removeAuthor(req, res, next),
 );
 
 // Mount article and series sub-routers with mergeParams

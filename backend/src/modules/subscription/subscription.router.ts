@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { subscriptionController } from './subscription.controller';
 import { authenticate } from '../../middleware/auth.middleware';
-import { requirePublicationRole } from '../../middleware/roles.middleware';
+import { requireOwnerOrAdmin } from '../../middleware/roles.middleware';
 import { validate } from '../../middleware/validate.middleware';
 import { updatePlansSchema, createOrderSchema, webhookPayloadSchema } from './subscription.schema';
 
@@ -14,11 +14,11 @@ nestedRouter.get('/subscription-plans', (req, res, next) =>
   subscriptionController.listPlans(req, res, next),
 );
 
-// Plans — owner replaces all plans
+// Plans — owner + admin can replace plans
 nestedRouter.put(
   '/subscription-plans',
   authenticate,
-  requirePublicationRole('owner'),
+  requireOwnerOrAdmin,
   validate(updatePlansSchema),
   (req, res, next) => subscriptionController.updatePlans(req, res, next),
 );

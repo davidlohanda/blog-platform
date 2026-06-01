@@ -123,6 +123,7 @@ model PublicationAuthor {
 
 enum AuthorRole {
   owner
+  admin
   author
 }
 

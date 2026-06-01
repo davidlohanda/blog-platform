@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { articleController } from './article.controller';
 import { authenticate, optionalAuthenticateAny } from '../../middleware/auth.middleware';
-import { requirePublicationRole } from '../../middleware/roles.middleware';
+import { requireAnyRole } from '../../middleware/roles.middleware';
 import { attachMembership } from '../../middleware/member.middleware';
 import { validate } from '../../middleware/validate.middleware';
 import {
@@ -21,12 +21,8 @@ router.get('/', validate(articleFiltersSchema, 'query'), (req, res, next) =>
   articleController.list(req, res, next),
 );
 
-router.post(
-  '/',
-  authenticate,
-  requirePublicationRole('owner', 'author'),
-  validate(createArticleSchema),
-  (req, res, next) => articleController.create(req, res, next),
+router.post('/', authenticate, requireAnyRole, validate(createArticleSchema), (req, res, next) =>
+  articleController.create(req, res, next),
 );
 
 // Public reader: optional auth (cookie or bearer), attaches membership status
@@ -39,7 +35,7 @@ router.get('/:slug', (req, res, next) => articleController.getBySlug(req, res, n
 router.patch(
   '/:id',
   authenticate,
-  requirePublicationRole('owner', 'author'),
+  requireAnyRole,
   validate(updateArticleSchema),
   (req, res, next) => articleController.update(req, res, next),
 );
@@ -47,12 +43,12 @@ router.patch(
 router.post(
   '/:id/publish',
   authenticate,
-  requirePublicationRole('owner', 'author'),
+  requireAnyRole,
   validate(publishArticleSchema),
   (req, res, next) => articleController.publish(req, res, next),
 );
 
-router.delete('/:id', authenticate, requirePublicationRole('owner', 'author'), (req, res, next) =>
+router.delete('/:id', authenticate, requireAnyRole, (req, res, next) =>
   articleController.softDelete(req, res, next),
 );
 
