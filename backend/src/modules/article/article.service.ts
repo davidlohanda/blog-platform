@@ -129,9 +129,23 @@ export const articleService = {
     return { data, nextCursor, hasMore };
   },
 
-  async update(publicationId: string, id: string, input: UpdateArticleInput) {
+  async update(
+    publicationId: string,
+    id: string,
+    input: UpdateArticleInput,
+    opts?: { requesterId?: string; requesterRole?: string },
+  ) {
     const article = await articleRepository.findById(publicationId, id);
     if (!article) throw AppError.notFound('Artikel tidak ditemukan');
+
+    // AUTHOR hanya boleh edit artikel miliknya sendiri
+    if (
+      opts?.requesterRole === 'author' &&
+      opts.requesterId &&
+      article.authorId !== opts.requesterId
+    ) {
+      throw AppError.forbidden('Author hanya bisa mengedit artikel miliknya sendiri');
+    }
 
     const { tags, ...rest } = input;
     const readingTime = rest.content ? calcReadingTime(rest.content) : undefined;
@@ -162,9 +176,22 @@ export const articleService = {
     return updated;
   },
 
-  async publish(publicationId: string, id: string, input: PublishArticleInput) {
+  async publish(
+    publicationId: string,
+    id: string,
+    input: PublishArticleInput,
+    opts?: { requesterId?: string; requesterRole?: string },
+  ) {
     const article = await articleRepository.findById(publicationId, id);
     if (!article) throw AppError.notFound('Artikel tidak ditemukan');
+
+    if (
+      opts?.requesterRole === 'author' &&
+      opts.requesterId &&
+      article.authorId !== opts.requesterId
+    ) {
+      throw AppError.forbidden('Author hanya bisa menerbitkan artikel miliknya sendiri');
+    }
 
     if (input.scheduledAt) {
       const scheduledDate = new Date(input.scheduledAt);
@@ -194,9 +221,22 @@ export const articleService = {
     return published;
   },
 
-  async softDelete(publicationId: string, id: string) {
+  async softDelete(
+    publicationId: string,
+    id: string,
+    opts?: { requesterId?: string; requesterRole?: string },
+  ) {
     const article = await articleRepository.findById(publicationId, id);
     if (!article) throw AppError.notFound('Artikel tidak ditemukan');
+
+    if (
+      opts?.requesterRole === 'author' &&
+      opts.requesterId &&
+      article.authorId !== opts.requesterId
+    ) {
+      throw AppError.forbidden('Author hanya bisa menghapus artikel miliknya sendiri');
+    }
+
     return articleRepository.softDelete(id, publicationId);
   },
 
