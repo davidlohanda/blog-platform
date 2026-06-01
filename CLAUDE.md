@@ -1,13 +1,14 @@
 # CLAUDE.md
 ## Blog Platform — Lentera
 > File ini dibaca otomatis oleh Claude Code setiap sesi dimulai.
+> Versi 2.0 — Update dari sesi Grill Me (tambahan di bagian bawah).
 > Untuk detail lengkap, lihat file di folder docs/.
 
 ---
 
 ## Project Overview
 
-Platform blog subscription multi-author (SaaS). Setiap "publication" berdiri independen dengan audience-nya sendiri — tidak ada marketplace atau discovery lintas publication. Model bisnis: platform fee 15% dari setiap transaksi subscription member.
+Platform blog subscription multi-author (SaaS). Setiap "publication" berdiri independen dengan audience-nya sendiri — tidak ada marketplace atau discovery lintas publication. Model bisnis: platform fee 15% dari setiap transaksi subscription member (bisa dikonfigurasi per publication oleh admin).
 
 **Dokumen referensi lengkap:**
 - `docs/PRD_Publication_Platform.md` — requirements & business decisions
@@ -15,6 +16,7 @@ Platform blog subscription multi-author (SaaS). Setiap "publication" berdiri ind
 - `docs/TECH_CONTEXT.md` — rules implementasi (BACA INI SEBELUM CODING)
 - `docs/GIT_STRATEGY.md` — branching & commit convention
 - `docs/USER_STORIES_MVP.md` — task breakdown implementasi (progress tracker)
+- `docs/REFACTOR_NOTES.md` — technical debt yang perlu diperbaiki
 
 ---
 
@@ -41,7 +43,7 @@ blog-platform/
 ├── CLAUDE.md                  ← file ini
 ├── docs/                      ← semua dokumen planning
 ├── frontend/                  ← Next.js app
-│   ├── design-references/     ← hasil Claude Design (Jalur A)
+│   ├── design-references/     ← referensi desain UI
 │   └── ...
 ├── backend/                   ← Express app
 ├── docker-compose.yml         ← PostgreSQL + Redis lokal
@@ -50,78 +52,243 @@ blog-platform/
 
 ---
 
-## Rules Kritis — Selalu Diikuti
+## Arsitektur Multi-Tenancy & Routing
 
-### Backend
-- **4-layer wajib:** router → controller → service → repository
-- **Tenant isolation:** setiap query repository WAJIB include `publicationId`
-- **Error handling:** selalu `next(error)`, tidak pernah `res.json()` di catch
-- **Response format:** `{ success: true, data: ... }` atau `{ success: false, error: ... }`
-- **Validasi:** semua input via Zod schema di `[modul].schema.ts`
-- **Password:** Argon2 — jangan pernah bcrypt
-- **Token:** access token di memory JS, refresh token di httpOnly cookie
+### Di Development Lokal (Path-based)
+```
+localhost:3000              → Platform landing page (Lentera)
+localhost:3000/admin        → Platform admin dashboard
+localhost:3000/[slug]       → Publication site (simulasi subdomain)
+localhost:3000/[slug]/dashboard → Publication owner dashboard
+```
 
-### Frontend (Next.js 16)
-- **Default Server Component** — tambah `'use client'` hanya jika perlu interaksi/hooks/browser API
-- **Caching:** `'use cache'` + `cacheTag()` + `cacheLife()` — bukan `revalidate` lama
-- **Routing middleware:** `proxy.ts` di root — BUKAN `middleware.ts` (deprecated di Next.js 16)
-  - Fungsi wajib bernama `proxy()`, BUKAN `middleware()`
-  - Runtime adalah **Node.js saja** — edge runtime tidak didukung di `proxy.ts`
-  - Jika perlu edge runtime, tetap pakai `middleware.ts` (tapi hindari untuk project ini)
-  - Ref: [Next.js 16 upgrade guide](https://nextjs.org/docs/app/guides/upgrading/version-16)
-- **params/searchParams:** wajib di-`await` sebelum diakses
-- **Gambar:** selalu `next/image` — tidak pernah `<img>`
-- **Form:** React Hook Form + Zod + shadcn/ui `<Form>` wrapper
-- **State global:** Zustand — hanya di Client Component
+### Di Production (Subdomain-based)
+```
+lentera.id                  → Platform landing page
+lentera.id/admin            → Platform admin dashboard
+[slug].lentera.id           → Publication site
+[slug].lentera.id/dashboard → Publication owner dashboard
+```
 
-### Frontend UI Rules (WAJIB)
+**Custom domain:** Di-skip untuk MVP. Publication hanya pakai subdomain Lentera.
 
-**Komponen shadcn/ui yang WAJIB dipakai:**
+---
+
+## Role & Permission System
+
+### Platform-level Roles
+| Role | Akses |
+|------|-------|
+| `platform_admin` | Semua fitur admin platform: invite owner, suspend publication, konfigurasi fee, impersonate |
+| `owner` | Dashboard publication, semua fitur publication |
+| `admin` (publication) | Semua fitur OWNER kecuali: delete publication, transfer ownership, ubah role author lain |
+| `author` | Hanya: tulis/edit/hapus artikel sendiri |
+| `member` | Baca konten premium, settings member dalam konteks publication |
+| `visitor` | Baca konten free, lihat preview premium |
+
+### Permission Matrix Publication
+| Fitur | OWNER | ADMIN | AUTHOR |
+|-------|-------|-------|--------|
+| Tulis/edit artikel sendiri | ✅ | ✅ | ✅ |
+| Edit/hapus artikel author lain | ✅ | ✅ | ❌ |
+| Lihat analytics & revenue | ✅ | ✅ | ❌ |
+| Kelola subscription plans | ✅ | ✅ | ❌ |
+| Invite/remove author | ✅ | ✅ | ❌ |
+| Ubah role author lain | ✅ | ❌ | ❌ |
+| Delete publication | ✅ | ❌ | ❌ |
+| Transfer ownership | ✅ | ❌ | ❌ |
+| Kelola custom domain | ✅ | ❌ | ❌ |
+
+---
+
+## Keputusan Auth — WAJIB DIIKUTI
+
+### Token Strategy
+- **Access token:** JWT, expiry 15 menit, simpan di memory JS (Zustand store)
+- **Refresh token:** opaque UUID, expiry 30 hari inaktif, httpOnly cookie
+- **PENTING — Refresh token di-scope per publication:**
+  ```
+  Redis key: refresh:{userId}:{publicationId}:{tokenId}
+  ```
+  Token yang diissue di publication A tidak valid di publication B
+- **Token rotation:** setiap refresh token dipakai → langsung di-rotate, token lama invalid
+- **Revocation:** refresh token di Redis → bisa di-delete kapanpun (logout, admin revoke)
+- **Logout:** hanya revoke token untuk publicationId yang sedang aktif, bukan semua session
+
+### Login Security
+- **Rate limiting:** 5x password salah dalam 15 menit → lockout. Redis key: `login_attempts:{email}:{publicationId}`
+- **Google OAuth:** HANYA untuk role member/visitor. Publication owner dan platform admin TIDAK BOLEH login via Google
+- **Forgot password untuk akun OAuth-only:** kirim email informasi "akun terdaftar via Google", bukan email reset password
+
+### Session Behavior
+- Login di `investasicerdas.lentera.id` TIDAK carry over ke `keuanganpribadi.lentera.id`
+- User yang sama bisa punya akun di multiple publications dengan email yang sama
+- Setiap session terisolasi per publication via `publicationId` di refresh token
+
+---
+
+## Keputusan Produk — WAJIB DIIKUTI
+
+### Onboarding Publication Owner
+- **Sistem: Invite-only.** Tidak ada self-register untuk publication owner.
+- **Flow:** Admin invite via email → calon owner klik link → `/accept-invite` → wizard 3 step → dashboard
+- **Wizard Step 1:** buat akun (nama display, password)
+- **Wizard Step 2:** setup publication (nama, slug, deskripsi, logo opsional) + real-time slug check
+- **Wizard Step 3:** selesai → redirect ke dashboard dengan getting started checklist
+
+### Akses Konten
+- **Artikel premium diakses langsung:** tampil 100-200 kata pertama + blur/fade → paywall CTA
+- **Artikel premium diakses dari halaman series:** tampilkan ikon gembok (🔒) di listing → klik → modal subscribe langsung (TIDAK navigate ke halaman artikel dulu)
+- **Cut-off subscription:** terjadi saat user pindah halaman (page navigation), BUKAN di tengah membaca
+- **Akun gratis:** bisa baca artikel free saja. Tidak ada manfaat lain tanpa subscribe
+
+### Member Settings
+- **Semua settings member ada dalam konteks publication** — bukan di `/me/`
+- Settings: `[slug].lentera.id/settings` (bukan `/me/settings`)
+- Subscription: `[slug].lentera.id/subscription` (bukan `/me/subscription`)
+- Halaman `/me/settings` dan `/me/subscription` harus di-redirect atau dihapus
+
+### Subscription Lifecycle
+- **Reminder email:** 7 hari sebelum expired + 1 hari sebelum expired
+- **Setelah expired:** refresh token tetap valid tapi artikel premium tidak bisa diakses
+- **Email bounce:** setelah 3x bounce → set `emailBounced = true` → skip pengiriman email selanjutnya
+
+### Publication Status
+```
+active           → normal, bisa diakses semua
+suspended_soft   → owner tidak bisa publish, member masih bisa baca, subscriber baru tidak bisa join
+suspended_hard   → seluruh publication tidak bisa diakses, refund pro-rata ke semua member
+pending_deletion → tidak bisa diakses, cooling period 30 hari, bisa dibatalkan
+```
+
+### Delete Publication
+- Cooling period 30 hari sebelum permanen
+- Saat deletion di-request: refund pro-rata otomatis ke semua member aktif
+- Transfer ownership tersedia sebelum hapus
+- Selama pending_deletion: tidak bisa diakses publik
+
+### Platform Fee
+- Default: 15% per transaksi
+- Bisa dikonfigurasi per publication oleh platform admin
+- Field di database: `Publications.platformFeePercent` (decimal)
+
+---
+
+## Rules Backend — WAJIB DIIKUTI
+
+### 1. Layer Responsibility
+- **Router**: HANYA definisi route + middleware. Zero logic.
+- **Controller**: HANYA ambil dari `req`, panggil service, return `res`. Zero business logic.
+- **Service**: Semua business logic. Boleh panggil multiple repositories.
+- **Repository**: HANYA query Prisma. Zero business logic.
+
+### 2. Tenant Isolation — PALING KRITIS
+```typescript
+// SETIAP query di repository WAJIB include publicationId
+// ✅ BENAR
+findMany(publicationId: string) {
+  return prisma.article.findMany({
+    where: { publicationId, deletedAt: null }
+  })
+}
+
+// ❌ SALAH — data bisa bocor lintas tenant
+findMany() {
+  return prisma.article.findMany()
+}
+```
+
+### 3. Error Handling
+- Semua error harus extend class `AppError` di `src/lib/AppError.ts`
+- Gunakan `next(error)` untuk pass error ke global error handler
+- TIDAK PERNAH gunakan `res.json()` di catch block
+
+### 4. Response Format
+```typescript
+// Success
+{ "success": true, "data": <payload> }
+
+// Error
+{ "success": false, "statusCode": 404, "error": "NOT_FOUND", "message": "..." }
+```
+
+### 5. Validasi Input
+- Semua input (body, query, params) divalidasi dengan Zod
+- Schema Zod di `<modul>.schema.ts`
+
+### 6. Password & Auth
+- Hash password dengan `argon2.hash()` — BUKAN `bcrypt`
+- Access token: JWT, 15 menit, memory
+- Refresh token: UUID, 30 hari, httpOnly cookie, di-scope per `publicationId`
+- Redis key: `refresh:{userId}:{publicationId}:{tokenId}`
+
+---
+
+## Rules Frontend — WAJIB DIIKUTI
+
+### 1. Server Component vs Client Component
+- **Default: Server Component**
+- Tambahkan `'use client'` HANYA jika ada event handler, hooks, atau browser API
+
+### 2. Caching — Next.js 16
+- Gunakan `'use cache'` directive + `cacheTag()` + `cacheLife()`
+- Data subscription check: JANGAN cache — harus fresh setiap request
+
+### 3. `proxy.ts` (bukan `middleware.ts`)
+- File ini di root project
+- Fungsi wajib bernama `proxy()`, BUKAN `middleware()`
+- Runtime: Node.js saja
+
+### 4. `params` dan `searchParams` — Async
+```typescript
+// ✅ BENAR
+export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params
+}
+```
+
+### 5. UI Components — WAJIB shadcn/ui
 - `<Button>` — semua tombol, TIDAK PERNAH `<button>` biasa
-- `<Input>` — semua input teks, TIDAK PERNAH `<input>` biasa
-- `<Form>`, `<FormField>`, `<FormControl>`, `<FormLabel>`, `<FormMessage>` — semua form
-- `<Card>` — card/panel konten
-- `<Dialog>` — modal/popup
-- `<Badge>` — label/tag status
-- `<Table>` — tabel data
+- `<Input>` — semua input, TIDAK PERNAH `<input>` biasa
+- `<Form>`, `<FormField>`, `<FormControl>` — semua form
+- `<Card>`, `<Dialog>`, `<Badge>`, `<Table>` — sesuai konteks
 
-**Warna — WAJIB pakai semantic tokens:**
-- DILARANG hardcode hex (`#2a261f`, `#f9f7f4`, dll)
+### 6. Warna — WAJIB Semantic Tokens
+- DILARANG hardcode hex
 - Gunakan: `bg-background`, `text-foreground`, `text-muted-foreground`
-- Gunakan: `border-border`, `border-input`, `bg-muted`, `bg-card`
 - Gunakan: `bg-primary`, `text-primary-foreground`, `text-destructive`
-- Token lengkap didefinisikan di `frontend/src/app/globals.css`
 
-**Responsive — WAJIB:**
-- Selalu mulai dari mobile-first
-- Gunakan breakpoint `md:` dan `lg:` untuk desktop layout
-- Layout auth: `grid-cols-1 md:grid-cols-2`
-- Tidak boleh ada elemen yang overflow atau tidak terbaca di mobile
+### 7. Gambar
+- SELALU gunakan `next/image` — TIDAK PERNAH `<img>`
 
-**Komponen reusable — WAJIB dipisah:**
-- Komponen yang dipakai di 2+ halaman → pindah ke `components/`
-- Layout shell (AuthShell, DashboardShell, dll) → `components/layout/`
-- Icon custom → `components/ui/`
+---
 
-### Yang TIDAK BOLEH Dilakukan
-- Hardcode nilai yang seharusnya di `.env`
-- Query tanpa `publicationId` di repository layer
-- Gunakan `bcrypt` — pakai Argon2
-- Gunakan `middleware.ts` — pakai `proxy.ts` (deprecated di Next.js 16)
-- Beri nama fungsi `middleware()` di proxy.ts — wajib bernama `proxy()`
-- Simpan access token di localStorage atau cookie biasa
-- Gunakan `<img>` — pakai `next/image`
-- Commit file `.env` atau `.env.local`
-- Gunakan `unstable_cache` — pakai `'use cache'`
-- Hardcode warna hex di komponen — pakai semantic tokens
-- Pakai `<input>` atau `<button>` biasa — pakai shadcn/ui
-- Buat komponen inline jika dipakai di 2+ tempat
+## Yang TIDAK BOLEH Dilakukan
+
+**Backend:**
+- ❌ Hardcode nilai yang seharusnya di `.env`
+- ❌ Query database tanpa `publicationId` filter
+- ❌ Gunakan `bcrypt` — pakai Argon2
+- ❌ Simpan access token di localStorage atau cookie biasa
+- ❌ Business logic di Router atau Controller layer
+- ❌ Import Prisma client langsung — pakai singleton dari `config/database.config.ts`
+- ❌ `res.json()` di catch block — pakai `next(error)`
+- ❌ Commit file `.env`
+
+**Frontend:**
+- ❌ Gunakan `middleware.ts` — pakai `proxy.ts`
+- ❌ Beri nama fungsi `middleware()` di proxy.ts — wajib `proxy()`
+- ❌ Gunakan `<img>` — pakai `next/image`
+- ❌ Akses `params` tanpa `await`
+- ❌ Gunakan `unstable_cache` — pakai `'use cache'`
+- ❌ Hardcode warna hex
+- ❌ Pakai `<input>` atau `<button>` biasa — pakai shadcn/ui
+- ❌ Buat komponen inline jika dipakai di 2+ tempat
+- ❌ Settings member di `/me/` — harus dalam konteks publication
 
 ---
 
 ## Wajib Sebelum Setiap Push
-
-Jalankan semua perintah berikut — **pastikan 0 errors sebelum push ke branch apapun:**
 
 ```bash
 # Backend
@@ -131,46 +298,27 @@ cd backend && npm run lint && npm run type-check
 cd frontend && npm run lint && npm run type-check && npm run build
 ```
 
-**Catatan:**
-- Backend: jika ada prettier error, jalankan `npm run lint:fix` terlebih dahulu
-- Frontend lint mengecek ESLint rules termasuk React hooks rules — build saja tidak cukup
-- Frontend build harus berhasil (tidak cukup hanya type-check)
+---
+
+## Wajib Setelah Setiap Epic Selesai
+
+Setelah **seluruh Story dalam satu Epic** selesai dikerjakan, Claude Code WAJIB menjalankan langkah-langkah berikut secara berurutan:
+
+1. **Lint + type-check** — pastikan 0 error
+   ```bash
+   cd backend && npm run lint && npm run type-check
+   cd frontend && npm run lint && npm run type-check && npm run build
+   ```
+2. **Commit** semua perubahan yang belum di-commit
+3. **Push** branch ke remote: `git push origin <nama-branch>`
+4. **Buat PR** ke `main` via `gh pr create`
+5. **Informasikan** ke user bahwa Epic selesai dan PR sudah dibuat beserta URL-nya
+
+Langkah ini berlaku untuk semua Epic — jangan skip meskipun perubahannya hanya kecil.
 
 ---
 
-## Git Workflow Rules
-- Commit setiap Story selesai
-- Push setiap Story selesai ke branch Epic yang sedang berjalan
-- PR ke main HANYA dibuat setelah SEMUA Story dalam Epic selesai
-- Jika sesi berakhir sebelum Epic selesai:
-  → push Story terakhir yang selesai
-  → JANGAN buat PR
-  → sesi berikutnya: git checkout feat/nama-branch-yang-sama dan lanjut
-
----
-
-## Aturan Navigasi Antar Epic dan Story
-
-### Kapan lanjut ke Epic berikutnya:
-- Semua Story dalam Epic saat ini sudah [x] selesai → lanjut Epic berikutnya
-- Ada Story yang masih [ ] tapi membutuhkan Epic lain diselesaikan dulu →
-  tandai sebagai BLOCKED, lanjut Epic berikutnya, kembali setelah dependency selesai
-
-### Kapan STOP dan tunggu instruksi:
-- Epic selesai penuh → STOP, buat PR, tunggu instruksi
-- Sesi hampir habis → push Story terakhir, STOP, tunggu instruksi
-- Menemukan keputusan bisnis yang tidak ada di PRD → STOP, tanya user
-
-### Format task yang blocked:
-[ ] ~~TASK-XX-X.X.X~~ BLOCKED: menunggu [nama Epic/Story yang dibutuhkan]
-
-### Prompt simpel yang bisa digunakan user:
-"Lanjutkan dari titik terakhir" → baca USER_STORIES_MVP.md,
-cari checkbox [ ] pertama yang tidak BLOCKED, lanjut dari sana.
-
----
-
-## Git Convention (Ringkasan)
+## Git Convention
 
 ```bash
 # Branch naming
@@ -179,7 +327,7 @@ fix/nama-bug
 hotfix/nama-bug-kritis
 chore/nama-setup
 
-# Commit format (Conventional Commits)
+# Commit format
 feat(scope): deskripsi
 fix(scope): deskripsi
 chore(scope): deskripsi
@@ -187,7 +335,7 @@ chore(scope): deskripsi
 # Alur per Epic
 git checkout main && git pull
 git checkout -b feat/nama-epic
-# ... kerjakan semua story ...
+# kerjakan semua story
 git push origin feat/nama-epic
 # buat PR → merge → hapus branch
 ```
@@ -196,65 +344,55 @@ git push origin feat/nama-epic
 
 ## Progress Implementasi
 
-Track progress di `docs/USER_STORIES_MVP.md` — update checkbox `[ ]` → `[x]` setiap task selesai.
+Track progress di `docs/USER_STORIES_MVP.md`.
 
 **Cara lanjut sesi baru:**
 ```
 Baca CLAUDE.md dan docs/USER_STORIES_MVP.md.
-Lanjutkan implementasi EPIC [X] dari STORY [Y.Z].
+Lanjutkan implementasi dari EPIC [X] — STORY [Y.Z].
 Checkout branch: git checkout feat/[nama-branch]
-Task terakhir selesai: TASK-[prefix]-[X.Y.Z]
 ```
 
----
+**Status saat ini:**
+- EPIC 1–12: ✅ Selesai (lihat USER_STORIES_MVP.md untuk detail)
+- EPIC 17: ✅ Selesai — Seed Data Realistis (publication "Investasi Cerdas")
+- EPIC 13–16: ⬜ Belum dikerjakan
+- EPIC 9 (Deployment): ⬜ Belum
 
-## UI/UX Design
-
-**Jalur yang dipilih:** A — hasil Claude Design tersimpan di `frontend/design-references/`
-
-Saat implementasi halaman frontend:
-1. Baca file `frontend/design-references/[nama-halaman].html`
-2. Identifikasi struktur, komponen, warna, spacing
-3. Implementasikan dengan shadcn/ui + Tailwind
-4. Verifikasi di browser: tampilan mendekati referensi
-
----
-
-## Referensi Desain Frontend
-
-Hasil desain UI ada di `frontend/design-references/`.
-Saat implementasi halaman frontend, WAJIB:
-1. Baca `frontend/design-references/index.html` untuk overview semua halaman
-2. Lihat `frontend/design-references/screens/` untuk screenshot per halaman
-3. Implementasikan shadcn/ui + Tailwind CSS mengacu ke desain tersebut
-4. Jangan implementasi UI tanpa melihat referensi desain terlebih dahulu
+**Urutan pengerjaan selanjutnya:**
+1. EPIC 13 — Auth & Core Flow Fixes (PRIORITAS UTAMA)
+2. EPIC 14 — Tiga Role Publication
+3. EPIC 16 — Onboarding & Landing Page
+4. EPIC 15 — Platform Admin Enhancements
+6. EPIC 9 — Deployment
 
 ---
 
 ## Cara Jalankan Lokal
 
 ```bash
-# Terminal 1 — Database (jalankan sekali)
+# Terminal 1 — Database
 docker-compose up -d
 
 # Terminal 2 — Backend
 cd backend && npm run dev
-# berjalan di http://localhost:4000
+# → http://localhost:4000
 
 # Terminal 3 — Frontend
 cd frontend && npm run dev
-# berjalan di http://localhost:3000
+# → http://localhost:3000
 ```
+
+**Akun test (setelah seed):**
+Lihat `backend/prisma/SEED_ACCOUNTS.md`
 
 ---
 
 ## Context7
 
-Sebelum implementasi yang melibatkan library berubah cepat, panggil Context7:
+Sebelum implementasi yang melibatkan library berubah cepat:
 ```
 use context7 next.js     ← selalu untuk frontend
 use context7 prisma      ← jika menyentuh database
 use context7 shadcn/ui   ← jika implementasi komponen UI
 ```
-
-Lihat `docs/` → referensi lengkap di plugin `create-fullstack-app`.
