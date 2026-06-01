@@ -109,4 +109,11 @@ export const subscriptionRepository = {
   setStatus(id: string, status: SubscriptionStatus) {
     return prisma.subscription.update({ where: { id }, data: { status } });
   },
+
+  findAllActiveForPublication(publicationId: string) {
+    return prisma.subscription.findMany({
+      where: { publicationId, status: 'active', expiresAt: { gt: new Date() } },
+      include: { user: { select: { email: true, name: true } } },
+    });
+  },
 };

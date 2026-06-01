@@ -8,6 +8,8 @@ export interface TenantRequest extends Request {
     slug: string;
     name: string;
     customDomain: string | null;
+    status: string;
+    isSuspendedSoft: boolean;
   };
 }
 
@@ -37,11 +39,25 @@ export async function tenantMiddleware(req: Request, _res: Response, next: NextF
     }
 
     if (publication) {
+      const status = (publication as { status?: string }).status ?? 'active';
+
+      // suspended_hard and pending_deletion: block public reader access with 503
+      if (status === 'suspended_hard' || status === 'pending_deletion') {
+        _res.status(503).json({
+          success: false,
+          error: 'SERVICE_UNAVAILABLE',
+          message: 'Publication ini tidak tersedia saat ini.',
+        });
+        return;
+      }
+
       (req as TenantRequest).publication = {
         id: publication.id,
         slug: publication.slug,
         name: publication.name,
         customDomain: publication.customDomain,
+        status,
+        isSuspendedSoft: status === 'suspended_soft',
       };
     }
 

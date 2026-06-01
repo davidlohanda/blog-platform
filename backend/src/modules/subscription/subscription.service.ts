@@ -61,9 +61,12 @@ export const subscriptionService = {
     if (active)
       throw AppError.conflict('Kamu sudah punya subscription aktif', 'ALREADY_SUBSCRIBED');
 
+    const pub = await publicationRepository.findById(publicationId);
+    const feePercent = pub ? Number(pub.platformFeePercent) : config.platform.feePercent;
+
     const monthlyPrice = Number(plan.price);
     const grossAmount = monthlyPrice * plan.durationMonths;
-    const platformFee = Math.round((grossAmount * config.platform.feePercent) / 100);
+    const platformFee = Math.round((grossAmount * feePercent) / 100);
     const netAmount = grossAmount - platformFee;
 
     // Create pending subscription first to get an order id

@@ -28,6 +28,7 @@ export const adminRepository = {
         name: true,
         logoUrl: true,
         platformFeePercent: true,
+        status: true,
         createdAt: true,
         authors: {
           where: { role: 'owner' },
@@ -70,5 +71,23 @@ export const adminRepository = {
 
   countUsersTotal() {
     return prisma.user.count();
+  },
+
+  updateFee(publicationId: string, feePercent: number) {
+    return prisma.publication.update({
+      where: { id: publicationId },
+      data: { platformFeePercent: feePercent },
+      select: { id: true, platformFeePercent: true },
+    });
+  },
+
+  updateStatus(publicationId: string, status: string, reason: string | null) {
+    return prisma.publication.update({
+      where: { id: publicationId },
+      data: {
+        status: status as import('@prisma/client').PublicationStatus,
+        suspendReason: reason,
+      },
+    });
   },
 };

@@ -172,4 +172,68 @@ export const templates = {
       <p style="font-size:13px;color:#71717a;">Jika kamu tidak merasa meminta ini, abaikan email ini — tidak ada perubahan yang terjadi pada akunmu.</p>
     `);
   },
+
+  publicationSuspended(name: string, publicationName: string, reason: string, level: 1 | 2) {
+    const isHard = level === 2;
+    return base(`
+      <h1>Publication ${isHard ? 'Ditangguhkan' : 'Dalam Peninjauan'}</h1>
+      <p>Halo ${name},</p>
+      <p>Publication <strong>${publicationName}</strong> ${isHard ? 'telah ditangguhkan sepenuhnya' : 'sedang dalam proses peninjauan'}.</p>
+      <p><strong>Alasan:</strong> ${reason}</p>
+      ${isHard ? '<p>Semua subscriber aktif telah mendapat refund pro-rata. Hubungi kami jika ada pertanyaan.</p>' : '<p>Selama peninjauan, member masih bisa mengakses konten. Namun kamu tidak bisa menerbitkan artikel baru dan subscriber baru tidak bisa bergabung.</p>'}
+      <hr class="divider"/>
+      <p style="font-size:13px;color:#71717a;">Jika kamu merasa ini adalah kesalahan, hubungi tim Lentera.</p>
+    `);
+  },
+
+  publicationUnsuspended(name: string, publicationName: string) {
+    return base(`
+      <h1>Publication Kembali Aktif</h1>
+      <p>Halo ${name},</p>
+      <p>Publication <strong>${publicationName}</strong> telah kembali aktif. Semua fitur sudah bisa digunakan kembali.</p>
+      <p>Terima kasih atas kesabaranmu.</p>
+    `);
+  },
+
+  publicationDeletionRequested(
+    name: string,
+    publicationName: string,
+    scheduledDeletionAt: string,
+    cancelUrl: string,
+  ) {
+    return base(`
+      <h1>Permintaan Penghapusan Publication</h1>
+      <p>Halo ${name},</p>
+      <p>Permintaan penghapusan untuk <strong>${publicationName}</strong> telah kami terima.</p>
+      <p>Publication akan dihapus secara permanen pada <strong>${scheduledDeletionAt}</strong> (30 hari dari sekarang).</p>
+      <p>Semua subscriber aktif telah mendapat refund pro-rata.</p>
+      <p>Jika berubah pikiran, kamu bisa membatalkan penghapusan sebelum tanggal tersebut:</p>
+      <a href="${cancelUrl}" class="btn">Batalkan Penghapusan</a>
+      <hr class="divider"/>
+      <p style="font-size:13px;color:#71717a;">Jika kamu tidak melakukan permintaan ini, hubungi tim Lentera segera.</p>
+    `);
+  },
+
+  ownershipTransferRequest(newOwnerName: string, publicationName: string, acceptUrl: string) {
+    return base(`
+      <h1>Undangan Transfer Ownership</h1>
+      <p>Halo ${newOwnerName},</p>
+      <p>Kamu diundang untuk menjadi <strong>Owner</strong> dari publication <strong>${publicationName}</strong>.</p>
+      <p>Owner saat ini ingin mentransfer kepemilikan kepadamu. Klik tombol di bawah untuk menerima:</p>
+      <a href="${acceptUrl}" class="btn">Terima Transfer Ownership</a>
+      <p>Undangan ini berlaku selama <strong>48 jam</strong>. Jika kamu tidak mengenal pengirim, abaikan email ini.</p>
+    `);
+  },
+
+  ownershipTransferConfirmed(name: string, publicationName: string, isNewOwner: boolean) {
+    return base(`
+      <h1>Transfer Ownership Selesai</h1>
+      <p>Halo ${name},</p>
+      ${
+        isNewOwner
+          ? `<p>Selamat! Kamu sekarang adalah <strong>Owner</strong> dari publication <strong>${publicationName}</strong>.</p>`
+          : `<p>Transfer ownership untuk <strong>${publicationName}</strong> telah selesai. Kamu sekarang memiliki role <strong>Admin</strong>.</p>`
+      }
+    `);
+  },
 };

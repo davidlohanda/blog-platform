@@ -5,6 +5,7 @@ import { emailService } from '../email/email.service';
 import { redis } from '../../config/redis.config';
 import { config } from '../../config';
 import { authRepository } from '../auth/auth.repository';
+import { AppError } from '../../lib/AppError';
 import type { AuthRequest } from '../../middleware/auth.middleware';
 import type { PublicationRoleRequest } from '../../middleware/roles.middleware';
 import type {
@@ -179,6 +180,57 @@ export const publicationController = {
         bio: a.user.bio,
       }));
       res.json({ success: true, data: safe });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  // Story 15.4 — delete with cooling period
+  async requestDeletion(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { publicationId } = req as PublicationRoleRequest;
+      const requestingUserId = (req as AuthRequest).user.userId;
+      const data = await publicationService.requestDeletion(publicationId, requestingUserId);
+      res.json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async cancelDeletion(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { publicationId } = req as PublicationRoleRequest;
+      const data = await publicationService.cancelDeletion(publicationId);
+      res.json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  // Story 15.5 — transfer ownership
+  async transferOwnership(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { publicationId } = req as PublicationRoleRequest;
+      const currentOwnerId = (req as AuthRequest).user.userId;
+      const { newOwnerId, password } = req.body as { newOwnerId: string; password: string };
+      const data = await publicationService.requestTransferOwnership(
+        publicationId,
+        currentOwnerId,
+        newOwnerId,
+        password,
+      );
+      res.json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async acceptTransferOwnership(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { token } = req.query as { token: string };
+      if (!token) return next(AppError.badRequest('Token wajib ada'));
+      const data = await publicationService.acceptTransferOwnership(token);
+      res.json({ success: true, data });
     } catch (error) {
       next(error);
     }

@@ -103,6 +103,56 @@ async function processEmailJob(job: { data: EmailJobData }) {
       html = templates.googleAccountInfo(data.name);
       break;
 
+    case 'send-publication-suspended':
+      to = data.to;
+      subject = `Publication ${data.publicationName} ${data.level === 2 ? 'Ditangguhkan' : 'Dalam Peninjauan'}`;
+      html = templates.publicationSuspended(
+        data.name,
+        data.publicationName,
+        data.reason,
+        data.level,
+      );
+      break;
+
+    case 'send-publication-unsuspended':
+      to = data.to;
+      subject = `Publication ${data.publicationName} Kembali Aktif`;
+      html = templates.publicationUnsuspended(data.name, data.publicationName);
+      break;
+
+    case 'send-publication-deletion-requested':
+      to = data.to;
+      subject = `Konfirmasi Penghapusan ${data.publicationName}`;
+      html = templates.publicationDeletionRequested(
+        data.name,
+        data.publicationName,
+        data.scheduledDeletionAt,
+        data.cancelUrl,
+      );
+      break;
+
+    case 'send-publication-deletion-cancelled':
+      to = data.to;
+      subject = `Penghapusan ${data.publicationName} Dibatalkan`;
+      html = templates.publicationUnsuspended(data.name, data.publicationName);
+      break;
+
+    case 'send-ownership-transfer-request':
+      to = data.to;
+      subject = `Undangan Transfer Ownership — ${data.publicationName}`;
+      html = templates.ownershipTransferRequest(
+        data.newOwnerName,
+        data.publicationName,
+        data.acceptUrl,
+      );
+      break;
+
+    case 'send-ownership-transfer-confirmed':
+      to = data.to;
+      subject = `Transfer Ownership ${data.publicationName} Selesai`;
+      html = templates.ownershipTransferConfirmed(data.name, data.publicationName, data.isNewOwner);
+      break;
+
     default:
       throw new Error(`Unknown email job: ${(job.data as { name: string }).name}`);
   }
