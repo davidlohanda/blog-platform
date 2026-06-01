@@ -20,7 +20,7 @@ import { ArticleCard } from '@/components/publication/ArticleCard';
 export async function generateMetadata(): Promise<Metadata> {
   const h = await headers();
   const slug =
-    h.get('x-publication-slug') ?? process.env.NEXT_PUBLIC_DEV_PUBLICATION_SLUG ?? '';
+    h.get('x-publication-slug') ?? '';
 
   if (!slug) {
     return {
@@ -490,7 +490,7 @@ function PlatformLanding() {
 async function HomepageContent() {
   const h = await headers();
   const slug =
-    h.get('x-publication-slug') ?? process.env.NEXT_PUBLIC_DEV_PUBLICATION_SLUG ?? '';
+    h.get('x-publication-slug') ?? '';
 
   if (!slug) {
     // Platform context (localhost / app domain without publication header)

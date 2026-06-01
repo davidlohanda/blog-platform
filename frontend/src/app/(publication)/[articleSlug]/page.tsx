@@ -34,7 +34,7 @@ function formatDate(iso: string | null) {
 async function getPubSlug() {
   const h = await headers();
   return (
-    h.get('x-publication-slug') ?? process.env.NEXT_PUBLIC_DEV_PUBLICATION_SLUG ?? ''
+    h.get('x-publication-slug') ?? ''
   );
 }
 
