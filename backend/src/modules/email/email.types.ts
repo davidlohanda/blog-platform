@@ -3,10 +3,12 @@ export type EmailJobName =
   | 'send-reset-password'
   | 'send-subscription-confirmed'
   | 'send-subscription-expiring'
+  | 'send-subscription-expiring-1day'
   | 'send-subscription-expired'
   | 'send-new-article'
   | 'send-author-invite'
-  | 'send-owner-invite';
+  | 'send-owner-invite'
+  | 'send-google-account-info';
 
 export interface VerificationEmailData {
   to: string;
@@ -69,12 +71,19 @@ export interface OwnerInviteEmailData {
   inviteUrl: string;
 }
 
+export interface GoogleAccountInfoEmailData {
+  to: string;
+  name: string;
+}
+
 export type EmailJobData =
   | { name: 'send-verification'; data: VerificationEmailData }
   | { name: 'send-reset-password'; data: ResetPasswordEmailData }
   | { name: 'send-subscription-confirmed'; data: SubscriptionConfirmedEmailData }
   | { name: 'send-subscription-expiring'; data: SubscriptionExpiringEmailData }
+  | { name: 'send-subscription-expiring-1day'; data: SubscriptionExpiringEmailData }
   | { name: 'send-subscription-expired'; data: SubscriptionExpiredEmailData }
   | { name: 'send-new-article'; data: NewArticleEmailData }
   | { name: 'send-author-invite'; data: AuthorInviteEmailData }
-  | { name: 'send-owner-invite'; data: OwnerInviteEmailData };
+  | { name: 'send-owner-invite'; data: OwnerInviteEmailData }
+  | { name: 'send-google-account-info'; data: GoogleAccountInfoEmailData };

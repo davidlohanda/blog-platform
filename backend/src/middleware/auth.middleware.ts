@@ -71,9 +71,10 @@ export async function optionalAuthenticateAny(
   if (rawCookie) {
     try {
       const payload = verifyRefreshToken(rawCookie);
-      const exists = await redis.exists(`refresh:${payload.userId}:${payload.tokenId}`);
+      const { userId, tokenId, publicationId } = payload;
+      const exists = await redis.exists(`refresh:${userId}:${publicationId}:${tokenId}`);
       if (exists) {
-        const user = await authRepository.findById(payload.userId);
+        const user = await authRepository.findById(userId);
         if (user) {
           (req as AuthRequest).user = { userId: user.id, email: user.email };
         }

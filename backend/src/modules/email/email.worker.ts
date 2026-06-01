@@ -86,6 +86,23 @@ async function processEmailJob(job: { data: EmailJobData }) {
       html = templates.ownerInvite(data.ownerName, data.publicationName, data.inviteUrl);
       break;
 
+    case 'send-subscription-expiring-1day':
+      to = data.to;
+      subject = `⚠️ Subscription ${data.publicationName} Berakhir Besok!`;
+      html = templates.subscriptionExpiring1Day(
+        data.name,
+        data.publicationName,
+        data.expiresAt,
+        data.renewUrl,
+      );
+      break;
+
+    case 'send-google-account-info':
+      to = data.to;
+      subject = 'Informasi Akun Lentera — Login dengan Google';
+      html = templates.googleAccountInfo(data.name);
+      break;
+
     default:
       throw new Error(`Unknown email job: ${(job.data as { name: string }).name}`);
   }
