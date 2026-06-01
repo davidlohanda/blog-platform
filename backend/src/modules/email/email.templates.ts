@@ -145,7 +145,12 @@ export const templates = {
     `);
   },
 
-  subscriptionExpiring1Day(name: string, publicationName: string, expiresAt: string, renewUrl: string) {
+  subscriptionExpiring1Day(
+    name: string,
+    publicationName: string,
+    expiresAt: string,
+    renewUrl: string,
+  ) {
     return base(`
       <h1>⚠️ Subscription Berakhir Besok!</h1>
       <p>Halo ${name},</p>

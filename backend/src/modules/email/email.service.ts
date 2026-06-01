@@ -168,7 +168,9 @@ export const emailService = {
     for (const sub of expiring) {
       if (sub.user.emailBounced) continue; // skip bounced addresses
       const expiresAt = sub.expiresAt?.toLocaleDateString('id-ID', {
-        day: 'numeric', month: 'long', year: 'numeric',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
       });
       await this.sendSubscriptionExpiring({
         to: sub.user.email,
@@ -187,7 +189,7 @@ export const emailService = {
   async sendExpiryReminders1Day() {
     const now = new Date();
     const from = new Date(now.getTime() + 20 * 60 * 60 * 1000); // 20 hours from now
-    const to = new Date(now.getTime() + 28 * 60 * 60 * 1000);   // 28 hours from now
+    const to = new Date(now.getTime() + 28 * 60 * 60 * 1000); // 28 hours from now
 
     const expiring = await prisma.subscription.findMany({
       where: { status: 'active', expiresAt: { gte: from, lte: to } },
@@ -203,7 +205,9 @@ export const emailService = {
     for (const sub of expiring) {
       if (sub.user.emailBounced) continue;
       const expiresAt = sub.expiresAt?.toLocaleDateString('id-ID', {
-        day: 'numeric', month: 'long', year: 'numeric',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
       });
       await enqueue({
         name: 'send-subscription-expiring-1day',
@@ -232,7 +236,10 @@ export const emailService = {
     if (count > 0) {
       // Fetch the just-expired subscriptions to invalidate member caches
       const expired = await prisma.subscription.findMany({
-        where: { status: 'expired', expiresAt: { lt: now, gt: new Date(now.getTime() - 10 * 60 * 1000) } },
+        where: {
+          status: 'expired',
+          expiresAt: { lt: now, gt: new Date(now.getTime() - 10 * 60 * 1000) },
+        },
         select: { userId: true, publicationId: true },
       });
       for (const s of expired) {

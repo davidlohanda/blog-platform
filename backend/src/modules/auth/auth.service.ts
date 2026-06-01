@@ -107,7 +107,11 @@ export const authService = {
     const valid = await verify(user.passwordHash, input.password);
     if (!valid) {
       // Increment attempt counter (TTL 15 menit)
-      await redis.multi().incr(lockKey).expire(lockKey, 15 * 60).exec();
+      await redis
+        .multi()
+        .incr(lockKey)
+        .expire(lockKey, 15 * 60)
+        .exec();
       throw AppError.unauthorized('Email atau password salah', 'INVALID_CREDENTIALS');
     }
 
@@ -166,7 +170,11 @@ export const authService = {
     const newAccessToken = signAccessToken({ userId: user.id, email: user.email, role: user.role });
     const newRefreshToken = signRefreshToken(user.id, newTokenId, publicationId);
 
-    await redis.setex(`refresh:${user.id}:${publicationId}:${newTokenId}`, REFRESH_TOKEN_TTL, newTokenId);
+    await redis.setex(
+      `refresh:${user.id}:${publicationId}:${newTokenId}`,
+      REFRESH_TOKEN_TTL,
+      newTokenId,
+    );
 
     return { accessToken: newAccessToken, newRefreshToken, user };
   },

@@ -132,9 +132,7 @@ export const authController = {
       );
     } catch (error) {
       if ((error as { code?: string }).code === 'USE_PASSWORD') {
-        return res.redirect(
-          `${config.platform.frontendUrl}/login?error=use_password`,
-        );
+        return res.redirect(`${config.platform.frontendUrl}/login?error=use_password`);
       }
       next(error);
     }
