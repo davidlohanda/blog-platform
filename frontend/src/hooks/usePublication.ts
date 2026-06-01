@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiClient } from '@/lib/api/client';
 
+export type PublicationRole = 'owner' | 'admin' | 'author';
+
 interface Publication {
   id: string;
   slug: string;
@@ -11,6 +13,7 @@ interface Publication {
   description: string | null;
   logoUrl: string | null;
   customDomain: string | null;
+  role: PublicationRole;
 }
 
 export function usePublication() {
@@ -27,20 +30,19 @@ export function usePublication() {
         if (data.data[0]) {
           setPub(data.data[0]);
         } else {
-          // No publication — redirect to onboarding
           router.replace('/onboarding');
         }
       })
       .catch(() => {
-        // Auth error — proxy.ts will handle redirect to /login
-        // Other errors: let loading stop so page can show fallback
         if (!cancelled) setLoading(false);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
-  return { pub, loading };
+  return { pub, loading, myRole: pub?.role ?? null };
 }
