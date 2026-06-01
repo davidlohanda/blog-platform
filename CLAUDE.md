@@ -350,6 +350,42 @@ Setelah semua Story dalam satu Epic selesai, Claude Code WAJIB melakukan ini sec
 
 ---
 
+## UI/UX Implementation Guide
+
+### Pendekatan Desain
+- **Design style:** ikuti tone dan aesthetic dari `frontend/design-references/` (warna, typography, spacing, komponen)
+- **Halaman yang diimplementasi:** sesuai USER_STORIES_MVP.md — JANGAN terpaku pada halaman-halaman yang ada di design-references
+- **Referensi visual:** gunakan design-references HANYA sebagai panduan style, bukan template halaman
+
+### Frontend Skill — Wajib Dipakai Saat Implementasi Halaman Baru
+Sebelum implementasi halaman frontend apapun, baca skill berikut:
+```
+cat /mnt/skills/public/frontend-design/SKILL.md
+```
+
+Gunakan panduan dari skill tersebut untuk memastikan UI yang dihasilkan:
+- Tidak generik / tidak terlihat seperti "AI-generated"
+- Punya karakter visual yang jelas dan konsisten
+- Memorable dan production-grade
+
+### Constraint yang TIDAK BOLEH dilanggar meski pakai frontend skill
+Skill frontend mendorong kreativitas, tapi tetap harus dalam batas ini:
+- ✅ Tetap gunakan **shadcn/ui** untuk semua komponen
+- ✅ Tetap gunakan **semantic color tokens** — DILARANG hardcode hex
+- ✅ Tetap **mobile-first** dengan breakpoint Tailwind
+- ✅ Font boleh distinctive, tapi harus **di-load via next/font** bukan CDN langsung
+- ✅ Animasi boleh, tapi **tidak boleh ganggu performance** (gunakan CSS transition/Tailwind animate)
+- ❌ JANGAN ganti design system yang sudah ada hanya karena skill mendorong kreativitas
+
+### Urutan Kerja untuk Setiap Halaman Frontend Baru
+1. Baca `/mnt/skills/public/frontend-design/SKILL.md`
+2. Tentukan tone/aesthetic yang sesuai konteks halaman
+3. Lihat design-references untuk konsistensi style
+4. Implementasi dengan shadcn/ui + Tailwind + constraint di atas
+5. Verifikasi: tidak ada hardcode hex, tidak ada `<img>`, tidak ada `<button>` biasa
+
+---
+
 ## Progress Implementasi
 
 Track progress di `docs/USER_STORIES_MVP.md`.
