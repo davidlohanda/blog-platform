@@ -10,6 +10,7 @@ interface OnboardingStatus {
   has_articles: boolean;
   has_logo: boolean;
   has_custom_domain: boolean;
+  has_co_author: boolean;
 }
 
 interface ChecklistItem {
@@ -18,15 +19,16 @@ interface ChecklistItem {
   description: string;
   href: string;
   linkLabel: string;
+  optional?: boolean;
 }
 
-const ITEMS: ChecklistItem[] = [
+const REQUIRED_ITEMS: ChecklistItem[] = [
   {
-    key: 'has_subscription_plans',
-    label: 'Set harga subscription',
-    description: 'Tentukan paket dan harga agar reader bisa berlangganan.',
+    key: 'has_logo',
+    label: 'Upload logo publication',
+    description: 'Logo membuat halaman publicationmu terlihat profesional.',
     href: '/dashboard/settings',
-    linkLabel: 'Atur harga',
+    linkLabel: 'Upload logo',
   },
   {
     key: 'has_articles',
@@ -36,20 +38,22 @@ const ITEMS: ChecklistItem[] = [
     linkLabel: 'Tulis sekarang',
   },
   {
-    key: 'has_logo',
-    label: 'Upload logo publication',
-    description: 'Logo membuat halaman publicationmu terlihat profesional.',
-    href: '/dashboard/settings',
-    linkLabel: 'Upload logo',
-  },
-  {
-    key: 'has_custom_domain',
-    label: 'Setup custom domain',
-    description: 'Gunakan domain sendiri untuk tampil lebih branded.',
-    href: '/dashboard/settings',
-    linkLabel: 'Setup domain',
+    key: 'has_subscription_plans',
+    label: 'Set harga subscription',
+    description: 'Tentukan paket dan harga agar reader bisa berlangganan.',
+    href: '/dashboard/settings?tab=plans',
+    linkLabel: 'Atur harga',
   },
 ];
+
+const OPTIONAL_ITEM: ChecklistItem = {
+  key: 'has_co_author',
+  label: 'Invite co-author',
+  description: 'Undang penulis lain untuk berkolaborasi di publication kamu.',
+  href: '/dashboard/settings?tab=authors',
+  linkLabel: 'Invite author',
+  optional: true,
+};
 
 export function OnboardingChecklist({ pubId }: { pubId: string }) {
   const [status, setStatus] = useState<OnboardingStatus | null>(null);
@@ -59,19 +63,23 @@ export function OnboardingChecklist({ pubId }: { pubId: string }) {
     let cancelled = false;
     apiClient
       .get<{ data: OnboardingStatus }>(`/publications/${pubId}/onboarding-status`)
-      .then(({ data }) => { if (!cancelled) setStatus(data.data); })
+      .then(({ data }) => {
+        if (!cancelled) setStatus(data.data);
+      })
       .catch(() => {});
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [pubId]);
 
   if (!status || dismissed) return null;
 
-  const completed = ITEMS.filter((item) => status[item.key]).length;
-  const allDone = completed === ITEMS.length;
+  const allRequiredDone = REQUIRED_ITEMS.every((item) => status[item.key]);
+  if (allRequiredDone) return null;
 
-  if (allDone) return null;
-
-  const progressPct = Math.round((completed / ITEMS.length) * 100);
+  const allItems = [...REQUIRED_ITEMS, OPTIONAL_ITEM];
+  const completed = allItems.filter((item) => status[item.key]).length;
+  const progressPct = Math.round((completed / allItems.length) * 100);
 
   return (
     <Card className="p-6">
@@ -79,12 +87,12 @@ export function OnboardingChecklist({ pubId }: { pubId: string }) {
         <div>
           <h2 className="text-sm font-semibold text-foreground">Setup publication kamu</h2>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            {completed} dari {ITEMS.length} langkah selesai
+            {completed} dari {allItems.length} langkah selesai
           </p>
         </div>
         <button
           onClick={() => setDismissed(true)}
-          className="shrink-0 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          className="shrink-0 text-xs text-muted-foreground transition-colors hover:text-foreground"
         >
           Sembunyikan
         </button>
@@ -99,15 +107,13 @@ export function OnboardingChecklist({ pubId }: { pubId: string }) {
       </div>
 
       <div className="space-y-3">
-        {ITEMS.map((item) => {
+        {allItems.map((item) => {
           const done = status[item.key];
           return (
             <div key={item.key} className="flex items-start gap-3">
               <div
                 className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
-                  done
-                    ? 'border-foreground bg-foreground'
-                    : 'border-border bg-background'
+                  done ? 'border-foreground bg-foreground' : 'border-border bg-background'
                 }`}
               >
                 {done && (
@@ -123,7 +129,7 @@ export function OnboardingChecklist({ pubId }: { pubId: string }) {
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <span
                     className={`text-sm font-medium ${
                       done ? 'text-muted-foreground line-through' : 'text-foreground'
@@ -131,19 +137,24 @@ export function OnboardingChecklist({ pubId }: { pubId: string }) {
                   >
                     {item.label}
                   </span>
-                  {!done && (
-                    <Link
-                      href={item.href}
-                      className="text-xs font-medium text-foreground underline underline-offset-2 hover:opacity-70 transition-opacity"
-                    >
-                      {item.linkLabel} →
-                    </Link>
+                  {item.optional && (
+                    <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                      Opsional
+                    </span>
                   )}
                 </div>
                 {!done && (
-                  <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                    {item.description}
-                  </p>
+                  <div className="mt-1 flex flex-wrap items-center gap-3">
+                    <p className="text-xs leading-relaxed text-muted-foreground">
+                      {item.description}
+                    </p>
+                    <Link
+                      href={item.href}
+                      className="inline-flex h-6 items-center rounded border border-border px-2 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+                    >
+                      {item.linkLabel} →
+                    </Link>
+                  </div>
                 )}
               </div>
             </div>
