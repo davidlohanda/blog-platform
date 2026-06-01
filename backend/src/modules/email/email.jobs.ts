@@ -13,32 +13,35 @@ const systemQueue = new Queue('system-jobs', {
 
 export async function scheduleRecurringJobs() {
   await Promise.all([
-    // Subscription expiry reminder — 08:00 daily
+    // Subscription expiry reminder 7 days — 08:00 daily
     systemQueue.add(
       'subscription-expiry-reminders',
       {},
-      {
-        repeat: { pattern: '0 8 * * *' },
-        jobId: 'subscription-expiry-reminders',
-      },
+      { repeat: { pattern: '0 8 * * *' }, jobId: 'subscription-expiry-reminders' },
+    ),
+    // Subscription expiry reminder 1 day — 09:00 daily (offset to avoid collision with 7-day job)
+    systemQueue.add(
+      'subscription-expiry-reminders-1day',
+      {},
+      { repeat: { pattern: '0 9 * * *' }, jobId: 'subscription-expiry-reminders-1day' },
+    ),
+    // Auto-expire subscriptions past expiresAt — every 10 minutes
+    systemQueue.add(
+      'expire-subscriptions',
+      {},
+      { repeat: { pattern: '*/10 * * * *' }, jobId: 'expire-subscriptions' },
     ),
     // Publish scheduled articles — every 5 minutes
     systemQueue.add(
       'publish-scheduled-articles',
       {},
-      {
-        repeat: { pattern: '*/5 * * * *' },
-        jobId: 'publish-scheduled-articles',
-      },
+      { repeat: { pattern: '*/5 * * * *' }, jobId: 'publish-scheduled-articles' },
     ),
     // DNS propagation check for custom domains — every hour
     systemQueue.add(
       'check-custom-domains',
       {},
-      {
-        repeat: { pattern: '0 * * * *' },
-        jobId: 'check-custom-domains',
-      },
+      { repeat: { pattern: '0 * * * *' }, jobId: 'check-custom-domains' },
     ),
   ]);
   log.info('[Jobs] Recurring jobs scheduled');
@@ -117,7 +120,17 @@ export function startSystemWorker() {
       switch (job.name) {
         case 'subscription-expiry-reminders': {
           const count = await emailService.sendExpiryReminders();
-          log.info(`[Jobs] Sent ${count} expiry reminder(s)`);
+          log.info(`[Jobs] Sent ${count} expiry reminder(s) (7-day)`);
+          break;
+        }
+        case 'subscription-expiry-reminders-1day': {
+          const count = await emailService.sendExpiryReminders1Day();
+          log.info(`[Jobs] Sent ${count} expiry reminder(s) (1-day)`);
+          break;
+        }
+        case 'expire-subscriptions': {
+          const count = await emailService.expireSubscriptions();
+          if (count > 0) log.info(`[Jobs] Auto-expired ${count} subscription(s)`);
           break;
         }
         case 'publish-scheduled-articles': {

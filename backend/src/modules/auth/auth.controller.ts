@@ -9,6 +9,9 @@ import type {
   ResetPasswordInput,
 } from './auth.schema';
 import type { GoogleProfile } from '../../config/passport.config';
+import type { TenantRequest } from '../../middleware/tenant.middleware';
+
+const PLATFORM_SCOPE = '__platform__';
 
 const REFRESH_COOKIE_OPTIONS = {
   httpOnly: true,
@@ -48,7 +51,8 @@ export const authController = {
   async login(req: Request, res: Response, next: NextFunction) {
     try {
       const data = req.body as LoginInput;
-      const { accessToken, refreshToken, user } = await authService.login(data);
+      const publicationId = (req as TenantRequest).publication?.id ?? PLATFORM_SCOPE;
+      const { accessToken, refreshToken, user } = await authService.login(data, publicationId);
 
       res.cookie('refreshToken', refreshToken, REFRESH_COOKIE_OPTIONS);
       res.json({
@@ -116,13 +120,20 @@ export const authController = {
   async googleCallback(req: Request, res: Response, next: NextFunction) {
     try {
       const googleUser = req.user as GoogleProfile;
-      const { accessToken, refreshToken } = await authService.handleGoogleUser(googleUser);
+      const publicationId = (req as TenantRequest).publication?.id ?? PLATFORM_SCOPE;
+      const { accessToken, refreshToken } = await authService.handleGoogleUser(
+        googleUser,
+        publicationId,
+      );
 
       res.cookie('refreshToken', refreshToken, REFRESH_COOKIE_OPTIONS);
       res.redirect(
         `${config.platform.frontendUrl}/auth/google/callback?access_token=${accessToken}`,
       );
     } catch (error) {
+      if ((error as { code?: string }).code === 'USE_PASSWORD') {
+        return res.redirect(`${config.platform.frontendUrl}/login?error=use_password`);
+      }
       next(error);
     }
   },

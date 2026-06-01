@@ -22,4 +22,21 @@ export const emailController = {
       next(error);
     }
   },
+
+  // Resend webhook — handles email bounce events
+  async resendWebhook(req: Request, res: Response, next: NextFunction) {
+    try {
+      const event = req.body as { type?: string; data?: { email_id?: string; to?: string[] } };
+      if (event.type === 'email.bounced') {
+        const emailAddress = event.data?.to?.[0];
+        if (emailAddress) {
+          await emailService.handleEmailBounce(emailAddress);
+        }
+      }
+      // Always return 200 to Resend — never let webhook retries cause issues
+      res.json({ success: true });
+    } catch (error) {
+      next(error);
+    }
+  },
 };

@@ -88,14 +88,35 @@ export const authService = {
     return { message: 'Email berhasil diverifikasi' };
   },
 
-  async login(input: LoginInput) {
+  async login(input: LoginInput, publicationId: string) {
     const user = await authRepository.findByEmail(input.email);
     if (!user || !user.passwordHash) {
       throw AppError.unauthorized('Email atau password salah', 'INVALID_CREDENTIALS');
     }
 
+    // Rate limiting: check lockout counter per email + publicationId
+    const lockKey = `login_attempts:${input.email}:${publicationId}`;
+    const attempts = await redis.get(lockKey);
+    if (attempts && parseInt(attempts) >= 5) {
+      throw AppError.tooManyRequests(
+        'Terlalu banyak percobaan login. Coba lagi dalam 15 menit.',
+        'LOGIN_LOCKED',
+      );
+    }
+
     const valid = await verify(user.passwordHash, input.password);
-    if (!valid) throw AppError.unauthorized('Email atau password salah', 'INVALID_CREDENTIALS');
+    if (!valid) {
+      // Increment attempt counter (TTL 15 menit)
+      await redis
+        .multi()
+        .incr(lockKey)
+        .expire(lockKey, 15 * 60)
+        .exec();
+      throw AppError.unauthorized('Email atau password salah', 'INVALID_CREDENTIALS');
+    }
+
+    // Clear attempt counter on success
+    await redis.del(lockKey);
 
     if (!user.emailVerifiedAt) {
       throw AppError.forbidden(
@@ -106,9 +127,9 @@ export const authService = {
 
     const tokenId = randomUUID();
     const accessToken = signAccessToken({ userId: user.id, email: user.email, role: user.role });
-    const refreshToken = signRefreshToken(user.id, tokenId);
+    const refreshToken = signRefreshToken(user.id, tokenId, publicationId);
 
-    await redis.setex(`refresh:${user.id}:${tokenId}`, REFRESH_TOKEN_TTL, tokenId);
+    await redis.setex(`refresh:${user.id}:${publicationId}:${tokenId}`, REFRESH_TOKEN_TTL, tokenId);
 
     return {
       accessToken,
@@ -125,28 +146,35 @@ export const authService = {
   },
 
   async refresh(refreshTokenCookie: string) {
-    let payload: { userId: string; tokenId: string };
+    let payload: { userId: string; tokenId: string; publicationId: string };
     try {
       payload = verifyRefreshToken(refreshTokenCookie);
     } catch {
       throw AppError.unauthorized('Refresh token tidak valid', 'INVALID_REFRESH_TOKEN');
     }
 
-    const stored = await redis.get(`refresh:${payload.userId}:${payload.tokenId}`);
+    const { userId, tokenId, publicationId } = payload;
+    const redisKey = `refresh:${userId}:${publicationId}:${tokenId}`;
+
+    const stored = await redis.get(redisKey);
     if (!stored)
       throw AppError.unauthorized('Sesi sudah berakhir, silakan login ulang', 'SESSION_EXPIRED');
 
     // Rotate: delete old, issue new
-    await redis.del(`refresh:${payload.userId}:${payload.tokenId}`);
+    await redis.del(redisKey);
 
-    const user = await authRepository.findById(payload.userId);
+    const user = await authRepository.findById(userId);
     if (!user) throw AppError.unauthorized('User tidak ditemukan', 'USER_NOT_FOUND');
 
     const newTokenId = randomUUID();
     const newAccessToken = signAccessToken({ userId: user.id, email: user.email, role: user.role });
-    const newRefreshToken = signRefreshToken(user.id, newTokenId);
+    const newRefreshToken = signRefreshToken(user.id, newTokenId, publicationId);
 
-    await redis.setex(`refresh:${user.id}:${newTokenId}`, REFRESH_TOKEN_TTL, newTokenId);
+    await redis.setex(
+      `refresh:${user.id}:${publicationId}:${newTokenId}`,
+      REFRESH_TOKEN_TTL,
+      newTokenId,
+    );
 
     return { accessToken: newAccessToken, newRefreshToken, user };
   },
@@ -154,7 +182,7 @@ export const authService = {
   async logout(userId: string, refreshTokenCookie: string) {
     try {
       const payload = verifyRefreshToken(refreshTokenCookie);
-      await redis.del(`refresh:${userId}:${payload.tokenId}`);
+      await redis.del(`refresh:${userId}:${payload.publicationId}:${payload.tokenId}`);
     } catch {
       // Ignore invalid token during logout — just clear cookie
     }
@@ -165,6 +193,12 @@ export const authService = {
     // Always return same message to avoid email enumeration
     if (!user)
       return { message: 'Jika email terdaftar, link reset akan dikirim dalam beberapa menit.' };
+
+    // Akun OAuth-only (tidak punya passwordHash) — kirim email informasi, bukan link reset
+    if (!user.passwordHash) {
+      await emailService.sendGoogleAccountInfo({ to: user.email, name: user.name });
+      return { message: 'Jika email terdaftar, link reset akan dikirim dalam beberapa menit.' };
+    }
 
     const token = randomUUID();
     await redis.setex(`reset:${token}`, 60 * 60, user.id); // TTL 1 hour
@@ -189,12 +223,10 @@ export const authService = {
     return { message: 'Password berhasil diubah. Silakan login dengan password baru.' };
   },
 
-  async handleGoogleUser(profile: {
-    googleId: string;
-    email: string;
-    name: string;
-    avatarUrl?: string;
-  }) {
+  async handleGoogleUser(
+    profile: { googleId: string; email: string; name: string; avatarUrl?: string },
+    publicationId: string,
+  ) {
     let user = await authRepository.findByGoogleId(profile.googleId);
 
     if (!user) {
@@ -210,10 +242,26 @@ export const authService = {
       }
     }
 
+    // Google OAuth hanya untuk member/visitor — tolak owner dan platform_admin
+    if (user.role === 'platform_admin') {
+      throw AppError.forbidden(
+        'Akun admin platform tidak bisa login via Google. Gunakan email dan password.',
+        'USE_PASSWORD',
+      );
+    }
+
+    const pubAuthor = await publicationRepository.findAuthor(publicationId, user.id);
+    if (pubAuthor && (pubAuthor.role === 'owner' || pubAuthor.role === 'author')) {
+      throw AppError.forbidden(
+        'Akun publication owner/author tidak bisa login via Google. Gunakan email dan password.',
+        'USE_PASSWORD',
+      );
+    }
+
     const tokenId = randomUUID();
     const accessToken = signAccessToken({ userId: user.id, email: user.email, role: user.role });
-    const refreshToken = signRefreshToken(user.id, tokenId);
-    await redis.setex(`refresh:${user.id}:${tokenId}`, REFRESH_TOKEN_TTL, tokenId);
+    const refreshToken = signRefreshToken(user.id, tokenId, publicationId);
+    await redis.setex(`refresh:${user.id}:${publicationId}:${tokenId}`, REFRESH_TOKEN_TTL, tokenId);
 
     return {
       accessToken,

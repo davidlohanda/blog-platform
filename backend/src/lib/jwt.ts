@@ -16,10 +16,11 @@ export function signAccessToken(payload: AccessTokenPayload): string {
 export interface RefreshTokenPayload {
   userId: string;
   tokenId: string;
+  publicationId: string; // '__platform__' for platform-level sessions
 }
 
-export function signRefreshToken(userId: string, tokenId: string): string {
-  return jwt.sign({ userId, tokenId }, config.jwt.refreshSecret, {
+export function signRefreshToken(userId: string, tokenId: string, publicationId: string): string {
+  return jwt.sign({ userId, tokenId, publicationId }, config.jwt.refreshSecret, {
     expiresIn: '30d',
   });
 }

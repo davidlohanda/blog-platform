@@ -144,4 +144,32 @@ export const templates = {
       <p style="font-size:13px;color:#71717a;">Atau salin URL ini ke browser:<br/><a href="${inviteUrl}">${inviteUrl}</a></p>
     `);
   },
+
+  subscriptionExpiring1Day(
+    name: string,
+    publicationName: string,
+    expiresAt: string,
+    renewUrl: string,
+  ) {
+    return base(`
+      <h1>⚠️ Subscription Berakhir Besok!</h1>
+      <p>Halo ${name},</p>
+      <p>Subscription kamu di <strong>${publicationName}</strong> akan berakhir besok, <strong>${expiresAt}</strong>.</p>
+      <p>Ini pengingat terakhir — perpanjang sekarang agar akses konten premiummu tidak terputus:</p>
+      <a href="${renewUrl}" class="btn">Perpanjang Sekarang</a>
+      <p style="font-size:13px;color:#71717a;">Setelah berakhir, kamu masih bisa berlangganan kembali kapan saja.</p>
+    `);
+  },
+
+  googleAccountInfo(name: string) {
+    return base(`
+      <h1>Informasi Akun Lentera</h1>
+      <p>Halo ${name},</p>
+      <p>Kami menerima permintaan reset password untuk email ini.</p>
+      <p>Akun kamu terdaftar menggunakan <strong>Login dengan Google</strong>, sehingga tidak memiliki password yang bisa direset.</p>
+      <p>Untuk masuk ke akunmu, gunakan tombol <strong>"Lanjutkan dengan Google"</strong> di halaman login.</p>
+      <hr class="divider"/>
+      <p style="font-size:13px;color:#71717a;">Jika kamu tidak merasa meminta ini, abaikan email ini — tidak ada perubahan yang terjadi pada akunmu.</p>
+    `);
+  },
 };

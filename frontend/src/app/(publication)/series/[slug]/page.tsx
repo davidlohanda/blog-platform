@@ -3,12 +3,11 @@ import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import Image from 'next/image';
-import Link from 'next/link';
 import { cacheTag } from 'next/cache';
-import { Badge } from '@/components/ui/badge';
 import { getPublicationBySlug, getPublicSeriesDetail } from '@/lib/pub-data';
 import { PublicationNavbar } from '@/components/publication/PublicationNavbar';
 import { PubFooter } from '@/components/publication/PubFooter';
+import { SeriesArticleList } from './SeriesArticleList';
 
 async function getPubSlug() {
   const h = await headers();
@@ -42,7 +41,7 @@ export async function generateMetadata({
   }
 }
 
-// ─── Series content (reads dynamic headers — wrapped in Suspense) ─────────────
+// ─── Series content ───────────────────────────────────────────────────────────
 
 async function SeriesPageContent({ params }: { params: Promise<{ slug: string }> }) {
   'use cache';
@@ -117,7 +116,6 @@ async function SeriesPageContent({ params }: { params: Promise<{ slug: string }>
             </span>
           </div>
 
-          {/* Progress bar placeholder — X/Y articles in series */}
           <div className="mt-5">
             <div className="mb-1.5 flex items-center justify-between text-xs text-muted-foreground">
               <span>Progress series</span>
@@ -129,68 +127,9 @@ async function SeriesPageContent({ params }: { params: Promise<{ slug: string }>
           </div>
         </div>
 
-        {/* Article List */}
+        {/* Article List — client component handles premium modal */}
         {publishedArticles.length > 0 ? (
-          <div className="space-y-3">
-            {publishedArticles.map((item, index) => {
-              const article = item.article;
-              return (
-                <Link
-                  key={article.id}
-                  href={`/${article.slug}`}
-                  className="group flex items-start gap-4 rounded-xl border border-border bg-card p-5 transition-colors hover:bg-muted/30"
-                >
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-sm font-semibold text-muted-foreground">
-                    {index + 1}
-                  </div>
-
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h2 className="font-serif text-base font-semibold text-foreground group-hover:underline">
-                        {article.title}
-                      </h2>
-                      {article.visibility === 'members_only' && (
-                        <Badge variant="secondary" className="text-[10px]">
-                          Premium
-                        </Badge>
-                      )}
-                    </div>
-                    {article.excerpt && (
-                      <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                        {article.excerpt}
-                      </p>
-                    )}
-                    <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
-                      {article.publishedAt && (
-                        <span>
-                          {new Date(article.publishedAt).toLocaleDateString('id-ID', {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric',
-                          })}
-                        </span>
-                      )}
-                      {article.readingTime && (
-                        <span>{article.readingTime} menit baca</span>
-                      )}
-                    </div>
-                  </div>
-
-                  {article.coverImageUrl && (
-                    <div className="relative hidden h-16 w-24 shrink-0 overflow-hidden rounded-lg sm:block">
-                      <Image
-                        src={article.coverImageUrl}
-                        alt={article.title}
-                        fill
-                        className="object-cover"
-                        sizes="96px"
-                      />
-                    </div>
-                  )}
-                </Link>
-              );
-            })}
-          </div>
+          <SeriesArticleList articles={publishedArticles} />
         ) : (
           <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-16">
             <p className="text-sm text-muted-foreground">
@@ -205,7 +144,7 @@ async function SeriesPageContent({ params }: { params: Promise<{ slug: string }>
   );
 }
 
-// ─── Page (Suspense wrapper) ──────────────────────────────────────────────────
+// ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function SeriesPage({ params }: { params: Promise<{ slug: string }> }) {
   return (
