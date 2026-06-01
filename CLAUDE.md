@@ -288,7 +288,9 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
 
 ---
 
-## Wajib Sebelum Setiap Push
+## Wajib Sebelum Setiap Push — TANPA PENGECUALIAN
+
+Sebelum `git push` ke branch APAPUN, jalankan semua perintah berikut:
 
 ```bash
 # Backend
@@ -298,23 +300,14 @@ cd backend && npm run lint && npm run type-check
 cd frontend && npm run lint && npm run type-check && npm run build
 ```
 
----
+**Pastikan 0 errors sebelum push.** Jika ada error:
+1. Perbaiki semua error terlebih dahulu
+2. Jalankan ulang perintah di atas
+3. Baru push setelah benar-benar 0 error
 
-## Wajib Setelah Setiap Epic Selesai
-
-Setelah **seluruh Story dalam satu Epic** selesai dikerjakan, Claude Code WAJIB menjalankan langkah-langkah berikut secara berurutan:
-
-1. **Lint + type-check** — pastikan 0 error
-   ```bash
-   cd backend && npm run lint && npm run type-check
-   cd frontend && npm run lint && npm run type-check && npm run build
-   ```
-2. **Commit** semua perubahan yang belum di-commit
-3. **Push** branch ke remote: `git push origin <nama-branch>`
-4. **Buat PR** ke `main` via `gh pr create`
-5. **Informasikan** ke user bahwa Epic selesai dan PR sudah dibuat beserta URL-nya
-
-Langkah ini berlaku untuk semua Epic — jangan skip meskipun perubahannya hanya kecil.
+❌ JANGAN push jika masih ada error meskipun terlihat minor
+❌ JANGAN gunakan `--no-verify` atau skip checks dengan alasan apapun
+❌ JANGAN push hanya frontend tanpa cek backend, atau sebaliknya — keduanya WAJIB dicek
 
 ---
 
@@ -332,13 +325,28 @@ feat(scope): deskripsi
 fix(scope): deskripsi
 chore(scope): deskripsi
 
-# Alur per Epic
-git checkout main && git pull
+# Alur per Epic — WAJIB DIIKUTI URUTAN INI
+git checkout main && git pull origin main
 git checkout -b feat/nama-epic
-# kerjakan semua story
+# kerjakan semua story...
+# sebelum push: jalankan lint + type-check + build (lihat section di atas)
 git push origin feat/nama-epic
-# buat PR → merge → hapus branch
+# buat PR di GitHub → tunggu CI hijau → merge → hapus branch
+git checkout main && git pull origin main
+# baru mulai Epic berikutnya dari main yang sudah update
 ```
+
+## Wajib Setelah Setiap Epic Selesai
+
+Setelah semua Story dalam satu Epic selesai, Claude Code WAJIB melakukan ini secara berurutan:
+
+1. Jalankan lint + type-check + build (lihat section "Wajib Sebelum Setiap Push")
+2. Pastikan 0 errors
+3. Commit semua perubahan yang belum di-commit
+4. `git push origin [nama-branch]`
+5. Buat PR ke main di GitHub
+6. Informasikan ke user: "EPIC [X] selesai. PR sudah dibuat. Tunggu CI hijau sebelum merge."
+7. STOP — jangan mulai Epic berikutnya sampai user konfirmasi PR sudah di-merge
 
 ---
 
@@ -353,18 +361,15 @@ Lanjutkan implementasi dari EPIC [X] — STORY [Y.Z].
 Checkout branch: git checkout feat/[nama-branch]
 ```
 
-**Status saat ini:**
-- EPIC 1–12: ✅ Selesai (lihat USER_STORIES_MVP.md untuk detail)
-- EPIC 17: ✅ Selesai — Seed Data Realistis (publication "Investasi Cerdas")
-- EPIC 13–16: ⬜ Belum dikerjakan
-- EPIC 9 (Deployment): ⬜ Belum
-
-**Urutan pengerjaan selanjutnya:**
-1. EPIC 13 — Auth & Core Flow Fixes (PRIORITAS UTAMA)
-2. EPIC 14 — Tiga Role Publication
-3. EPIC 16 — Onboarding & Landing Page
-4. EPIC 15 — Platform Admin Enhancements
+**Urutan pengerjaan:**
+1. EPIC 13 — Auth & Core Flow Fixes
+2. EPIC 17 — Seed Data Realistis
+3. EPIC 14 — Tiga Role Publication
+4. EPIC 16 — Onboarding & Landing Page
+5. EPIC 15 — Platform Admin Enhancements
 6. EPIC 9 — Deployment
+
+Status progress detail ada di `docs/USER_STORIES_MVP.md` — cek checkbox `[ ]` untuk tahu dari mana harus lanjut.
 
 ---
 
