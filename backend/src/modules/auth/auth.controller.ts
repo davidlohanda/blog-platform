@@ -163,8 +163,28 @@ export const authController = {
     try {
       const { token } = req.query as { token: string };
       if (!token) return next(AppError.badRequest('Token wajib ada'));
-      const { redirectUrl } = await authService.acceptOwnerInvite(token);
-      res.redirect(redirectUrl);
+      const data = await authService.acceptOwnerInvite(token);
+      res.json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async completeOwnerInvite(req: Request, res: Response, next: NextFunction) {
+    try {
+      const body = req.body as {
+        token: string;
+        name: string;
+        password: string;
+        publicationName: string;
+        publicationSlug: string;
+        publicationDescription?: string;
+      };
+      const { accessToken, refreshToken, user, publicationSlug } =
+        await authService.completeOwnerInvite(body);
+
+      res.cookie('refreshToken', refreshToken, REFRESH_COOKIE_OPTIONS);
+      res.json({ success: true, data: { accessToken, user, publicationSlug } });
     } catch (error) {
       next(error);
     }

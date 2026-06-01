@@ -146,6 +146,25 @@ export const publicationService = {
     return publicationRepository.getOnboardingStatus(publicationId);
   },
 
+  async checkSlugAvailability(slug: string, excludeId?: string) {
+    const existing = await publicationRepository.findBySlug(slug);
+    const taken = !!existing && existing.id !== excludeId;
+
+    if (!taken) return { available: true };
+
+    // Generate suggestion: slug-2, slug-3, ...
+    let counter = 2;
+    while (counter <= 10) {
+      const candidate = `${slug}-${counter}`;
+      const candidateExists = await publicationRepository.findBySlug(candidate);
+      if (!candidateExists || candidateExists.id === excludeId) {
+        return { available: false, suggestion: candidate };
+      }
+      counter++;
+    }
+    return { available: false, suggestion: `${slug}-${Date.now().toString().slice(-4)}` };
+  },
+
   async removeAuthor(publicationId: string, requestingUserId: string, targetUserId: string) {
     if (requestingUserId === targetUserId) {
       const ownerCount = await publicationRepository.countOwners(publicationId);
