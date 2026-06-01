@@ -8,7 +8,13 @@ export type EmailJobName =
   | 'send-new-article'
   | 'send-author-invite'
   | 'send-owner-invite'
-  | 'send-google-account-info';
+  | 'send-google-account-info'
+  | 'send-publication-suspended'
+  | 'send-publication-unsuspended'
+  | 'send-publication-deletion-requested'
+  | 'send-publication-deletion-cancelled'
+  | 'send-ownership-transfer-request'
+  | 'send-ownership-transfer-confirmed';
 
 export interface VerificationEmailData {
   to: string;
@@ -76,6 +82,42 @@ export interface GoogleAccountInfoEmailData {
   name: string;
 }
 
+export interface PublicationSuspendedEmailData {
+  to: string;
+  name: string;
+  publicationName: string;
+  reason: string;
+  level: 1 | 2;
+}
+
+export interface PublicationUnsuspendedEmailData {
+  to: string;
+  name: string;
+  publicationName: string;
+}
+
+export interface PublicationDeletionRequestedEmailData {
+  to: string;
+  name: string;
+  publicationName: string;
+  scheduledDeletionAt: string;
+  cancelUrl: string;
+}
+
+export interface OwnershipTransferRequestEmailData {
+  to: string;
+  newOwnerName: string;
+  publicationName: string;
+  acceptUrl: string;
+}
+
+export interface OwnershipTransferConfirmedEmailData {
+  to: string;
+  name: string;
+  publicationName: string;
+  isNewOwner: boolean;
+}
+
 export type EmailJobData =
   | { name: 'send-verification'; data: VerificationEmailData }
   | { name: 'send-reset-password'; data: ResetPasswordEmailData }
@@ -86,4 +128,10 @@ export type EmailJobData =
   | { name: 'send-new-article'; data: NewArticleEmailData }
   | { name: 'send-author-invite'; data: AuthorInviteEmailData }
   | { name: 'send-owner-invite'; data: OwnerInviteEmailData }
-  | { name: 'send-google-account-info'; data: GoogleAccountInfoEmailData };
+  | { name: 'send-google-account-info'; data: GoogleAccountInfoEmailData }
+  | { name: 'send-publication-suspended'; data: PublicationSuspendedEmailData }
+  | { name: 'send-publication-unsuspended'; data: PublicationUnsuspendedEmailData }
+  | { name: 'send-publication-deletion-requested'; data: PublicationDeletionRequestedEmailData }
+  | { name: 'send-publication-deletion-cancelled'; data: PublicationUnsuspendedEmailData }
+  | { name: 'send-ownership-transfer-request'; data: OwnershipTransferRequestEmailData }
+  | { name: 'send-ownership-transfer-confirmed'; data: OwnershipTransferConfirmedEmailData };

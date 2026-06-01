@@ -5,6 +5,8 @@ export interface AccessTokenPayload {
   userId: string;
   email: string;
   role: string;
+  isImpersonation?: boolean;
+  impersonatedBy?: string;
 }
 
 export function signAccessToken(payload: AccessTokenPayload): string {

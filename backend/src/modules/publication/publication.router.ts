@@ -97,6 +97,26 @@ router.delete('/:id/authors/:userId', authenticate, requireOwnerOrAdmin, (req, r
   publicationController.removeAuthor(req, res, next),
 );
 
+// Story 15.4 — delete publication with cooling period (owner only)
+router.delete('/:id', authenticate, requireOwner, (req, res, next) =>
+  publicationController.requestDeletion(req, res, next),
+);
+router.post('/:id/cancel-deletion', authenticate, requireOwner, (req, res, next) =>
+  publicationController.cancelDeletion(req, res, next),
+);
+
+// Story 15.5 — transfer ownership (owner only)
+router.post(
+  '/:id/transfer-ownership',
+  authenticate,
+  requireOwner,
+  validate(z.object({ newOwnerId: z.string().uuid(), password: z.string().min(1) })),
+  (req, res, next) => publicationController.transferOwnership(req, res, next),
+);
+router.post('/:id/accept-ownership-transfer', (req, res, next) =>
+  publicationController.acceptTransferOwnership(req, res, next),
+);
+
 // Mount article and series sub-routers with mergeParams
 router.use('/:pubId/articles', articleRouter);
 router.use('/:pubId/series', seriesRouter);

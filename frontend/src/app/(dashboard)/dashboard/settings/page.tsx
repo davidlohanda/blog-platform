@@ -1,15 +1,24 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { DashboardShell } from '@/components/layout/DashboardShell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import Image from 'next/image';
+import { useAuthStore } from '@/store/authStore';
 import { uploadToCloudinary } from '@/lib/cloudinary';
 import {
   Form,
@@ -668,6 +677,209 @@ function PlansTab({ pubId }: { pubId: string }) {
   );
 }
 
+// ─── Danger Zone ─────────────────────────────────────────────────────────────
+
+function DangerZone({ pub }: { pub: Publication }) {
+  const router = useRouter();
+  const { clearAuth } = useAuthStore();
+  const [deleteDialog, setDeleteDialog] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [transferDialog, setTransferDialog] = useState(false);
+  const [transferNewOwnerId, setTransferNewOwnerId] = useState('');
+  const [transferPassword, setTransferPassword] = useState('');
+  const [transferring, setTransferring] = useState(false);
+  const [authors, setAuthors] = useState<Author[]>([]);
+
+  useEffect(() => {
+    if (transferDialog) {
+      apiClient
+        .get<{ data: Author[] }>(`/publications/${pub.id}/authors`)
+        .then(({ data }) => setAuthors(data.data.filter((a) => a.role !== 'owner')))
+        .catch(() => {});
+    }
+  }, [transferDialog, pub.id]);
+
+  async function handleDelete() {
+    if (deleteConfirm !== pub.name) return;
+    setDeleting(true);
+    try {
+      await apiClient.delete(`/publications/${pub.id}`);
+      clearAuth();
+      router.push('/login?message=publication_deleted');
+    } catch {
+      // ignore
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  async function handleTransfer() {
+    if (!transferNewOwnerId || !transferPassword) return;
+    setTransferring(true);
+    try {
+      await apiClient.post(`/publications/${pub.id}/transfer-ownership`, {
+        newOwnerId: transferNewOwnerId,
+        password: transferPassword,
+      });
+      setTransferDialog(false);
+      setTransferPassword('');
+    } catch {
+      // ignore
+    } finally {
+      setTransferring(false);
+    }
+  }
+
+  return (
+    <>
+      <div className="mt-8 border-t border-border pt-8">
+        <h2 className="mb-4 text-sm font-semibold text-destructive">Zona Berbahaya</h2>
+        <div className="space-y-3">
+          {/* Transfer Ownership */}
+          <Card className="flex items-center justify-between gap-6 p-4">
+            <div>
+              <p className="text-sm font-semibold text-foreground">Transfer Ownership</p>
+              <p className="text-xs text-muted-foreground">
+                Serahkan kepemilikan publication ke salah satu anggota tim.
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="shrink-0"
+              onClick={() => setTransferDialog(true)}
+            >
+              Transfer
+            </Button>
+          </Card>
+
+          {/* Delete Publication */}
+          <Card className="flex items-center justify-between gap-6 border-destructive/30 p-4">
+            <div>
+              <p className="text-sm font-semibold text-destructive">Hapus Publication</p>
+              <p className="text-xs text-muted-foreground">
+                Tindakan ini memulai cooling period 30 hari. Subscriber aktif akan di-refund.
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="shrink-0 text-destructive"
+              onClick={() => setDeleteDialog(true)}
+            >
+              Hapus…
+            </Button>
+          </Card>
+        </div>
+      </div>
+
+      {/* Delete Dialog */}
+      <Dialog open={deleteDialog} onOpenChange={(open: boolean) => !open && setDeleteDialog(false)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-destructive">Hapus Publication</DialogTitle>
+            <DialogDescription>
+              Tindakan ini tidak bisa langsung dibatalkan — ada cooling period 30 hari.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              <p className="font-medium">Yang akan terjadi:</p>
+              <ul className="mt-1 list-inside list-disc space-y-0.5 text-xs">
+                <li>Semua subscriber aktif akan mendapat refund pro-rata</li>
+                <li>Publication tidak bisa diakses publik selama 30 hari</li>
+                <li>Setelah 30 hari, semua data dihapus permanen</li>
+              </ul>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">
+                Ketik <strong>{pub.name}</strong> untuk konfirmasi
+              </label>
+              <Input
+                placeholder={pub.name}
+                value={deleteConfirm}
+                onChange={(e) => setDeleteConfirm(e.target.value)}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setDeleteDialog(false)}>
+                Batal
+              </Button>
+              <Button
+                variant="destructive"
+                disabled={deleteConfirm !== pub.name || deleting}
+                onClick={() => { void handleDelete(); }}
+              >
+                {deleting ? 'Memproses…' : 'Hapus Publication'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Transfer Dialog */}
+      <Dialog open={transferDialog} onOpenChange={(open: boolean) => !open && setTransferDialog(false)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Transfer Ownership</DialogTitle>
+            <DialogDescription>
+              Calon owner baru akan menerima email konfirmasi.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">
+                Pilih anggota tim
+              </label>
+              {authors.length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  Belum ada anggota lain. Invite author terlebih dahulu.
+                </p>
+              ) : (
+                <select
+                  className="border-input bg-background focus:ring-ring w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2"
+                  value={transferNewOwnerId}
+                  onChange={(e) => setTransferNewOwnerId(e.target.value)}
+                >
+                  <option value="">-- Pilih anggota --</option>
+                  {authors.map((a) => (
+                    <option key={a.userId} value={a.userId}>
+                      {a.user.name} ({a.user.email})
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">
+                Password kamu (konfirmasi)
+              </label>
+              <Input
+                type="password"
+                value={transferPassword}
+                onChange={(e) => setTransferPassword(e.target.value)}
+                placeholder="Masukkan password kamu"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setTransferDialog(false)}>
+                Batal
+              </Button>
+              <Button
+                disabled={!transferNewOwnerId || !transferPassword || transferring}
+                onClick={() => { void handleTransfer(); }}
+              >
+                {transferring ? 'Mengirim…' : 'Kirim Undangan Transfer'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
@@ -741,6 +953,11 @@ export default function SettingsPage() {
         )}
         {activeTab === 'plans' && <PlansTab pubId={pub.id} />}
         {activeTab === 'authors' && <AuthorsTab pubId={pub.id} myRole={myRole} />}
+
+        {/* Danger Zone — owner only */}
+        {myRole === 'owner' && (
+          <DangerZone pub={pub} />
+        )}
       </div>
     </DashboardShell>
   );

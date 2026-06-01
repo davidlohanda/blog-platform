@@ -8,6 +8,8 @@ export interface AuthRequest extends Request {
   user: {
     userId: string;
     email: string;
+    isImpersonation?: boolean;
+    impersonatedBy?: string;
   };
 }
 
@@ -21,7 +23,12 @@ export function authenticate(req: Request, _res: Response, next: NextFunction): 
   const token = authHeader.slice(7);
   try {
     const payload = verifyAccessToken(token);
-    (req as AuthRequest).user = { userId: payload.userId, email: payload.email };
+    (req as AuthRequest).user = {
+      userId: payload.userId,
+      email: payload.email,
+      isImpersonation: payload.isImpersonation,
+      impersonatedBy: payload.impersonatedBy,
+    };
     next();
   } catch {
     next(AppError.unauthorized('Token tidak valid atau sudah kedaluwarsa'));

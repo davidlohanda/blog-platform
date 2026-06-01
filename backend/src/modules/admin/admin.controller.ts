@@ -7,6 +7,7 @@ import { authRepository } from '../auth/auth.repository';
 import { redis } from '../../config/redis.config';
 import { config } from '../../config';
 import { AppError } from '../../lib/AppError';
+import type { AuthRequest } from '../../middleware/auth.middleware';
 
 export const adminController = {
   async getOverview(_req: Request, res: Response, next: NextFunction) {
@@ -104,6 +105,53 @@ export const adminController = {
           publicationId: publication.id,
         },
       });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  // Story 15.1 — update platform fee
+  async updateFee(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const { feePercent } = req.body as { feePercent: number };
+      const data = await adminService.updateFee(id, feePercent);
+      res.json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  // Story 15.2 — impersonate
+  async impersonate(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { userId } = req.params;
+      const adminId = (req as AuthRequest).user.userId;
+      const data = await adminService.impersonate(userId, adminId);
+      res.json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  // Story 15.3 — suspend / unsuspend
+  async suspendPublication(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const { level, reason } = req.body as { level: 1 | 2; reason: string };
+      if (!reason?.trim()) return next(AppError.badRequest('Alasan suspend wajib diisi'));
+      const data = await adminService.suspendPublication(id, level, reason);
+      res.json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async unsuspendPublication(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const data = await adminService.unsuspendPublication(id);
+      res.json({ success: true, data });
     } catch (error) {
       next(error);
     }

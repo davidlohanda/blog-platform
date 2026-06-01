@@ -13,6 +13,11 @@ import type {
   AuthorInviteEmailData,
   OwnerInviteEmailData,
   GoogleAccountInfoEmailData,
+  PublicationSuspendedEmailData,
+  PublicationUnsuspendedEmailData,
+  PublicationDeletionRequestedEmailData,
+  OwnershipTransferRequestEmailData,
+  OwnershipTransferConfirmedEmailData,
   EmailJobData,
 } from './email.types';
 
@@ -81,6 +86,30 @@ export const emailService = {
 
   sendGoogleAccountInfo(data: GoogleAccountInfoEmailData) {
     return enqueue({ name: 'send-google-account-info', data });
+  },
+
+  sendPublicationSuspended(data: PublicationSuspendedEmailData) {
+    return enqueue({ name: 'send-publication-suspended', data });
+  },
+
+  sendPublicationUnsuspended(data: PublicationUnsuspendedEmailData) {
+    return enqueue({ name: 'send-publication-unsuspended', data });
+  },
+
+  sendPublicationDeletionRequested(data: PublicationDeletionRequestedEmailData) {
+    return enqueue({ name: 'send-publication-deletion-requested', data });
+  },
+
+  sendPublicationDeletionCancelled(data: PublicationUnsuspendedEmailData) {
+    return enqueue({ name: 'send-publication-deletion-cancelled', data });
+  },
+
+  sendOwnershipTransferRequest(data: OwnershipTransferRequestEmailData) {
+    return enqueue({ name: 'send-ownership-transfer-request', data });
+  },
+
+  sendOwnershipTransferConfirmed(data: OwnershipTransferConfirmedEmailData) {
+    return enqueue({ name: 'send-ownership-transfer-confirmed', data });
   },
 
   // Enqueue new-article notifications to all opted-in active subscribers

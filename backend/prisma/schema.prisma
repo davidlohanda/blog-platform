@@ -78,19 +78,29 @@ model PasswordResetToken {
 // PUBLICATIONS & TENANCY
 // =============================================
 
+enum PublicationStatus {
+  active
+  suspended_soft
+  suspended_hard
+  pending_deletion
+}
+
 model Publication {
-  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  slug               String   @unique @db.VarChar(100)
-  name               String   @db.VarChar(255)
-  description        String?  @db.Text
-  logoUrl            String?  @db.Text
-  coverUrl           String?  @db.Text
-  customDomain       String?           @unique @db.VarChar(255)
-  customDomainStatus DomainStatus?
-  platformFeePercent Decimal           @default(15.00) @db.Decimal(5, 2)
-  feeEnabled         Boolean  @default(true)
-  createdAt          DateTime @default(now()) @db.Timestamptz
-  updatedAt          DateTime @updatedAt @db.Timestamptz
+  id                  String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug                String            @unique @db.VarChar(100)
+  name                String            @db.VarChar(255)
+  description         String?           @db.Text
+  logoUrl             String?           @db.Text
+  coverUrl            String?           @db.Text
+  customDomain        String?           @unique @db.VarChar(255)
+  customDomainStatus  DomainStatus?
+  platformFeePercent  Decimal           @default(15.00) @db.Decimal(5, 2)
+  feeEnabled          Boolean           @default(true)
+  status              PublicationStatus @default(active)
+  suspendReason       String?           @db.Text
+  scheduledDeletionAt DateTime?         @db.Timestamptz
+  createdAt           DateTime          @default(now()) @db.Timestamptz
+  updatedAt           DateTime          @updatedAt @db.Timestamptz
 
   authors           PublicationAuthor[]
   subscriptionPlans SubscriptionPlan[]

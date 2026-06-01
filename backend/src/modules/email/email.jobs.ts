@@ -43,6 +43,12 @@ export async function scheduleRecurringJobs() {
       {},
       { repeat: { pattern: '0 * * * *' }, jobId: 'check-custom-domains' },
     ),
+    // Delete publications past cooling period — daily 03:00
+    systemQueue.add(
+      'delete-expired-publications',
+      {},
+      { repeat: { pattern: '0 3 * * *' }, jobId: 'delete-expired-publications' },
+    ),
   ]);
   log.info('[Jobs] Recurring jobs scheduled');
 }
@@ -113,6 +119,21 @@ async function checkCustomDomains() {
   return { checked: publications.length, verified };
 }
 
+async function deleteExpiredPublications() {
+  const now = new Date();
+  const due = await prisma.publication.findMany({
+    where: { status: 'pending_deletion', scheduledDeletionAt: { lt: now } },
+    select: { id: true, name: true },
+  });
+
+  for (const pub of due) {
+    await prisma.publication.delete({ where: { id: pub.id } });
+    log.info(`[Jobs] Publication "${pub.name}" (${pub.id}) permanently deleted`);
+  }
+
+  return due.length;
+}
+
 export function startSystemWorker() {
   const worker = new Worker(
     'system-jobs',
@@ -141,6 +162,11 @@ export function startSystemWorker() {
         case 'check-custom-domains': {
           const { checked, verified } = await checkCustomDomains();
           if (checked > 0) log.info(`[Jobs] DNS check: ${verified}/${checked} domain(s) verified`);
+          break;
+        }
+        case 'delete-expired-publications': {
+          const count = await deleteExpiredPublications();
+          if (count > 0) log.info(`[Jobs] Permanently deleted ${count} publication(s)`);
           break;
         }
       }
