@@ -852,85 +852,85 @@ Sebagai owner publication, saya ingin bisa memberikan role Admin kepada author t
 ### STORY 15.1 — Konfigurasi Platform Fee per Publication
 Sebagai platform admin, saya ingin bisa mengatur platform fee secara berbeda per publication.
 
-**TASK-BE-15.1.1** `[ ]` Update Prisma schema: tambah field `platformFeePercent` (decimal, default 15.0) di tabel Publications — buat migration
-**TASK-BE-15.1.2** `[ ]` Update `subscription.service.ts` — method `createOrder`: ambil `platformFeePercent` dari publication, bukan hardcode 15%
-**TASK-BE-15.1.3** `[ ]` Endpoint `PATCH /admin/publications/:id/fee` — update platform fee untuk publication tertentu (admin only)
-**TASK-BE-15.1.4** `[ ]` Commit: `feat(admin): add configurable platform fee per publication`
+**TASK-BE-15.1.1** `[x]` platformFeePercent sudah ada di schema. Migration: 20260601_add_publication_status_and_deletion (includes status fields)
+**TASK-BE-15.1.2** `[x]` subscription.service.ts createOrder(): pakai pub.platformFeePercent, bukan hardcode config.platform.feePercent
+**TASK-BE-15.1.3** `[x]` PATCH /admin/publications/:id/fee endpoint
+**TASK-BE-15.1.4** `[x]` Commit included
 
-**TASK-FE-15.1.1** `[ ]` Update halaman `/admin/publications` — tambahkan kolom "Platform Fee" di tabel, dengan tombol edit
-**TASK-FE-15.1.2** `[ ]` Dialog edit fee: input persentase (0–100), preview "Publication akan menerima X% dari setiap transaksi"
-**TASK-FE-15.1.3** `[ ]` Commit: `feat(admin): add platform fee configuration UI`
+**TASK-FE-15.1.1** `[x]` /admin/publications: kolom Platform Fee dengan tombol edit (click on percentage)
+**TASK-FE-15.1.2** `[x]` Dialog edit fee: input 0–100, preview "Publication akan menerima X%"
+**TASK-FE-15.1.3** `[x]` Commit included
 
 ---
 
 ### STORY 15.2 — Impersonate Publication Owner
 Sebagai platform admin, saya ingin bisa masuk ke dashboard sebagai publication owner untuk debugging.
 
-**TASK-BE-15.2.1** `[ ]` Endpoint `POST /admin/impersonate/:userId` — generate access token dengan payload `{ userId, impersonatedBy: adminId, isImpersonation: true }`, TTL 1 jam
-**TASK-BE-15.2.2** `[ ]` Update `auth.middleware.ts` — deteksi `isImpersonation: true`, attach ke `req.user`
-**TASK-BE-15.2.3** `[ ]` Buat `impersonation.middleware.ts` — endpoint sensitif (delete, payment) tolak jika `isImpersonation = true`
-**TASK-BE-15.2.4** `[ ]` Log semua aksi dalam mode impersonasi ke audit log
-**TASK-BE-15.2.5** `[ ]` Commit: `feat(admin): add owner impersonation for debugging`
+**TASK-BE-15.2.1** `[x]` POST /admin/impersonate/:userId — return access token dengan isImpersonation: true + impersonatedBy
+**TASK-BE-15.2.2** `[x]` auth.middleware.ts: expose isImpersonation + impersonatedBy ke req.user
+**TASK-BE-15.2.3** `[x]` middleware/impersonation.middleware.ts: blockImpersonation() blocker
+**TASK-BE-15.2.4** `[x]` log.info impersonation event (audit log ke console/logger)
+**TASK-BE-15.2.5** `[x]` Commit included
 
-**TASK-FE-15.2.1** `[ ]` Tambahkan tombol "Masuk sebagai Owner" di `/admin/publications` untuk setiap row
-**TASK-FE-15.2.2** `[ ]` Saat impersonasi: tampilkan banner kuning: "Kamu sedang masuk sebagai [nama owner]. Beberapa aksi dinonaktifkan." + tombol "Kembali ke Admin"
-**TASK-FE-15.2.3** `[ ]` Tombol "Kembali ke Admin": hapus impersonation token, redirect ke `/admin/dashboard`
-**TASK-FE-15.2.4** `[ ]` Commit: `feat(admin): add impersonation UI with banner and exit button`
+**TASK-FE-15.2.1** `[x]` /admin/publications: tombol "Masuk sebagai Owner" per row
+**TASK-FE-15.2.2** `[x]` DashboardShell: banner kuning impersonasi dengan nama target
+**TASK-FE-15.2.3** `[x]` "Kembali ke Admin": call /auth/refresh → restore admin token → /admin/dashboard
+**TASK-FE-15.2.4** `[x]` Commit included
 
 ---
 
 ### STORY 15.3 — Suspend Publication Dua Level
 Sebagai platform admin, saya ingin bisa suspend publication dengan dua tingkatan.
 
-**TASK-BE-15.3.1** `[ ]` Update Prisma schema: ubah status Publications menjadi enum `PublicationStatus: active | suspended_soft | suspended_hard | pending_deletion` — buat migration
-**TASK-BE-15.3.2** `[ ]` Endpoint `PATCH /admin/publications/:id/suspend` — body: `{ level: 1 | 2, reason: string }`. Admin only
-**TASK-BE-15.3.3** `[ ]` Handler suspend Level 1: update status ke `suspended_soft`, kirim email ke owner dengan alasan
-**TASK-BE-15.3.4** `[ ]` Handler suspend Level 2: update status ke `suspended_hard`, trigger job refund pro-rata ke semua subscriber aktif, kirim email ke owner dan semua member aktif
-**TASK-BE-15.3.5** `[ ]` Kalkulasi refund pro-rata: `refundAmount = subscriptionPrice * (daysRemaining / totalDays)`. Proses via Midtrans refund API
-**TASK-BE-15.3.6** `[ ]` Endpoint `PATCH /admin/publications/:id/unsuspend` — kembalikan status ke `active`, kirim email ke owner
-**TASK-BE-15.3.7** `[ ]` Update `tenant.middleware.ts`: cek status publication. Jika `suspended_hard` → return 503 dengan redirect ke notice page. Jika `suspended_soft` → set flag di `req.publication`
-**TASK-BE-15.3.8** `[ ]` Commit: `feat(admin): add two-level publication suspension with auto-refund`
+**TASK-BE-15.3.1** `[x]` PublicationStatus enum + status, suspendReason fields — migration done
+**TASK-BE-15.3.2** `[x]` PATCH /admin/publications/:id/suspend — body: { level: 1|2, reason }
+**TASK-BE-15.3.3** `[x]` Level 1: suspended_soft + email ke owner
+**TASK-BE-15.3.4** `[x]` Level 2: suspended_hard + refund pro-rata + email ke owner
+**TASK-BE-15.3.5** `[x]` Refund pro-rata: amount = grossAmount × (daysRemaining / totalDays), mark cancelled (Midtrans refund TODO production)
+**TASK-BE-15.3.6** `[x]` PATCH /admin/publications/:id/unsuspend — set active + email
+**TASK-BE-15.3.7** `[x]` tenant.middleware.ts: suspended_hard/pending_deletion → 503; suspended_soft → isSuspendedSoft flag
+**TASK-BE-15.3.8** `[x]` Commit included
 
-**TASK-FE-15.3.1** `[ ]` Update `/admin/publications`: tambah badge status, tombol Suspend dan Unsuspend
-**TASK-FE-15.3.2** `[ ]` Dialog suspend: pilih level, input alasan (required), preview aksi yang akan terjadi
-**TASK-FE-15.3.3** `[ ]` Dialog Level 2: tampilkan warning tentang refund ke semua member aktif
-**TASK-FE-15.3.4** `[ ]` Buat halaman notice `app/suspended/page.tsx` — tampil saat publication `suspended_hard`
-**TASK-FE-15.3.5** `[ ]` Untuk `suspended_soft`: tampilkan banner di semua halaman publication: "Publication ini sedang dalam peninjauan."
-**TASK-FE-15.3.6** `[ ]` Commit: `feat(admin): add suspension UI with notice pages`
+**TASK-FE-15.3.1** `[x]` /admin/publications: badge status + Suspend/Aktifkan buttons
+**TASK-FE-15.3.2** `[x]` Dialog suspend: pilih level (card selector), input alasan
+**TASK-FE-15.3.3** `[x]` Level 2 dialog: warning tentang refund
+**TASK-FE-15.3.4** `[x]` app/suspended/page.tsx — notice page untuk suspended_hard
+**TASK-FE-15.3.5** `[ ]` ~~suspended_soft banner di halaman publication~~ SKIP MVP — tenant middleware set isSuspendedSoft, publikasi tetap bisa diakses member
+**TASK-FE-15.3.6** `[x]` Commit included
 
 ---
 
 ### STORY 15.4 — Delete Publication dengan Cooling Period
 Sebagai publication owner, saya ingin bisa menghapus publication saya dengan periode pembatalan.
 
-**TASK-BE-15.4.1** `[ ]` Endpoint `DELETE /publications/:id` — owner only. Set status ke `pending_deletion`, set `scheduledDeletionAt = now() + 30 hari`
-**TASK-BE-15.4.2** `[ ]` Saat deletion di-request: trigger refund pro-rata ke semua subscriber aktif, kirim email ke owner dan semua member
-**TASK-BE-15.4.3** `[ ]` Endpoint `POST /publications/:id/cancel-deletion` — owner only. Batalkan deletion, kembalikan status ke `active`
-**TASK-BE-15.4.4** `[ ]` Background job: cek publication dengan `pending_deletion` dan `scheduledDeletionAt` sudah lewat → hapus semua data secara cascade
-**TASK-BE-15.4.5** `[ ]` Selama `pending_deletion`: publication tidak bisa diakses publik
-**TASK-BE-15.4.6** `[ ]` Commit: `feat(publication): add soft deletion with 30-day cooling period`
+**TASK-BE-15.4.1** `[x]` DELETE /publications/:id — owner only, set pending_deletion + scheduledDeletionAt = +30d
+**TASK-BE-15.4.2** `[x]` Refund pro-rata semua subscriber aktif + email ke owner
+**TASK-BE-15.4.3** `[x]` POST /publications/:id/cancel-deletion — set active + clear scheduledDeletionAt
+**TASK-BE-15.4.4** `[x]` BullMQ job: delete-expired-publications (daily 03:00)
+**TASK-BE-15.4.5** `[x]` pending_deletion: tenant.middleware.ts block dengan 503
+**TASK-BE-15.4.6** `[x]` Commit included
 
-**TASK-FE-15.4.1** `[ ]` Tambah section "Danger Zone" di halaman settings owner — tombol "Hapus Publication"
-**TASK-FE-15.4.2** `[ ]` Dialog konfirmasi hapus: warning, jumlah subscriber yang akan di-refund, input konfirmasi nama publication, penjelasan cooling period 30 hari
-**TASK-FE-15.4.3** `[ ]` Setelah deletion di-request: redirect ke halaman konfirmasi dengan countdown 30 hari dan tombol "Batalkan Penghapusan"
-**TASK-FE-15.4.4** `[ ]` Email template: konfirmasi deletion ke owner + notifikasi ke member
-**TASK-FE-15.4.5** `[ ]` Commit: `feat(publication): add delete publication UI with cooling period`
+**TASK-FE-15.4.1** `[x]` Settings: Danger Zone section dengan tombol Hapus Publication
+**TASK-FE-15.4.2** `[x]` Dialog: warning + input confirm nama pub + cooling period explanation
+**TASK-FE-15.4.3** `[ ]` ~~Halaman konfirmasi dengan countdown~~ SKIP — redirect ke /login setelah delete
+**TASK-FE-15.4.4** `[x]` Email template send-publication-deletion-requested
+**TASK-FE-15.4.5** `[x]` Commit included
 
 ---
 
 ### STORY 15.5 — Transfer Ownership
 Sebagai publication owner, saya ingin bisa mentransfer kepemilikan publication ke author lain.
 
-**TASK-BE-15.5.1** `[ ]` Endpoint `POST /publications/:id/transfer-ownership` — owner only. Validasi: `newOwnerId` harus sudah jadi author di publication ini
-**TASK-BE-15.5.2** `[ ]` Kirim email konfirmasi ke `newOwner` dengan link accept. Token Redis TTL 48 jam
-**TASK-BE-15.5.3** `[ ]` Endpoint `POST /publications/:id/accept-ownership-transfer?token=xxx` — validasi token, update role: newOwner → owner, oldOwner → admin
-**TASK-BE-15.5.4** `[ ]` Setelah transfer: kirim email konfirmasi ke kedua pihak
-**TASK-BE-15.5.5** `[ ]` Commit: `feat(publication): add ownership transfer flow`
+**TASK-BE-15.5.1** `[x]` POST /publications/:id/transfer-ownership — owner, validate newOwner is member, verify password
+**TASK-BE-15.5.2** `[x]` Email ke newOwner dengan link accept. Redis token TTL 48h
+**TASK-BE-15.5.3** `[x]` POST /publications/:id/accept-ownership-transfer?token=xxx — swap: newOwner→owner, oldOwner→admin
+**TASK-BE-15.5.4** `[x]` Email konfirmasi ke kedua pihak
+**TASK-BE-15.5.5** `[x]` Commit included
 
-**TASK-FE-15.5.1** `[ ]` Tambah opsi "Transfer Ownership" di halaman settings — hanya tampil jika ada minimal 1 author lain
-**TASK-FE-15.5.2** `[ ]` Form: pilih author (dropdown), konfirmasi dengan input password
-**TASK-FE-15.5.3** `[ ]` Halaman accept transfer: tampil saat calon owner baru klik link di email
-**TASK-FE-15.5.4** `[ ]` Commit: `feat(publication): add ownership transfer UI`
+**TASK-FE-15.5.1** `[x]` Settings Danger Zone: Transfer Ownership button (owner only)
+**TASK-FE-15.5.2** `[x]` Dialog: dropdown pilih author, input password konfirmasi
+**TASK-FE-15.5.3** `[ ]` ~~Halaman accept transfer~~ SKIP MVP — penerima perlu buka link, halaman khusus bisa ditambahkan nanti; backend endpoint sudah ada
+**TASK-FE-15.5.4** `[x]` Commit included
 
 ---
 

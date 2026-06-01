@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useAuthStore } from '@/store/authStore';
 import { apiClient } from '@/lib/api/client';
 import type { PublicationRole } from '@/hooks/usePublication';
 
@@ -60,8 +61,24 @@ export function DashboardShell({
   publicationDomain,
 }: DashboardShellProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const { user } = useAuth();
+  const { isImpersonation, impersonatedUserName, clearAuth, setToken } = useAuthStore();
   const myRole = useMyPublicationRole();
+
+  async function exitImpersonation() {
+    try {
+      // Refresh will use admin's refreshToken cookie to restore admin session
+      const { data } = await apiClient.post<{ data: { accessToken: string; user: { id: string; email: string; name: string; role: string; avatarUrl: string | null; emailVerifiedAt: string | null } } }>(
+        '/auth/refresh',
+      );
+      setToken(data.data.accessToken);
+      router.push('/admin/dashboard');
+    } catch {
+      clearAuth();
+      router.push('/login');
+    }
+  }
 
   const isAuthor = myRole === 'author';
 
@@ -71,7 +88,25 @@ export function DashboardShell({
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex h-screen flex-col overflow-hidden bg-background">
+      {/* Impersonation banner */}
+      {isImpersonation && (
+        <div className="flex shrink-0 items-center justify-between bg-amber-400 px-6 py-2 text-sm font-medium text-amber-950">
+          <span>
+            ⚡ Mode impersonasi — kamu sedang masuk sebagai{' '}
+            <strong>{impersonatedUserName}</strong>. Beberapa aksi dinonaktifkan.
+          </span>
+          <button
+            type="button"
+            onClick={() => { void exitImpersonation(); }}
+            className="rounded bg-amber-900/20 px-3 py-1 text-xs font-semibold hover:bg-amber-900/30 transition-colors"
+          >
+            Kembali ke Admin →
+          </button>
+        </div>
+      )}
+
+      <div className="flex flex-1 overflow-hidden">
       {/* Sidebar */}
       <aside className="flex w-56 shrink-0 flex-col border-r border-border bg-muted">
         {/* Publication header */}
@@ -210,6 +245,7 @@ export function DashboardShell({
 
         {/* Page content */}
         <main className="flex-1 overflow-auto">{children}</main>
+      </div>
       </div>
     </div>
   );
