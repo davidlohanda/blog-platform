@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN ?? 'app.lentera.id';
 const BASE_DOMAIN = process.env.NEXT_PUBLIC_BASE_DOMAIN ?? 'lentera.id';
-const LOCAL_DOMAIN = 'lentera.local';
+const LOCAL_DOMAIN = 'lentera.test';
 
 const PROTECTED_PREFIXES = ['/admin', '/dashboard', '/me'];
 
