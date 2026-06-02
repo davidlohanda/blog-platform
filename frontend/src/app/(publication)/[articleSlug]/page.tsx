@@ -21,6 +21,7 @@ import { ArticlePaywall } from '@/components/publication/ArticlePaywall';
 import { ArticleLikeButton } from '@/components/publication/ArticleLikeButton';
 import { ReadingProgressBar } from '@/components/publication/ReadingProgressBar';
 import { SeriesNav } from '@/components/publication/SeriesNav';
+import { pubUrl } from '@/lib/pub-url';
 
 function formatDate(iso: string | null) {
   if (!iso) return '';
@@ -31,22 +32,30 @@ function formatDate(iso: string | null) {
   });
 }
 
-async function getPubSlug() {
+async function getPubSlug(
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>,
+) {
   const h = await headers();
-  return (
-    h.get('x-publication-slug') ?? ''
-  );
+  const fromHeader = h.get('x-publication-slug');
+  if (fromHeader) return fromHeader;
+  if (searchParams) {
+    const sp = await searchParams;
+    if (typeof sp.__pub === 'string') return sp.__pub;
+  }
+  return '';
 }
 
 // ─── generateMetadata ─────────────────────────────────────────────────────────
 
 export async function generateMetadata({
   params,
+  searchParams,
 }: {
   params: Promise<{ articleSlug: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }): Promise<Metadata> {
   const { articleSlug } = await params;
-  const slug = await getPubSlug();
+  const slug = await getPubSlug(searchParams);
   if (!slug) return {};
   try {
     const pub = await getPublicationBySlug(slug);
@@ -127,7 +136,7 @@ async function ArticleHeader({ article, pub }: { article: FullArticle; pub: Publ
         </div>
         {!isPremium && (
           <Link
-            href="/subscribe"
+            href={pubUrl(pub.slug, '/subscribe')}
             className="hidden rounded-full border border-border px-4 py-1.5 text-xs font-semibold transition-colors hover:bg-muted md:block"
           >
             + Berlangganan
@@ -200,6 +209,7 @@ async function SeriesNavSection({ pub, article }: { pub: Publication; article: F
         seriesSlug={series.slug}
         currentSlug={article.slug}
         articles={series.articles}
+        pubSlug={pub.slug}
       />
     </div>
   );
@@ -226,11 +236,13 @@ function ActionBar({ pub, article }: { pub: Publication; article: FullArticle })
 
 async function ArticlePageContent({
   params,
+  searchParams,
 }: {
   params: Promise<{ articleSlug: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const { articleSlug } = await params;
-  const pubSlug = await getPubSlug();
+  const pubSlug = await getPubSlug(searchParams);
 
   if (!pubSlug) notFound();
 
@@ -286,7 +298,7 @@ async function ArticlePageContent({
             >
               <TiptapRenderer content={article.content} />
             </div>
-            <ArticlePaywall pubName={pub.name} pubId={pub.id} articleSlug={articleSlug} />
+            <ArticlePaywall pubName={pub.name} pubId={pub.id} pubSlug={pub.slug} articleSlug={articleSlug} />
           </div>
         ) : article.visibility === 'free' ? (
           <FreeArticleContent article={article} />
@@ -316,8 +328,10 @@ async function ArticlePageContent({
 
 export default function ArticlePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ articleSlug: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   return (
     <Suspense
@@ -327,7 +341,7 @@ export default function ArticlePage({
         </div>
       }
     >
-      <ArticlePageContent params={params} />
+      <ArticlePageContent params={params} searchParams={searchParams} />
     </Suspense>
   );
 }

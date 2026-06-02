@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import type { Publication } from '@/lib/pub-data';
+import { pubUrl } from '@/lib/pub-url';
 
 interface Props {
   pub: Publication;
@@ -14,7 +15,7 @@ export function PublicationNavbar({ pub, activePage = 'home' }: Props) {
     <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-[1180px] items-center gap-6 px-4 md:px-8">
         {/* Logo */}
-        <Link href="/" className="flex shrink-0 items-center gap-2">
+        <Link href={pubUrl(pub.slug, '/')} className="flex shrink-0 items-center gap-2">
           {pub.logoUrl ? (
             <Image
               src={pub.logoUrl}
@@ -34,19 +35,19 @@ export function PublicationNavbar({ pub, activePage = 'home' }: Props) {
         {/* Nav links */}
         <nav className="hidden items-center gap-5 text-sm md:flex">
           <Link
-            href="/"
+            href={pubUrl(pub.slug, '/')}
             className={`transition-colors ${activePage === 'home' ? 'font-medium text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
           >
             Beranda
           </Link>
           <Link
-            href="/series"
+            href={pubUrl(pub.slug, '/series')}
             className={`transition-colors ${activePage === 'series' ? 'font-medium text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
           >
             Series
           </Link>
           <Link
-            href="/about"
+            href={pubUrl(pub.slug, '/about')}
             className={`transition-colors ${activePage === 'about' ? 'font-medium text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
           >
             Tentang
@@ -56,13 +57,13 @@ export function PublicationNavbar({ pub, activePage = 'home' }: Props) {
         {/* CTA */}
         <div className="ml-auto flex items-center gap-2">
           <Link
-            href="/login"
+            href={pubUrl(pub.slug, '/login')}
             className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground md:block"
           >
             Masuk
           </Link>
           <Link
-            href="/subscribe"
+            href={pubUrl(pub.slug, '/subscribe')}
             className="rounded-full bg-foreground px-4 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-foreground/90"
           >
             Berlangganan

@@ -15,11 +15,19 @@ import {
 import { PublicationNavbar } from '@/components/publication/PublicationNavbar';
 import { PubFooter } from '@/components/publication/PubFooter';
 import { ArticleCard } from '@/components/publication/ArticleCard';
+import { pubUrl } from '@/lib/pub-url';
 
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}): Promise<Metadata> {
   const h = await headers();
+  const sp = await searchParams;
   const slug =
-    h.get('x-publication-slug') ?? '';
+    h.get('x-publication-slug') ??
+    (typeof sp.__pub === 'string' ? sp.__pub : '') ??
+    '';
 
   if (!slug) {
     return {
@@ -65,7 +73,7 @@ async function HeroSection({ pub }: { pub: Publication }) {
         )}
         <div className="flex flex-wrap justify-center gap-3">
           <Link
-            href="/subscribe"
+            href={pubUrl(pub.slug, '/subscribe')}
             className="rounded-full bg-foreground px-6 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-foreground/90"
           >
             Berlangganan
@@ -94,13 +102,13 @@ async function FeaturedSection({ pub, articles }: { pub: Publication; articles: 
         <div className="mb-8 flex items-baseline justify-between">
           <h2 className="font-heading text-2xl font-semibold">Pilihan terbaru</h2>
           <Link
-            href="/articles"
+            href={pubUrl(pub.slug, '/articles')}
             className="text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
             Semua tulisan →
           </Link>
         </div>
-        <ArticleCard article={featured} featured />
+        <ArticleCard article={featured} featured pubSlug={pub.slug} />
       </div>
     </section>
   );
@@ -118,7 +126,7 @@ async function ArticleGridSection({ pub, articles }: { pub: Publication; article
         <div className="border-t border-border pt-10">
           <div className="grid gap-10 md:grid-cols-2">
             {grid.map((a) => (
-              <ArticleCard key={a.id} article={a} />
+              <ArticleCard key={a.id} article={a} pubSlug={pub.slug} />
             ))}
           </div>
         </div>
@@ -207,7 +215,7 @@ async function MoreArticlesSection({ pub, articles }: { pub: Publication; articl
             return (
               <Link
                 key={a.id}
-                href={`/${a.slug}`}
+                href={pubUrl(pub.slug, `/${a.slug}`)}
                 className="grid gap-6 py-6 text-inherit no-underline md:grid-cols-[1fr_160px]"
               >
                 <div>
@@ -268,7 +276,7 @@ async function SubscribeBand({ pub }: { pub: Publication }) {
           Berlangganan untuk mengakses seluruh arsip dan konten eksklusif tiap pekan.
         </p>
         <Link
-          href="/subscribe"
+          href={pubUrl(pub.slug, '/subscribe')}
           className="inline-block rounded-full bg-background px-7 py-3 text-sm font-semibold text-foreground transition-opacity hover:opacity-90"
         >
           Berlangganan sekarang
@@ -518,10 +526,19 @@ function PlatformLanding({ role = '' }: { role?: string }) {
   );
 }
 
-async function HomepageContent() {
+async function HomepageContent({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   const h = await headers();
+  const sp = await searchParams;
+  // Production: slug from x-publication-slug header (subdomain routing)
+  // Localhost dev: slug from __pub search param (proxy rewrites /[slug] → /?__pub=[slug])
   const slug =
-    h.get('x-publication-slug') ?? '';
+    h.get('x-publication-slug') ??
+    (typeof sp.__pub === 'string' ? sp.__pub : '') ??
+    '';
 
   if (!slug) {
     const jar = await cookies();
@@ -554,7 +571,11 @@ async function HomepageContent() {
   );
 }
 
-export default function PublicationHomepage() {
+export default function PublicationHomepage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   return (
     <Suspense
       fallback={
@@ -563,7 +584,7 @@ export default function PublicationHomepage() {
         </div>
       }
     >
-      <HomepageContent />
+      <HomepageContent searchParams={searchParams} />
     </Suspense>
   );
 }
