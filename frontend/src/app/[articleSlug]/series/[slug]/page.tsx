@@ -1,72 +1,48 @@
+// Dev path-based routing for series pages.
+// In production, subdomain routing uses (publication)/series/[slug]/page.tsx instead.
+// Note: outer [articleSlug] param = publication slug, inner [slug] param = series slug.
+
 import { Suspense } from 'react';
-import { headers } from 'next/headers';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 import Image from 'next/image';
-import { cacheTag } from 'next/cache';
 import { getPublicationBySlug, getPublicSeriesDetail } from '@/lib/pub-data';
 import { PublicationNavbar } from '@/components/publication/PublicationNavbar';
 import { PubFooter } from '@/components/publication/PubFooter';
 import { SeriesArticleList } from '@/components/publication/SeriesArticleList';
 
-type SP = Promise<{ [key: string]: string | string[] | undefined }>;
-
-async function getPubSlug(searchParams?: SP) {
-  const h = await headers();
-  const fromHeader = h.get('x-publication-slug');
-  if (fromHeader) return fromHeader;
-  if (searchParams) {
-    const sp = await searchParams;
-    if (typeof sp.__pub === 'string') return sp.__pub;
-  }
-  return '';
-}
-
-// ─── generateMetadata ──────────────────────────────────────────────────────────
-
 export async function generateMetadata({
   params,
-  searchParams,
 }: {
-  params: Promise<{ slug: string }>;
-  searchParams: SP;
+  params: Promise<{ articleSlug: string; slug: string }>;
 }): Promise<Metadata> {
-  const { slug } = await params;
   try {
-    const pubSlug = await getPubSlug(searchParams);
-    if (!pubSlug) return {};
+    const { articleSlug: pubSlug, slug } = await params;
     const pub = await getPublicationBySlug(pubSlug);
     const series = await getPublicSeriesDetail(pub.id, slug);
     return {
       title: `${series.title} — ${pub.name}`,
       description: series.description ?? `Series oleh ${series.author.name}`,
-      openGraph: {
-        title: `${series.title} — ${pub.name}`,
-        description: series.description ?? undefined,
-        images: series.coverImageUrl ? [series.coverImageUrl] : [],
-      },
     };
   } catch {
     return {};
   }
 }
 
-// ─── Series content ───────────────────────────────────────────────────────────
-
 async function SeriesPageContent({
   params,
-  searchParams,
 }: {
-  params: Promise<{ slug: string }>;
-  searchParams: SP;
+  params: Promise<{ articleSlug: string; slug: string }>;
 }) {
-  'use cache';
-  const { slug } = await params;
-  const pubSlug = await getPubSlug(searchParams);
-  if (!pubSlug) notFound();
+  // outer [articleSlug] = publication slug, inner [slug] = series slug
+  const { articleSlug: pubSlug, slug } = await params;
 
-  const pub = await getPublicationBySlug(pubSlug);
-  cacheTag(`pub:${pub.id}`);
+  if (process.env.NODE_ENV !== 'development') {
+    redirect(`/series/${slug}`);
+  }
+
+  const pub = await getPublicationBySlug(pubSlug).catch(() => null);
+  if (!pub) notFound();
 
   let series;
   try {
@@ -75,63 +51,57 @@ async function SeriesPageContent({
     notFound();
   }
 
-  const publishedArticles = series.articles
+  const publishedArticles = series!.articles
     .filter((a) => a.article.status === 'published')
     .sort((a, b) => a.orderIndex - b.orderIndex);
 
   return (
     <div className="min-h-screen bg-background">
       <PublicationNavbar pub={pub} />
-
       <main className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
-        {/* Series Header */}
         <div className="mb-10">
-          {series.coverImageUrl && (
+          {series!.coverImageUrl && (
             <div className="relative mb-6 aspect-[2.5/1] overflow-hidden rounded-xl">
               <Image
-                src={series.coverImageUrl}
-                alt={series.title}
+                src={series!.coverImageUrl}
+                alt={series!.title}
                 fill
                 className="object-cover"
                 sizes="(max-width: 768px) 100vw, 768px"
               />
             </div>
           )}
-
           <p className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
             Series
           </p>
           <h1 className="mb-3 font-serif text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-            {series.title}
+            {series!.title}
           </h1>
-
-          {series.description && (
+          {series!.description && (
             <p className="mb-4 text-base leading-relaxed text-muted-foreground">
-              {series.description}
+              {series!.description}
             </p>
           )}
-
           <div className="flex items-center gap-3">
-            {series.author.avatarUrl ? (
+            {series!.author.avatarUrl ? (
               <Image
-                src={series.author.avatarUrl}
-                alt={series.author.name}
+                src={series!.author.avatarUrl}
+                alt={series!.author.name}
                 width={28}
                 height={28}
                 className="rounded-full"
               />
             ) : (
               <div className="flex h-7 w-7 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground">
-                {series.author.name.slice(0, 2).toUpperCase()}
+                {series!.author.name.slice(0, 2).toUpperCase()}
               </div>
             )}
             <span className="text-sm text-muted-foreground">
-              oleh <span className="font-medium text-foreground">{series.author.name}</span>
+              oleh <span className="font-medium text-foreground">{series!.author.name}</span>
               {' · '}
               {publishedArticles.length} artikel
             </span>
           </div>
-
           <div className="mt-5">
             <div className="mb-1.5 flex items-center justify-between text-xs text-muted-foreground">
               <span>Progress series</span>
@@ -143,7 +113,6 @@ async function SeriesPageContent({
           </div>
         </div>
 
-        {/* Article List — client component handles premium modal */}
         {publishedArticles.length > 0 ? (
           <SeriesArticleList articles={publishedArticles} pubSlug={pub.slug} />
         ) : (
@@ -154,20 +123,15 @@ async function SeriesPageContent({
           </div>
         )}
       </main>
-
       <PubFooter pub={pub} />
     </div>
   );
 }
 
-// ─── Page ──────────────────────────────────────────────────────────────────────
-
 export default function SeriesPage({
   params,
-  searchParams,
 }: {
-  params: Promise<{ slug: string }>;
-  searchParams: SP;
+  params: Promise<{ articleSlug: string; slug: string }>;
 }) {
   return (
     <Suspense
@@ -177,7 +141,7 @@ export default function SeriesPage({
         </div>
       }
     >
-      <SeriesPageContent params={params} searchParams={searchParams} />
+      <SeriesPageContent params={params} />
     </Suspense>
   );
 }

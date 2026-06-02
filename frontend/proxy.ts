@@ -43,6 +43,11 @@ export function proxy(req: NextRequest): NextResponse {
   // localhost:3000/[slug]/[article]  → publication article page
   // localhost:3000/[slug]/dashboard  → publication dashboard
   if (host === 'localhost') {
+    // Skip if already processed — prevents double-rewrite when proxy re-runs on internal rewrites
+    if (req.nextUrl.searchParams.has('__pub')) {
+      return NextResponse.next();
+    }
+
     const segments = pathname.split('/').filter(Boolean);
     const firstSegment = segments[0];
 
@@ -53,8 +58,9 @@ export function proxy(req: NextRequest): NextResponse {
     // firstSegment adalah publication slug
     const slug = firstSegment;
     const newPathname = '/' + segments.slice(1).join('/') || '/';
-    const rewriteUrl = new URL(newPathname, req.url);
-    // __pub lets server components resolve the publication slug after the rewrite
+    const rewriteUrl = req.nextUrl.clone();
+    rewriteUrl.pathname = newPathname;
+    rewriteUrl.search = '';
     rewriteUrl.searchParams.set('__pub', slug);
     const res = NextResponse.rewrite(rewriteUrl);
     res.headers.set('x-publication-slug', slug);
