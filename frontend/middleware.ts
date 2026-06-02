@@ -1,3 +1,7 @@
-import { proxy, config } from './proxy';
-export { config };
+import { proxy } from './proxy';
+
+export const config = {
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+};
+
 export const middleware = proxy;
