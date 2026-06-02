@@ -7,33 +7,23 @@ import { cacheTag } from 'next/cache';
 import { getPublicationBySlug, getPublicSeriesDetail } from '@/lib/pub-data';
 import { PublicationNavbar } from '@/components/publication/PublicationNavbar';
 import { PubFooter } from '@/components/publication/PubFooter';
-import { SeriesArticleList } from './SeriesArticleList';
+import { SeriesArticleList } from '@/components/publication/SeriesArticleList';
 
-type SP = Promise<{ [key: string]: string | string[] | undefined }>;
-
-async function getPubSlug(searchParams?: SP) {
+async function getPubSlug() {
   const h = await headers();
-  const fromHeader = h.get('x-publication-slug');
-  if (fromHeader) return fromHeader;
-  if (searchParams) {
-    const sp = await searchParams;
-    if (typeof sp.__pub === 'string') return sp.__pub;
-  }
-  return '';
+  return h.get('x-publication-slug') ?? '';
 }
 
 // ─── generateMetadata ──────────────────────────────────────────────────────────
 
 export async function generateMetadata({
   params,
-  searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: SP;
 }): Promise<Metadata> {
   const { slug } = await params;
   try {
-    const pubSlug = await getPubSlug(searchParams);
+    const pubSlug = await getPubSlug();
     if (!pubSlug) return {};
     const pub = await getPublicationBySlug(pubSlug);
     const series = await getPublicSeriesDetail(pub.id, slug);
@@ -55,14 +45,12 @@ export async function generateMetadata({
 
 async function SeriesPageContent({
   params,
-  searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: SP;
 }) {
   'use cache';
   const { slug } = await params;
-  const pubSlug = await getPubSlug(searchParams);
+  const pubSlug = await getPubSlug();
   if (!pubSlug) notFound();
 
   const pub = await getPublicationBySlug(pubSlug);
@@ -145,7 +133,7 @@ async function SeriesPageContent({
 
         {/* Article List — client component handles premium modal */}
         {publishedArticles.length > 0 ? (
-          <SeriesArticleList articles={publishedArticles} pubSlug={pub.slug} />
+          <SeriesArticleList articles={publishedArticles} />
         ) : (
           <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-16">
             <p className="text-sm text-muted-foreground">
@@ -164,10 +152,8 @@ async function SeriesPageContent({
 
 export default function SeriesPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: SP;
 }) {
   return (
     <Suspense
@@ -177,7 +163,7 @@ export default function SeriesPage({
         </div>
       }
     >
-      <SeriesPageContent params={params} searchParams={searchParams} />
+      <SeriesPageContent params={params} />
     </Suspense>
   );
 }

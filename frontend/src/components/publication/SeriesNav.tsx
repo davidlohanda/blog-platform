@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { pubUrl } from '@/lib/pub-url';
 
 interface SeriesArticleItem {
   orderIndex: number;
@@ -11,10 +10,9 @@ interface Props {
   seriesSlug: string;
   currentSlug: string;
   articles: SeriesArticleItem[];
-  pubSlug: string;
 }
 
-export function SeriesNav({ seriesTitle, seriesSlug, currentSlug, articles, pubSlug }: Props) {
+export function SeriesNav({ seriesTitle, seriesSlug, currentSlug, articles }: Props) {
   const published = articles.filter((a) => a.article.status === 'published');
   const currentIndex = published.findIndex((a) => a.article.slug === currentSlug);
   const prev = currentIndex > 0 ? published[currentIndex - 1] : null;
@@ -47,7 +45,7 @@ export function SeriesNav({ seriesTitle, seriesSlug, currentSlug, articles, pubS
               Bagian dari series
             </div>
             <Link
-              href={pubUrl(pubSlug, `/series/${seriesSlug}`)}
+              href={`/series/${seriesSlug}`}
               className="font-heading text-base font-semibold text-foreground hover:underline"
             >
               {seriesTitle}
@@ -64,7 +62,7 @@ export function SeriesNav({ seriesTitle, seriesSlug, currentSlug, articles, pubS
       <div className="grid grid-cols-2 gap-3">
         {prev ? (
           <Link
-            href={pubUrl(pubSlug, `/${prev.article.slug}`)}
+            href={`/${prev.article.slug}`}
             className="flex flex-col gap-1 rounded-lg border border-border bg-card p-3 text-sm transition-colors hover:bg-muted"
           >
             <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -99,7 +97,7 @@ export function SeriesNav({ seriesTitle, seriesSlug, currentSlug, articles, pubS
 
         {next ? (
           <Link
-            href={pubUrl(pubSlug, `/${next.article.slug}`)}
+            href={`/${next.article.slug}`}
             className="flex flex-col gap-1 rounded-lg border border-border bg-card p-3 text-right text-sm transition-colors hover:bg-muted"
           >
             <span className="flex items-center justify-end gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">

@@ -2,7 +2,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import type { PublicArticle } from '@/lib/pub-data';
-import { pubUrl } from '@/lib/pub-url';
 
 function formatDate(iso: string | null) {
   if (!iso) return '';
@@ -34,12 +33,11 @@ function AuthorAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | n
 
 interface ArticleCardProps {
   article: PublicArticle;
-  pubSlug: string;
   featured?: boolean;
   compact?: boolean;
 }
 
-export function ArticleCard({ article, pubSlug, featured = false, compact = false }: ArticleCardProps) {
+export function ArticleCard({ article, featured = false, compact = false }: ArticleCardProps) {
   const isPremium = article.visibility === 'members_only';
   const date = formatDate(article.publishedAt);
   const firstTag = article.tags[0]?.tag;
@@ -47,7 +45,7 @@ export function ArticleCard({ article, pubSlug, featured = false, compact = fals
   if (featured) {
     return (
       <Link
-        href={pubUrl(pubSlug, `/${article.slug}`)}
+        href={`/${article.slug}`}
         className="grid items-center gap-8 text-inherit no-underline md:grid-cols-[1.3fr_1fr]"
       >
         {/* Cover */}
@@ -100,7 +98,7 @@ export function ArticleCard({ article, pubSlug, featured = false, compact = fals
   }
 
   return (
-    <Link href={pubUrl(pubSlug, `/${article.slug}`)} className="block text-inherit no-underline">
+    <Link href={`/${article.slug}`} className="block text-inherit no-underline">
       <div className="mb-3 overflow-hidden rounded-lg bg-muted">
         {article.coverImageUrl ? (
           <Image
