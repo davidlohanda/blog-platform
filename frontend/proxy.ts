@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN ?? 'app.lentera.id';
 const BASE_DOMAIN = process.env.NEXT_PUBLIC_BASE_DOMAIN ?? 'lentera.id';
-const LOCAL_DOMAIN = 'lentera.test';
+const LOCAL_DOMAIN = 'lvh.me';
 
 const PROTECTED_PREFIXES = ['/admin', '/dashboard', '/me'];
 
@@ -32,7 +32,7 @@ export function proxy(req: NextRequest): NextResponse {
     return NextResponse.next();
   }
 
-  // Subdomain: slug.lentera.local or slug.lentera.id
+  // Subdomain: slug.lvh.me (local) or slug.lentera.id (prod)
   const isLocalSubdomain = host.endsWith(`.${LOCAL_DOMAIN}`);
   const isProdSubdomain = host.endsWith(`.${BASE_DOMAIN}`);
 
