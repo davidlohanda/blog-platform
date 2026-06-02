@@ -19,7 +19,7 @@ export function proxy(req: NextRequest): NextResponse {
   const host = hostname.replace(/:.*$/, '');
   const { pathname } = req.nextUrl;
 
-  // Auth guard: redirect to /login if cookie missing
+// Auth guard: redirect to /login if cookie missing
   if (isProtected(pathname) && !req.cookies.has('refreshToken')) {
     const loginUrl = req.nextUrl.clone();
     loginUrl.pathname = '/login';
