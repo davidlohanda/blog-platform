@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { Publication } from '@/lib/pub-data';
+import { pubUrl } from '@/lib/pub-url';
 
 export function PubFooter({ pub }: { pub: Publication }) {
   const domain = pub.customDomain ?? `${pub.slug}.lentera.id`;
@@ -19,15 +20,15 @@ export function PubFooter({ pub }: { pub: Publication }) {
             <div>
               <div className="mb-3 font-semibold text-foreground">Konten</div>
               <div className="flex flex-col gap-2">
-                <Link href="/" className="hover:text-foreground">Artikel terbaru</Link>
-                <Link href="/series" className="hover:text-foreground">Series</Link>
+                <Link href={pubUrl(pub.slug, '/')} className="hover:text-foreground">Artikel terbaru</Link>
+                <Link href={pubUrl(pub.slug, '/series')} className="hover:text-foreground">Series</Link>
               </div>
             </div>
             <div>
               <div className="mb-3 font-semibold text-foreground">Lainnya</div>
               <div className="flex flex-col gap-2">
-                <Link href="/about" className="hover:text-foreground">Tentang penulis</Link>
-                <Link href="/subscribe" className="hover:text-foreground">Berlangganan</Link>
+                <Link href={pubUrl(pub.slug, '/about')} className="hover:text-foreground">Tentang penulis</Link>
+                <Link href={pubUrl(pub.slug, '/subscribe')} className="hover:text-foreground">Berlangganan</Link>
               </div>
             </div>
           </div>

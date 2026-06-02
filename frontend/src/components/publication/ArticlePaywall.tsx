@@ -1,13 +1,15 @@
 import Link from 'next/link';
+import { pubUrl } from '@/lib/pub-url';
 
 interface Props {
   pubName: string;
   pubId: string;
+  pubSlug: string;
   articleSlug: string;
 }
 
-export function ArticlePaywall({ pubName, pubId, articleSlug }: Props) {
-  const subscribeHref = `/subscribe?pub=${pubId}&next=${encodeURIComponent(articleSlug)}`;
+export function ArticlePaywall({ pubName, pubId, pubSlug, articleSlug }: Props) {
+  const subscribeHref = pubUrl(pubSlug, `/subscribe?pub=${pubId}&next=${encodeURIComponent(articleSlug)}`);
 
   return (
     <div className="relative mt-0">
@@ -36,7 +38,7 @@ export function ArticlePaywall({ pubName, pubId, articleSlug }: Props) {
             Berlangganan sekarang
           </Link>
           <Link
-            href="/login"
+            href={pubUrl(pubSlug, '/login')}
             className="rounded-full border border-border px-6 py-2.5 text-sm font-semibold transition-colors hover:bg-muted"
           >
             Sudah punya akun? Masuk
