@@ -13,7 +13,6 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { useAuth } from '@/hooks/useAuth';
-import { pubUrl } from '@/lib/pub-url';
 
 interface ArticleItem {
   orderIndex: number;
@@ -32,10 +31,9 @@ interface ArticleItem {
 
 interface Props {
   articles: ArticleItem[];
-  pubSlug: string;
 }
 
-export function SeriesArticleList({ articles, pubSlug }: Props) {
+export function SeriesArticleList({ articles }: Props) {
   const { user } = useAuth();
   const [lockedArticle, setLockedArticle] = useState<ArticleItem['article'] | null>(null);
 
@@ -108,7 +106,7 @@ export function SeriesArticleList({ articles, pubSlug }: Props) {
           return (
             <Link
               key={article.id}
-              href={pubUrl(pubSlug, `/${article.slug}`)}
+              href={`/${article.slug}`}
               className="group flex items-start gap-4 rounded-xl border border-border bg-card p-5 transition-colors hover:bg-muted/30"
             >
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-sm font-semibold text-muted-foreground">
@@ -186,8 +184,7 @@ export function SeriesArticleList({ articles, pubSlug }: Props) {
                 <Button
                   className="w-full"
                   onClick={() =>
-                    (window.location.href = pubUrl(pubSlug, `/subscribe?next=${encodeURIComponent(pubUrl(pubSlug, `/${lockedArticle.slug}`))}`)
-                    )
+                    (window.location.href = `/subscribe?next=${encodeURIComponent(`/${lockedArticle.slug}`)}`)
                   }
                 >
                   Berlangganan untuk membaca
@@ -196,8 +193,7 @@ export function SeriesArticleList({ articles, pubSlug }: Props) {
                   variant="ghost"
                   className="w-full text-muted-foreground"
                   onClick={() =>
-                    (window.location.href = pubUrl(pubSlug, `/login?next=${encodeURIComponent(pubUrl(pubSlug, `/${lockedArticle.slug}`))}`)
-                    )
+                    (window.location.href = `/login?next=${encodeURIComponent(`/${lockedArticle.slug}`)}`)
                   }
                 >
                   Sudah punya akun? Masuk
