@@ -90,4 +90,35 @@ export const adminRepository = {
       },
     });
   },
+
+  listPlatformStaff() {
+    return prisma.user.findMany({
+      where: { role: { in: ['platform_admin', 'platform_owner'] } },
+      orderBy: { createdAt: 'asc' },
+      select: { id: true, name: true, email: true, role: true, createdAt: true },
+    });
+  },
+
+  createPlatformStaff(data: { email: string; name: string; passwordHash: string }) {
+    return prisma.user.create({
+      data: { ...data, role: 'platform_admin', emailVerifiedAt: new Date() },
+      select: { id: true, name: true, email: true, role: true, createdAt: true },
+    });
+  },
+
+  deletePlatformStaff(userId: string) {
+    return prisma.user.delete({ where: { id: userId } });
+  },
+
+  updatePlatformStaffRole(userId: string, role: 'platform_admin' | 'platform_owner') {
+    return prisma.user.update({
+      where: { id: userId },
+      data: { role },
+      select: { id: true, name: true, email: true, role: true },
+    });
+  },
+
+  findById(userId: string) {
+    return prisma.user.findUnique({ where: { id: userId } });
+  },
 };

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { adminController } from './admin.controller';
 import { authenticate } from '../../middleware/auth.middleware';
-import { adminGuard } from '../../middleware/adminGuard.middleware';
+import { adminGuard, ownerGuard } from '../../middleware/adminGuard.middleware';
 import { validate } from '../../middleware/validate.middleware';
 import { z } from 'zod';
 
@@ -34,6 +34,26 @@ router.patch(
 );
 router.patch('/publications/:id/unsuspend', (req, res, next) =>
   adminController.unsuspendPublication(req, res, next),
+);
+
+// Story 15.6 — platform staff management (platform_owner only)
+router.get('/staff', ownerGuard, (req, res, next) =>
+  adminController.listPlatformStaff(req, res, next),
+);
+router.post(
+  '/staff',
+  ownerGuard,
+  validate(z.object({ email: z.string().email(), name: z.string().min(2) })),
+  (req, res, next) => adminController.createPlatformStaff(req, res, next),
+);
+router.delete('/staff/:userId', ownerGuard, (req, res, next) =>
+  adminController.deletePlatformStaff(req, res, next),
+);
+router.patch(
+  '/staff/:userId/role',
+  ownerGuard,
+  validate(z.object({ role: z.enum(['platform_admin', 'platform_owner']) })),
+  (req, res, next) => adminController.updatePlatformStaffRole(req, res, next),
 );
 
 export { router as adminRouter };

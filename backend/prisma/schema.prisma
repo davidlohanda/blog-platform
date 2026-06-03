@@ -14,6 +14,7 @@ datasource db {
 enum UserRole {
   user
   platform_admin
+  platform_owner
 }
 
 model User {

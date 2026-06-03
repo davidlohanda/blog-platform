@@ -153,6 +153,12 @@ async function processEmailJob(job: { data: EmailJobData }) {
       html = templates.ownershipTransferConfirmed(data.name, data.publicationName, data.isNewOwner);
       break;
 
+    case 'send-admin-welcome':
+      to = data.to;
+      subject = 'Selamat datang di Lentera Admin';
+      html = `<p>Halo ${data.name},</p><p>Akun admin platform Lentera kamu sudah dibuat.</p><p>Login di: <a href="${data.loginUrl}">${data.loginUrl}</a></p><p>Password sementara: <strong>${data.tempPassword}</strong></p><p>Segera ganti password setelah login pertama.</p>`;
+      break;
+
     default:
       throw new Error(`Unknown email job: ${(job.data as { name: string }).name}`);
   }

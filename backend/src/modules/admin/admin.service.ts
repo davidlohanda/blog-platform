@@ -7,6 +7,8 @@ import { AppError } from '../../lib/AppError';
 import { signAccessToken } from '../../lib/jwt';
 import { config } from '../../config';
 import { log } from '../../lib/logger';
+import { hash } from '../../lib/password';
+import { randomUUID } from 'crypto';
 
 export const adminService = {
   async getOverview() {
@@ -195,5 +197,53 @@ export const adminService = {
         });
       }
     }
+  },
+
+  async listPlatformStaff() {
+    return adminRepository.listPlatformStaff();
+  },
+
+  async createPlatformStaff(email: string, name: string) {
+    const existing = await authRepository.findByEmail(email);
+    if (existing) throw AppError.conflict('Email sudah terdaftar', 'EMAIL_TAKEN');
+
+    const tempPassword = randomUUID().slice(0, 12);
+    const passwordHash = await hash(tempPassword);
+    const staff = await adminRepository.createPlatformStaff({ email, name, passwordHash });
+
+    // Send welcome email with temp password
+    await emailService
+      .sendAdminWelcome({
+        to: email,
+        name,
+        tempPassword,
+        loginUrl: `${config.platform.frontendUrl}/admin/login`,
+      })
+      .catch(() => {});
+
+    return staff;
+  },
+
+  async deletePlatformStaff(userId: string, requesterId: string) {
+    if (userId === requesterId) throw AppError.badRequest('Tidak bisa hapus akun sendiri');
+    const user = await adminRepository.findById(userId);
+    if (!user) throw AppError.notFound('User tidak ditemukan');
+    if (user.role !== 'platform_admin')
+      throw AppError.badRequest('Hanya platform_admin yang bisa dihapus');
+    return adminRepository.deletePlatformStaff(userId);
+  },
+
+  async updatePlatformStaffRole(
+    userId: string,
+    role: 'platform_admin' | 'platform_owner',
+    requesterId: string,
+  ) {
+    if (userId === requesterId) throw AppError.badRequest('Tidak bisa ubah role sendiri');
+    const user = await adminRepository.findById(userId);
+    if (!user) throw AppError.notFound('User tidak ditemukan');
+    if (user.role !== 'platform_admin' && user.role !== 'platform_owner') {
+      throw AppError.badRequest('User bukan platform staff');
+    }
+    return adminRepository.updatePlatformStaffRole(userId, role);
   },
 };

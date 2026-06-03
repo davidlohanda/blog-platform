@@ -156,4 +156,46 @@ export const adminController = {
       next(error);
     }
   },
+
+  async listPlatformStaff(_req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await adminService.listPlatformStaff();
+      res.json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async createPlatformStaff(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { email, name } = req.body as { email: string; name: string };
+      const data = await adminService.createPlatformStaff(email, name);
+      res.status(201).json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async deletePlatformStaff(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { userId } = req.params;
+      const requesterId = (req as AuthRequest).user.userId;
+      await adminService.deletePlatformStaff(userId, requesterId);
+      res.json({ success: true, data: { message: 'Staff berhasil dihapus' } });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async updatePlatformStaffRole(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { userId } = req.params;
+      const { role } = req.body as { role: 'platform_admin' | 'platform_owner' };
+      const requesterId = (req as AuthRequest).user.userId;
+      const data = await adminService.updatePlatformStaffRole(userId, role, requesterId);
+      res.json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  },
 };

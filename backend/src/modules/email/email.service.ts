@@ -18,6 +18,7 @@ import type {
   PublicationDeletionRequestedEmailData,
   OwnershipTransferRequestEmailData,
   OwnershipTransferConfirmedEmailData,
+  AdminWelcomeEmailData,
   EmailJobData,
 } from './email.types';
 
@@ -110,6 +111,10 @@ export const emailService = {
 
   sendOwnershipTransferConfirmed(data: OwnershipTransferConfirmedEmailData) {
     return enqueue({ name: 'send-ownership-transfer-confirmed', data });
+  },
+
+  sendAdminWelcome(data: AdminWelcomeEmailData) {
+    return enqueue({ name: 'send-admin-welcome', data });
   },
 
   // Enqueue new-article notifications to all opted-in active subscribers

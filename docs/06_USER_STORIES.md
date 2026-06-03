@@ -923,20 +923,20 @@ Sebagai platform_owner, saya ingin bisa menambah dan menghapus platform_admin.
 
 **Catatan:** Story ini bergantung pada EPIC 18 STORY 18.1 (migration `platform_role` field sudah ada).
 
-**TASK-BE-15.6.1** `[ ]` POST /admin/staff — tambah platform_admin baru (platform_owner only)
+**TASK-BE-15.6.1** `[x]` POST /admin/staff — tambah platform_admin baru (platform_owner only)
 - Body: `{ email, name }` → buat user dengan `platform_role = 'platform_admin'`
 - Kirim email invite dengan temporary password
 
-**TASK-BE-15.6.2** `[ ]` DELETE /admin/staff/:userId — hapus platform_admin (platform_owner only)
-**TASK-BE-15.6.3** `[ ]` PATCH /admin/staff/:userId/role — ubah role platform_admin ↔ platform_owner
-**TASK-BE-15.6.4** `[ ]` GET /admin/staff — list semua platform staff
-**TASK-BE-15.6.5** `[ ]` Commit: `feat(admin): add platform staff management endpoints`
+**TASK-BE-15.6.2** `[x]` DELETE /admin/staff/:userId — hapus platform_admin (platform_owner only)
+**TASK-BE-15.6.3** `[x]` PATCH /admin/staff/:userId/role — ubah role platform_admin ↔ platform_owner
+**TASK-BE-15.6.4** `[x]` GET /admin/staff — list semua platform staff
+**TASK-BE-15.6.5** `[x]` Commit: `feat(admin): add platform staff management endpoints`
 
-**TASK-FE-15.6.1** `[ ]` `/admin/dashboard`: tambah section "Platform Staff" (visible hanya untuk platform_owner)
-**TASK-FE-15.6.2** `[ ]` Tabel staff dengan kolom: nama, email, role, tanggal bergabung
-**TASK-FE-15.6.3** `[ ]` Tombol "Tambah Admin" — modal: email + nama
-**TASK-FE-15.6.4** `[ ]` Tombol hapus / ubah role per baris (platform_owner only)
-**TASK-INT-15.6.1** `[ ]` Commit: `feat(admin): add platform staff management UI`
+**TASK-FE-15.6.1** `[x]` `/admin/dashboard`: tambah section "Platform Staff" (visible hanya untuk platform_owner)
+**TASK-FE-15.6.2** `[x]` Tabel staff dengan kolom: nama, email, role, tanggal bergabung
+**TASK-FE-15.6.3** `[x]` Tombol "Tambah Admin" — modal: email + nama
+**TASK-FE-15.6.4** `[x]` Tombol hapus / ubah role per baris (platform_owner only)
+**TASK-INT-15.6.1** `[x]` Commit: `feat(admin): add platform staff management UI`
 
 ---
 
