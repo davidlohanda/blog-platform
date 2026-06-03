@@ -55,6 +55,13 @@ export function proxy(req: NextRequest): NextResponse {
       return NextResponse.rewrite(rewriteUrl, { request: { headers: requestHeaders } });
     }
 
+    // Rewrite / → /pub-home for publication homepage
+    if (pathname === '/') {
+      const rewriteUrl = req.nextUrl.clone();
+      rewriteUrl.pathname = '/pub-home';
+      return NextResponse.rewrite(rewriteUrl, { request: { headers: requestHeaders } });
+    }
+
     return NextResponse.next({ request: { headers: requestHeaders } });
   }
 
