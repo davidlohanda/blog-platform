@@ -1032,17 +1032,17 @@ Harus dipisah dengan pola yang sama seperti `pub-admin` — yang di-rewrite adal
 - `lentera.id/` → natural route → `(platform)/page.tsx` (tidak perlu rewrite)
 - `slug.lentera.id/` → proxy.ts rewrite `/ → /pub-home` → `(publication)/pub-home/page.tsx`
 
-**TASK-FE-16.4.1** `[ ]` Buat `app/(platform)/page.tsx` — platform landing
+**TASK-FE-16.4.1** `[x]` Buat `app/(platform)/page.tsx` — platform landing
 - Pindahkan `PlatformLanding` component dari `(publication)/page.tsx` ke sini
 - Target audience: calon publication owner/kreator
 - Serve `lentera.id/` secara natural (tidak ada rewrite)
 
-**TASK-FE-16.4.2** `[ ]` Buat `app/(publication)/pub-home/page.tsx` — publication homepage
+**TASK-FE-16.4.2** `[x]` Buat `app/(publication)/pub-home/page.tsx` — publication homepage
 - Pindahkan publication homepage content dari `(publication)/page.tsx` ke sini
 - Serve `slug.lentera.id/` via proxy.ts rewrite (`/` → `/pub-home`)
 - Sudah punya `PublicationContext` dari parent `(publication)/layout.tsx`
 
-**TASK-FE-16.4.3** `[ ]` Update `proxy.ts` — tambah rewrite untuk subdomain root
+**TASK-FE-16.4.3** `[x]` Update `proxy.ts` — tambah rewrite untuk subdomain root
 - Tambah kondisi: subdomain + `pathname === '/'` → rewrite ke `/pub-home`
 - Analogous dengan `/admin/*` → `/pub-admin/admin/*`
 ```typescript
@@ -1052,11 +1052,11 @@ if (pathname === '/') {
 }
 ```
 
-**TASK-FE-16.4.4** `[ ]` Hapus `app/(publication)/page.tsx`
+**TASK-FE-16.4.4** `[x]` Hapus `app/(publication)/page.tsx`
 - Setelah kontennya dipindah ke `(platform)/page.tsx` dan `(publication)/pub-home/page.tsx`
 
-**TASK-INT-16.4.1** `[ ]` Verifikasi: `lentera.id/` → platform landing, `slug.lentera.id/` → publication homepage
-**TASK-INT-16.4.2** `[ ]` Commit: `feat(routing): separate platform landing and publication homepage`
+**TASK-INT-16.4.1** `[x]` Verifikasi: `lentera.id/` → platform landing, `slug.lentera.id/` → publication homepage
+**TASK-INT-16.4.2** `[x]` Commit: `feat(routing): separate platform landing and publication homepage`
 
 ---
 
