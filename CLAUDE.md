@@ -143,7 +143,7 @@ app/
     ├── layout.tsx                 ← Resolve tenant, provide PublicationContext
     │
     ├── ── MEMBER SPACE (root) ──────────────────────────────────────────
-    ├── page.tsx                   ← Publication homepage
+    ├── pub-home/page.tsx          ← Publication homepage (via proxy.ts rewrite: / → /pub-home)
     ├── [articleSlug]/page.tsx
     ├── series/[slug]/page.tsx
     ├── suspended/page.tsx
@@ -177,16 +177,17 @@ app/
 ```
 
 **Catatan routing penting — proxy.ts rewrite:**
-- `(platform)/admin/` → platform admin. Hanya jalan di `lentera.id` (root domain).
-- `(publication)/pub-admin/admin/` → publication staff. Hanya jalan di `slug.lentera.id` (subdomain).
-- Kedua folder sama-sama menghasilkan URL `/admin/*` — tidak konflik karena
-  proxy.ts melakukan `NextResponse.rewrite()` untuk request dari subdomain:
-  ```
-  slug.lentera.id/admin/* → (internal) /pub-admin/admin/*
-  lentera.id/admin/*      → (internal) /admin/* (no rewrite)
-  ```
-- Internal path `/pub-admin/admin/` tidak terekspos ke user — URL tetap `/admin/*`.
+Pola: platform selalu natural (tidak di-rewrite), publication di-rewrite oleh proxy.ts.
+
+| URL di browser | Domain | Internal path | File |
+|---|---|---|---|
+| `/` | lentera.id | `/` (no rewrite) | `(platform)/page.tsx` |
+| `/` | slug.lentera.id | `/pub-home` (rewrite) | `(publication)/pub-home/page.tsx` |
+| `/admin/*` | lentera.id | `/admin/*` (no rewrite) | `(platform)/admin/` |
+| `/admin/*` | slug.lentera.id | `/pub-admin/admin/*` (rewrite) | `(publication)/pub-admin/admin/` |
+
 - Route groups `(platform)`, `(publication)`, `(auth)` tidak mempengaruhi URL sama sekali.
+- Semua rewrite transparent — user/browser hanya melihat URL asli.
 
 ---
 

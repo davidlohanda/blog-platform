@@ -135,7 +135,7 @@ app/
     │                                handle suspended_hard → redirect /suspended
     │
     ├── ── MEMBER SPACE (root) ───────────────────────────────────────────
-    ├── page.tsx                  ← slug.lentera.id/ (publication homepage)
+    ├── pub-home/page.tsx         ← slug.lentera.id/ via proxy.ts rewrite (/ → /pub-home)
     ├── [articleSlug]/page.tsx
     ├── series/[slug]/page.tsx
     ├── suspended/page.tsx
@@ -1872,7 +1872,7 @@ frontend/
     │       ├── layout.tsx             — WAJIB: resolve tenant, PublicationContext
     │       │
     │       ├── ── MEMBER SPACE (root) ────────────────────────────────────
-    │       ├── page.tsx               — publication homepage
+    │       ├── pub-home/page.tsx      — slug.lentera.id/ via rewrite (/ → /pub-home)
     │       ├── [articleSlug]/page.tsx
     │       ├── series/[slug]/page.tsx
     │       ├── suspended/page.tsx

@@ -1022,21 +1022,41 @@ Sebagai pengunjung yang membuka lentera.id, saya ingin melihat halaman yang menj
 
 ---
 
-### STORY 16.4 — Pindah Platform Landing ke `app/page.tsx`
-**Konteks:** Domain platform berubah dari `app.lentera.id` → `lentera.id`. Platform landing harus ada di root `app/page.tsx`, bukan di `(publication)/page.tsx` (yang merupakan publication homepage).
-Target audience: calon publication owner/kreator (bukan dual audience).
+### STORY 16.4 — Pisahkan Platform Landing dan Publication Homepage
 
-**TASK-FE-16.4.1** `[ ]` Buat `app/page.tsx` — salin konten dari `(publication)/page.tsx` (Story 16.3)
-- Target: lentera.id/ — untuk calon publication owner/kreator
-- Tidak ada `x-publication-slug` header di sini (root domain)
-- CTA utama: "Mulai Publication Kamu" (bukan dua CTA)
+**Konteks:** Saat ini satu file `(publication)/page.tsx` melayani dua konteks:
+1. `lentera.id/` → tidak ada slug → render `PlatformLanding` component
+2. `slug.lentera.id/` → ada slug → render publication homepage
 
-**TASK-FE-16.4.2** `[ ]` Hapus platform landing logic dari `(publication)/page.tsx`
-- File ini harus menjadi publication homepage (untuk member) — bukan platform marketing
-- Jika tidak ada konten publication: tampilkan 404 atau redirect ke lentera.id
+Harus dipisah dengan pola yang sama seperti `pub-admin` — yang di-rewrite adalah sisi publication:
+- `lentera.id/` → natural route → `(platform)/page.tsx` (tidak perlu rewrite)
+- `slug.lentera.id/` → proxy.ts rewrite `/ → /pub-home` → `(publication)/pub-home/page.tsx`
 
-**TASK-INT-16.4.1** `[ ]` Verifikasi: lentera.id/ tampilkan landing, slug.lentera.id/ tampilkan publication homepage
-**TASK-INT-16.4.2** `[ ]` Commit: `feat(frontend): move platform landing to app/page.tsx, fix (publication)/page.tsx`
+**TASK-FE-16.4.1** `[ ]` Buat `app/(platform)/page.tsx` — platform landing
+- Pindahkan `PlatformLanding` component dari `(publication)/page.tsx` ke sini
+- Target audience: calon publication owner/kreator
+- Serve `lentera.id/` secara natural (tidak ada rewrite)
+
+**TASK-FE-16.4.2** `[ ]` Buat `app/(publication)/pub-home/page.tsx` — publication homepage
+- Pindahkan publication homepage content dari `(publication)/page.tsx` ke sini
+- Serve `slug.lentera.id/` via proxy.ts rewrite (`/` → `/pub-home`)
+- Sudah punya `PublicationContext` dari parent `(publication)/layout.tsx`
+
+**TASK-FE-16.4.3** `[ ]` Update `proxy.ts` — tambah rewrite untuk subdomain root
+- Tambah kondisi: subdomain + `pathname === '/'` → rewrite ke `/pub-home`
+- Analogous dengan `/admin/*` → `/pub-admin/admin/*`
+```typescript
+if (pathname === '/') {
+  rewriteUrl.pathname = '/pub-home';
+  return NextResponse.rewrite(rewriteUrl, { request: { headers: requestHeaders } });
+}
+```
+
+**TASK-FE-16.4.4** `[ ]` Hapus `app/(publication)/page.tsx`
+- Setelah kontennya dipindah ke `(platform)/page.tsx` dan `(publication)/pub-home/page.tsx`
+
+**TASK-INT-16.4.1** `[ ]` Verifikasi: `lentera.id/` → platform landing, `slug.lentera.id/` → publication homepage
+**TASK-INT-16.4.2** `[ ]` Commit: `feat(routing): separate platform landing and publication homepage`
 
 ---
 
