@@ -1,8 +1,8 @@
 # CLAUDE.md
 ## Blog Platform — Lentera
 > File ini dibaca otomatis oleh Claude Code setiap sesi dimulai.
-> Versi 2.0 — Update dari sesi Grill Me (tambahan di bagian bawah).
-> Untuk detail lengkap, lihat file di folder docs/.
+> Versi 3.0 — Routing architecture refactor (platform vs publication separation), docs sync.
+> File ini adalah index navigasi — untuk detail, selalu rujuk docs/ sesuai panduan di bawah.
 
 ---
 
@@ -10,13 +10,39 @@
 
 Platform blog subscription multi-author (SaaS). Setiap "publication" berdiri independen dengan audience-nya sendiri — tidak ada marketplace atau discovery lintas publication. Model bisnis: platform fee 15% dari setiap transaksi subscription member (bisa dikonfigurasi per publication oleh admin).
 
-**Dokumen referensi lengkap:**
-- `docs/PRD_Publication_Platform.md` — requirements & business decisions
-- `docs/SAD_Publication_Platform.md` — arsitektur & technical design
-- `docs/TECH_CONTEXT.md` — rules implementasi (BACA INI SEBELUM CODING)
-- `docs/GIT_STRATEGY.md` — branching & commit convention
-- `docs/USER_STORIES_MVP.md` — task breakdown implementasi (progress tracker)
-- `docs/REFACTOR_NOTES.md` — technical debt yang perlu diperbaiki
+**Dokumen referensi (baca berurutan untuk orientasi awal):**
+- `docs/01_PRD.md` — requirements & business decisions
+- `docs/02_SAD.md` — arsitektur & technical design ← **paling sering dibutuhkan**
+- `docs/03_TECH_CONTEXT.md` — rules implementasi ← **BACA INI SEBELUM CODING**
+- `docs/04_GIT_STRATEGY.md` — branching & commit convention
+- `docs/05_UI_UX_BRIEFING.md` — panduan desain UI/UX
+- `docs/06_USER_STORIES.md` — task breakdown & progress tracker
+
+---
+
+## Panduan Baca Dokumen per Konteks Implementasi
+
+> Sebelum mulai implementasi, baca file ini + dokumen di bawah sesuai konteksnya.
+> Jangan mengandalkan ingatan sesi sebelumnya — selalu rujuk dokumen.
+
+| Konteks implementasi | Dokumen yang harus dibaca | Section spesifik |
+|---|---|---|
+| **Backend: auth** (login, register, OAuth, token, invite) | `02_SAD.md` + `03_TECH_CONTEXT.md` | SAD §5 (seluruhnya) |
+| **Backend: API endpoint baru** | `02_SAD.md` + `03_TECH_CONTEXT.md` | SAD §6 (endpoint list) + TECH §Rules Backend |
+| **Backend: database / Prisma** | `02_SAD.md` | SAD §7 (schema) + §7.3 (indexes) + §7.4 (Redis keys) |
+| **Backend: email & notifikasi** | `02_SAD.md` | SAD §9 (email types, queue, bounce handling) |
+| **Backend: payment / subscription** | `02_SAD.md` | SAD §8 (Midtrans flow, auto-expire job, access control) |
+| **Backend: security / rate limiting** | `02_SAD.md` | SAD §14 (rate limiting, Argon2, CSRF) |
+| **Frontend: halaman baru di `(publication)/`** | `02_SAD.md` + `03_TECH_CONTEXT.md` | SAD §3.1 (app/ structure) + SAD §10.3 (proxy.ts + layout) |
+| **Frontend: auth pages** (login, register, forgot-password) | `02_SAD.md` | SAD §5.0 (auth flow per user type) + SAD §3.1 |
+| **Frontend: platform admin** (`admin/` folder) | `02_SAD.md` | SAD §3.1 (admin/ folder) + SAD §5.0 (platform admin auth) |
+| **Frontend: publication dashboard** (`dashboard/`) | `02_SAD.md` | SAD §3.1 (dashboard/ dalam (publication)/) |
+| **Frontend: caching** | `02_SAD.md` + `03_TECH_CONTEXT.md` | SAD §13 (Redis + Next.js cache) + TECH §Rules Frontend §2 |
+| **Frontend: routing / proxy.ts** | `02_SAD.md` + `03_TECH_CONTEXT.md` | SAD §10.3 (proxy.ts + layout.tsx) + TECH §Rules Frontend §4 |
+| **UI design & komponen** | `05_UI_UX_BRIEFING.md` | Semua — terutama §Tone, §Constraint, §Prioritas |
+| **Business requirement / fitur scope** | `01_PRD.md` | §6 (Fitur & Requirements) + §10 (MVP Scope) |
+| **Git workflow / commit message** | `04_GIT_STRATEGY.md` | Semua |
+| **Next task / cek progress** | `06_USER_STORIES.md` | URUTAN PENGERJAAN + EPIC yang sedang dikerjakan |
 
 ---
 
@@ -54,50 +80,192 @@ blog-platform/
 
 ## Arsitektur Multi-Tenancy & Routing
 
-### Di Development Lokal (Path-based)
+### Tiga Ruang, Tiga Context Auth
+
+| | Platform | Publication Staff | Publication Member |
+|---|---|---|---|
+| Domain (prod) | `app.lentera.id` | `[slug].lentera.id` | `[slug].lentera.id` |
+| Domain (dev) | `localhost:3000` | `slug.lvh.me:3000` | `slug.lvh.me:3000` |
+| Login URL | `/admin/login` | `/admin/login` | `/login` |
+| Dashboard URL | `/admin/dashboard` | `/admin/dashboard` | `/` (homepage) |
+| Google OAuth | ❌ | ❌ | ✅ |
+| Users | `platform_owner`, `platform_admin` | `owner`, `admin`, `author` | subscriber, registered, anonymous |
+
+**Pola kunci:** `/admin/*` = area staff di semua level (platform maupun publication). `/login` di publication subdomain = member ONLY.
+
+### Di Development Lokal (Subdomain via lvh.me)
+`lvh.me` adalah domain publik yang selalu resolve ke `127.0.0.1` — memungkinkan simulasi subdomain di lokal tanpa edit hosts file.
 ```
-localhost:3000              → Platform landing page (Lentera)
-localhost:3000/admin        → Platform admin dashboard
-localhost:3000/[slug]       → Publication site (simulasi subdomain)
-localhost:3000/[slug]/dashboard → Publication owner dashboard
+localhost:3000/admin/login              → Platform admin login
+localhost:3000/admin/dashboard          → Platform admin dashboard
+investasi-cerdas.lvh.me:3000           → Publication homepage (member view)
+investasi-cerdas.lvh.me:3000/login     → Publication member login
+investasi-cerdas.lvh.me:3000/admin/login    → Publication staff login
+investasi-cerdas.lvh.me:3000/admin/dashboard → Publication staff dashboard
 ```
 
 ### Di Production (Subdomain-based)
 ```
-lentera.id                  → Platform landing page
-lentera.id/admin            → Platform admin dashboard
-[slug].lentera.id           → Publication site
-[slug].lentera.id/dashboard → Publication owner dashboard
+app.lentera.id/admin/login              → Platform admin login
+app.lentera.id/admin/dashboard          → Platform admin dashboard
+[slug].lentera.id/                      → Publication homepage
+[slug].lentera.id/login                 → Publication member login (+ Google OAuth)
+[slug].lentera.id/admin/login           → Publication staff login (no Google)
+[slug].lentera.id/admin/dashboard       → Publication staff dashboard
 ```
 
 **Custom domain:** Di-skip untuk MVP. Publication hanya pakai subdomain Lentera.
+
+### Frontend `app/` Folder Structure (Target)
+```
+app/
+├── ── PLATFORM (app.lentera.id/admin/*) ──────────────────────────────
+├── admin/
+│   ├── layout.tsx                 ← Guard: protect dashboard, pass-through auth pages
+│   ├── login/page.tsx             ← /admin/login — email+pass ONLY, no Google
+│   ├── forgot-password/page.tsx
+│   ├── reset-password/page.tsx
+│   ├── dashboard/page.tsx         ← protected: platform_admin only
+│   ├── publications/page.tsx
+│   └── invite/page.tsx
+│
+├── accept-invite/page.tsx         ← Owner onboarding wizard (pre-auth, platform URL)
+├── auth/google/callback/page.tsx  ← OAuth callback (fixed URL, state bawa publicationId)
+├── payment/success/page.tsx       ← Midtrans callback (fixed URL)
+│
+├── ── PUBLICATION (slug.lentera.id/*) ─────────────────────────────────
+└── (publication)/
+    ├── layout.tsx                 ← Resolve tenant, provide PublicationContext
+    │
+    ├── ── MEMBER SPACE (root) ──────────────────────────────────────────
+    ├── page.tsx                   ← Publication homepage
+    ├── [articleSlug]/page.tsx
+    ├── series/[slug]/page.tsx
+    ├── suspended/page.tsx
+    ├── accept-author-invite/page.tsx  ← Pre-auth, anyone can access
+    │
+    ├── login/page.tsx             ← /login — MEMBER ONLY + Google OAuth
+    ├── register/page.tsx          ← Member self-register
+    ├── verify-email/page.tsx      ← Member email verification
+    ├── forgot-password/page.tsx   ← Member forgot-password
+    ├── reset-password/page.tsx
+    │
+    ├── subscribe/page.tsx         ← Ambil publicationId dari layout context
+    ├── settings/page.tsx
+    ├── subscription/page.tsx
+    │
+    └── ── STAFF SPACE (/admin/*) ───────────────────────────────────────
+        └── admin/
+            ├── layout.tsx         ← Guard: protect dashboard, pass-through auth pages
+            ├── login/page.tsx     ← /admin/login — STAFF ONLY, no Google
+            ├── forgot-password/page.tsx
+            ├── reset-password/page.tsx
+            └── dashboard/
+                ├── layout.tsx     ← Guard: verify owner/admin/author role
+                ├── page.tsx       ← /admin/dashboard
+                ├── articles/{...}
+                ├── series/{...}
+                ├── subscribers/page.tsx
+                ├── analytics/page.tsx
+                └── settings/page.tsx
+```
 
 ---
 
 ## Role & Permission System
 
-### Platform-level Roles
+### Platform Roles (app.lentera.id)
+Disimpan di field `platformRole` di tabel `users` (nullable — hanya terisi untuk platform staff).
+
 | Role | Akses |
 |------|-------|
-| `platform_admin` | Semua fitur admin platform: invite owner, suspend publication, konfigurasi fee, impersonate |
-| `owner` | Dashboard publication, semua fitur publication |
-| `admin` (publication) | Semua fitur OWNER kecuali: delete publication, transfer ownership, ubah role author lain |
-| `author` | Hanya: tulis/edit/hapus artikel sendiri |
-| `member` | Baca konten premium, settings member dalam konteks publication |
-| `visitor` | Baca konten free, lihat preview premium |
+| `platform_owner` | Semua akses platform + kelola platform_admin + ubah setting inti platform |
+| `platform_admin` | Operasional: invite owner, suspend publication, konfigurasi fee, impersonate, lihat semua data |
 
-### Permission Matrix Publication
+**Hanya `platform_owner` yang bisa:**
+- Tambah / hapus `platform_admin`
+- Mengubah setting fundamental platform (domain, nama, branding)
+
+### Publication Staff Roles (slug.lentera.id/admin/*)
+Disimpan di tabel `publication_authors` — satu user bisa punya role berbeda di publication berbeda.
+
+| Role | Akses |
+|------|-------|
+| `owner` | Semua fitur publication |
+| `admin` | Semua fitur OWNER kecuali: delete publication, transfer ownership, ubah role author lain |
+| `author` | Hanya: tulis/edit/hapus artikel sendiri |
+
+**Staff otomatis bisa baca semua konten premium di publication mereka** — tanpa berlangganan.
+
+### Reader States (slug.lentera.id/)
+Bukan role DB — ini state yang ditentukan runtime per request.
+
+| State | Kondisi | Akses |
+|-------|---------|-------|
+| `subscriber` | Punya subscription aktif (`subscriptions.status = active` & `expiresAt > now`) | Semua konten + komentar |
+| `registered` | Punya akun tapi belum/tidak subscribe | Konten free saja |
+| `anonymous` | Tidak login | Konten free saja |
+
+**`member` dalam konteks UI/bisnis = `subscriber` secara teknis.** Bukan DB role.
+
+### Permission Matrix — Platform
+| Fitur | PLATFORM_OWNER | PLATFORM_ADMIN |
+|---|---|---|
+| View semua publications & users | ✅ | ✅ |
+| Invite publication owner | ✅ | ✅ |
+| Suspend/unsuspend publication | ✅ | ✅ |
+| Konfigurasi fee per publication | ✅ | ✅ |
+| Impersonate user | ✅ | ✅ |
+| Tambah/hapus platform_admin | ✅ | ❌ |
+| Ubah setting inti platform | ✅ | ❌ |
+
+### Permission Matrix — Publication Staff
 | Fitur | OWNER | ADMIN | AUTHOR |
 |-------|-------|-------|--------|
-| Tulis/edit artikel sendiri | ✅ | ✅ | ✅ |
-| Edit/hapus artikel author lain | ✅ | ✅ | ❌ |
-| Lihat analytics & revenue | ✅ | ✅ | ❌ |
+| Buat/edit/hapus/publish artikel sendiri | ✅ | ✅ | ✅ |
+| Edit/hapus/publish artikel author lain | ✅ | ✅ | ❌ |
+| Buat/edit series sendiri | ✅ | ✅ | ✅ |
+| Edit/hapus series author lain | ✅ | ✅ | ❌ |
+| Buat/edit roadmap | ✅ | ✅ | ❌ |
+| Edit nama/deskripsi/logo publication | ✅ | ✅ | ❌ |
 | Kelola subscription plans | ✅ | ✅ | ❌ |
-| Invite/remove author | ✅ | ✅ | ❌ |
-| Ubah role author lain | ✅ | ❌ | ❌ |
-| Delete publication | ✅ | ❌ | ❌ |
-| Transfer ownership | ✅ | ❌ | ❌ |
-| Kelola custom domain | ✅ | ❌ | ❌ |
+| Lihat subscriber list & revenue/MRR | ✅ | ✅ | ❌ |
+| Lihat analytics artikel sendiri | ✅ | ✅ | ✅ |
+| Invite author baru (role: author saja) | ✅ | ✅ | ❌ |
+| Invite admin baru (role: admin) | ✅ | ❌ | ❌ |
+| Remove author | ✅ | ✅ | ❌ |
+| Remove admin | ✅ | ❌ | ❌ |
+| Ubah role tim lain | ✅ | ❌ | ❌ |
+| Konfigurasi custom domain | ✅ | ❌ | ❌ |
+| Delete / transfer ownership / cancel delete | ✅ | ❌ | ❌ |
+| Baca konten premium (tanpa subscribe) | ✅ | ✅ | ✅ |
+| Post komentar & Q&A | ✅ | ✅ | ✅ |
+
+### Permission Matrix — Reader
+| Fitur | SUBSCRIBER | REGISTERED | ANONYMOUS |
+|---|---|---|---|
+| Baca artikel free | ✅ | ✅ | ✅ |
+| Baca artikel premium | ✅ | ❌ | ❌ |
+| Like artikel free | ✅ | ✅ | ✅ |
+| Post komentar / Q&A / upvote | ✅ | ❌ | ❌ |
+| Save artikel ke folder | ✅ | ❌ | ❌ |
+| Subscribe / cancel / lihat history | ✅ | ✅* | ❌ |
+| Update profil / password / email prefs | ✅ | ✅ | ❌ |
+
+*Registered bisa subscribe; sudah subscribe = subscriber
+
+### Authorization Logic
+```
+KONTEN PREMIUM:
+1. isStaff?      → ada di publication_authors → IZINKAN
+2. isSubscriber? → subscriptions aktif (status=active, expiresAt > now) → IZINKAN
+3. Selain itu    → 403 FORBIDDEN
+
+KOMENTAR / Q&A / SAVE (subscriber-only features):
+1. isStaff?      → IZINKAN (staff = full reader access)
+2. isSubscriber? → IZINKAN, lalu cek emailVerified
+3. Selain itu    → 403 SUBSCRIPTION_REQUIRED
+```
 
 ---
 
@@ -117,8 +285,26 @@ lentera.id/admin            → Platform admin dashboard
 
 ### Login Security
 - **Rate limiting:** 5x password salah dalam 15 menit → lockout. Redis key: `login_attempts:{email}:{publicationId}`
-- **Google OAuth:** HANYA untuk role member/visitor. Publication owner dan platform admin TIDAK BOLEH login via Google
+- **Google OAuth:** HANYA untuk role member/visitor. Publication owner, admin, author, dan platform admin TIDAK BOLEH login via Google
 - **Forgot password untuk akun OAuth-only:** kirim email informasi "akun terdaftar via Google", bukan email reset password
+
+### Auth Flow per User Type
+
+| Flow | Platform Staff (owner/admin) | Publication Staff (owner/admin/author) | Member |
+|---|---|---|---|
+| Register | ❌ ditambahkan manual oleh platform_owner | ❌ invite only | ✅ `/register` |
+| Login URL | `app.lentera.id/admin/login` | `slug.lentera.id/admin/login` | `slug.lentera.id/login` |
+| Google OAuth | ❌ | ❌ | ✅ |
+| Verify email | ❌ | ❌ | ✅ `/verify-email` |
+| Forgot password | `app.lentera.id/admin/forgot-password` | `slug.lentera.id/admin/forgot-password` | `slug.lentera.id/forgot-password` |
+| Reset password link | `app.lentera.id/admin/reset-password?token=...` | `slug.lentera.id/admin/reset-password?token=...` | `slug.lentera.id/reset-password?token=...` |
+| Post-login redirect | `/admin/dashboard` | `/admin/dashboard` | `/` (pub homepage) |
+| Onboarding | Ditambahkan langsung oleh platform_owner | pub owner: `/accept-invite`; author: `slug.lentera.id/accept-author-invite` | `/register` |
+
+**Penting:**
+- `/admin/login` di publication subdomain = staff login (owner/admin/author) — pola konsisten dengan platform
+- `/login` di publication subdomain = member login ONLY — selalu ada Google OAuth button
+- Backend harus menyertakan publication slug saat generate email link untuk member dan publication staff
 
 ### Session Behavior
 - Login di `investasicerdas.lentera.id` TIDAK carry over ke `keuanganpribadi.lentera.id`
@@ -144,9 +330,9 @@ lentera.id/admin            → Platform admin dashboard
 
 ### Member Settings
 - **Semua settings member ada dalam konteks publication** — bukan di `/me/`
-- Settings: `[slug].lentera.id/settings` (bukan `/me/settings`)
-- Subscription: `[slug].lentera.id/subscription` (bukan `/me/subscription`)
-- Halaman `/me/settings` dan `/me/subscription` harus di-redirect atau dihapus
+- Settings: `[slug].lentera.id/settings`
+- Subscription: `[slug].lentera.id/subscription`
+- Direktori `app/me/` harus **dihapus total** (bukan redirect — hapus sepenuhnya)
 
 ### Subscription Lifecycle
 - **Reminder email:** 7 hari sebelum expired + 1 hari sebelum expired
@@ -284,7 +470,9 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
 - ❌ Hardcode warna hex
 - ❌ Pakai `<input>` atau `<button>` biasa — pakai shadcn/ui
 - ❌ Buat komponen inline jika dipakai di 2+ tempat
-- ❌ Settings member di `/me/` — harus dalam konteks publication
+- ❌ Pakai direktori `me/` — sudah dihapus, semua member settings ada di `(publication)/settings/` dan `(publication)/subscription/`
+- ❌ Platform admin login di `/login` — harus di `/admin/login`
+- ❌ Taruh `subscribe/` atau `suspended/` di root — harus di dalam `(publication)/`
 
 ---
 
@@ -354,7 +542,7 @@ Setelah semua Story dalam satu Epic selesai, Claude Code WAJIB melakukan ini sec
 
 ### Pendekatan Desain
 - **Design style:** ikuti tone dan aesthetic dari `frontend/design-references/` (warna, typography, spacing, komponen)
-- **Halaman yang diimplementasi:** sesuai USER_STORIES_MVP.md — JANGAN terpaku pada halaman-halaman yang ada di design-references
+- **Halaman yang diimplementasi:** sesuai 06_USER_STORIES.md — JANGAN terpaku pada halaman-halaman yang ada di design-references
 - **Referensi visual:** gunakan design-references HANYA sebagai panduan style, bukan template halaman
 
 ### Frontend Skill — Wajib Dipakai Saat Implementasi Halaman Baru
@@ -388,24 +576,38 @@ Skill frontend mendorong kreativitas, tapi tetap harus dalam batas ini:
 
 ## Progress Implementasi
 
-Track progress di `docs/USER_STORIES_MVP.md`.
+Track progress di `docs/06_USER_STORIES.md`.
 
-**Cara lanjut sesi baru:**
+**Cara lanjut sesi baru (setelah usage limit / context window penuh):**
 ```
-Baca CLAUDE.md dan docs/USER_STORIES_MVP.md.
+Baca CLAUDE.md dan docs/06_USER_STORIES.md.
 Lanjutkan implementasi dari EPIC [X] — STORY [Y.Z].
 Checkout branch: git checkout feat/[nama-branch]
+Lihat git log untuk melihat commit terakhir yang sudah selesai.
 ```
 
-**Urutan pengerjaan:**
-1. EPIC 13 — Auth & Core Flow Fixes
-2. EPIC 17 — Seed Data Realistis
-3. EPIC 14 — Tiga Role Publication
-4. EPIC 16 — Onboarding & Landing Page
-5. EPIC 15 — Platform Admin Enhancements
-6. EPIC 9 — Deployment
+**Yang Claude Code WAJIB lakukan sebelum session berakhir:**
+1. Commit semua kode yang selesai di Story aktif (`git commit`)
+2. Push ke remote (`git push origin feat/...`)
+3. Tandai checkbox di USER_STORIES (`[x]`) untuk task yang sudah selesai
+4. Kalau di tengah Story — commit dengan prefix `WIP:` dan note posisi terakhir
 
-Status progress detail ada di `docs/USER_STORIES_MVP.md` — cek checkbox `[ ]` untuk tahu dari mana harus lanjut.
+**Yang otomatis tersedia di setiap sesi baru:**
+- CLAUDE.md → selalu di-load otomatis (arsitektur, rules, urutan Epic)
+- USER_STORIES.md → checkbox progress yang persisten
+- Git log & commits → history lengkap apa yang sudah dikerjakan
+- Memory system → context user tersimpan lintas sesi
+
+**Urutan pengerjaan:**
+1. EPIC 17 — Seed Data Realistis ← mulai di sini
+2. EPIC 18 — Routing Architecture Refactor (tegakkan struktur baru sebelum tambah fitur)
+3. EPIC 13 — Auth & Core Flow Fixes (backend-only tasks bisa paralel dengan EPIC 17 & 18)
+4. EPIC 14 — Tiga Role Publication
+5. EPIC 16 — Onboarding & Landing Page
+6. EPIC 15 — Platform Admin Enhancements
+7. EPIC 9 — Deployment
+
+Status progress detail ada di `docs/06_USER_STORIES.md` — cek checkbox `[ ]` untuk tahu dari mana harus lanjut.
 
 ---
 
@@ -423,6 +625,17 @@ cd backend && npm run dev
 cd frontend && npm run dev
 # → http://localhost:3000
 ```
+
+**URL akses lokal:**
+```
+localhost:3000/admin/login          → Platform admin login
+investasi-cerdas.lvh.me:3000       → Publication site (simulasi subdomain)
+investasi-cerdas.lvh.me:3000/login → Publication login
+investasi-cerdas.lvh.me:3000/dashboard → Publication dashboard
+```
+
+> `lvh.me` selalu resolve ke `127.0.0.1` — tidak perlu edit hosts file.
+> Pastikan frontend dev server berjalan di port 3000.
 
 **Akun test (setelah seed):**
 Lihat `backend/prisma/SEED_ACCOUNTS.md`

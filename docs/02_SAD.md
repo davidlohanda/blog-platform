@@ -87,20 +87,78 @@ Keamanan berlapis: HTTPS → rate limiting → authentication middleware → aut
 
 ### 3.1 Client Layer
 
-**Next.js Web App** — satu aplikasi Next.js yang melayani dua konteks berbeda:
+**Next.js Web App** — satu aplikasi Next.js yang melayani dua dunia terpisah:
 
-| Konteks | URL Pattern | Rendering | Audience |
+| Dunia | Domain (prod) | Domain (dev) | Audience |
 |---|---|---|---|
-| Publication site | `[slug].platform.com` atau custom domain | SSR + SSG | Reader & member |
-| Platform dashboard | `app.platform.com` | CSR | Owner & author |
+| Platform admin | `app.lentera.id` | `localhost:3000` via `/admin` path | `platform_admin` |
+| Publication | `[slug].lentera.id` atau custom domain | `slug.lvh.me:3000` | `owner`, `admin`, `author`, `member`, visitor |
 
-Pemisahan ini penting: halaman artikel reader menggunakan SSR/SSG untuk SEO, sedangkan dashboard admin cukup CSR.
+`lvh.me` adalah domain publik yang selalu resolve ke `127.0.0.1` — digunakan untuk simulasi subdomain di development tanpa edit hosts file.
 
-**Routing berdasarkan domain:**
+**Routing berdasarkan domain (prod):**
 ```
-investasicerdas.com  →  Publication site (tenant: investasicerdas)
-app.platform.com     →  Dashboard (semua owner & author)
-platform.com         →  Marketing landing page
+app.lentera.id/admin/login   →  Platform admin login
+app.lentera.id/admin         →  Platform admin dashboard
+[slug].lentera.id/login      →  Publication login (staff + member)
+[slug].lentera.id/           →  Publication homepage
+[slug].lentera.id/dashboard  →  Publication staff dashboard
+investasicerdas.com          →  Publication site via custom domain
+```
+
+**`app/` folder structure (target):**
+```
+app/
+├── ── PLATFORM (app.lentera.id/admin/*) ────────────────────────────────
+├── admin/
+│   ├── layout.tsx                ← Guard: protect dashboard, pass-through auth pages
+│   ├── login/page.tsx            ← /admin/login (email+pass only, no Google)
+│   ├── forgot-password/page.tsx
+│   ├── reset-password/page.tsx
+│   ├── dashboard/page.tsx        ← /admin/dashboard (protected: platform_admin)
+│   ├── publications/page.tsx
+│   └── invite/page.tsx
+│
+├── accept-invite/page.tsx        ← Owner onboarding wizard (pre-auth, platform URL)
+├── auth/google/callback/page.tsx ← OAuth callback (URL tetap, state bawa publicationId)
+├── payment/success/page.tsx      ← Midtrans callback (URL tetap)
+│
+├── ── PUBLICATION (slug.lentera.id/*) ──────────────────────────────────
+└── (publication)/
+    ├── layout.tsx                ← WAJIB: resolve tenant, provide PublicationContext,
+    │                                handle suspended_hard → redirect /suspended
+    │
+    ├── ── MEMBER SPACE (root) ───────────────────────────────────────────
+    ├── page.tsx                  ← slug.lentera.id/ (publication homepage)
+    ├── [articleSlug]/page.tsx
+    ├── series/[slug]/page.tsx
+    ├── suspended/page.tsx
+    ├── accept-author-invite/page.tsx ← Pre-auth, siapa saja bisa akses
+    │
+    ├── login/page.tsx            ← /login — MEMBER ONLY + Google OAuth
+    ├── register/page.tsx         ← Member self-register
+    ├── verify-email/page.tsx     ← Member email verification
+    ├── forgot-password/page.tsx  ← Member forgot-password (deteksi OAuth-only)
+    ├── reset-password/page.tsx
+    │
+    ├── subscribe/page.tsx        ← Ambil publicationId dari layout context
+    ├── settings/page.tsx
+    ├── subscription/page.tsx
+    │
+    └── ── STAFF SPACE (/admin/*) ────────────────────────────────────────
+        └── admin/
+            ├── layout.tsx        ← Guard: protect dashboard, pass-through auth pages
+            ├── login/page.tsx    ← /admin/login — STAFF ONLY, no Google
+            ├── forgot-password/page.tsx
+            ├── reset-password/page.tsx
+            └── dashboard/
+                ├── layout.tsx    ← Guard: verify owner/admin/author role
+                ├── page.tsx      ← /admin/dashboard
+                ├── articles/{...}
+                ├── series/{...}
+                ├── subscribers/page.tsx
+                ├── analytics/page.tsx
+                └── settings/page.tsx
 ```
 
 ### 3.2 API Gateway (Middleware Layer)
@@ -122,7 +180,7 @@ Request masuk
 
 ### 3.3 Backend Layer Architecture (Express.js)
 
-Backend menggunakan Express.js dengan struktur 4-layer yang konsisten di setiap domain:
+Backend menggunakan Express.js dengan struktur 5-layer yang konsisten di setiap domain:
 
 ```
 Request → Router → Controller → Service → Repository → Database
@@ -218,6 +276,30 @@ async findMany(publicationId: string, options: ArticleQueryOptions) {
 
 ## 5. Authentication & Authorization
 
+### 5.0 Auth Flow per User Type
+
+Tiga jenis user memiliki auth flow yang berbeda:
+
+| Flow | Platform Staff (owner/admin) | Publication Staff (owner/admin/author) | Member |
+|---|---|---|---|
+| Self-register | ❌ | ❌ (invite only) | ✅ `slug.lentera.id/register` |
+| Login URL | `app.lentera.id/admin/login` | `slug.lentera.id/admin/login` | `slug.lentera.id/login` |
+| Google OAuth | ❌ dilarang | ❌ dilarang | ✅ tersedia |
+| Verify email | ❌ tidak perlu | ❌ tidak perlu | ✅ `slug.lentera.id/verify-email` |
+| Forgot password | `app.lentera.id/admin/forgot-password` | `slug.lentera.id/admin/forgot-password` | `slug.lentera.id/forgot-password` |
+| Reset password link | `app.lentera.id/admin/reset-password?token=...` | `slug.lentera.id/admin/reset-password?token=...` | `slug.lentera.id/reset-password?token=...` |
+| Post-login redirect | `/admin/dashboard` | `/admin/dashboard` | `/` (publication homepage) |
+| Onboarding | Ditambahkan manual oleh platform_owner | publication owner: `/accept-invite`; author: `slug.lentera.id/accept-author-invite` | `slug.lentera.id/register` |
+
+**Pola kunci:** `/admin/*` = area staff di semua level. `/login` (tanpa `/admin`) di publication subdomain = member ONLY.
+
+**Catatan penting:**
+- `/login` di publication subdomain TIDAK melayani staff — hanya member dengan Google OAuth
+- `/admin/login` di publication subdomain = staff (owner/admin/author) — pola sama dengan platform
+- Guard untuk `/admin/dashboard` dilakukan di layout level, bukan proxy.ts
+- `/admin/login`, `/admin/forgot-password`, `/admin/reset-password` harus PUBLIC (tidak di-guard)
+- Backend harus sertakan context (publication slug atau "platform") saat generate email link
+
 ### 5.1 Token Strategy
 
 **Access Token (JWT)**
@@ -228,9 +310,12 @@ async findMany(publicationId: string, options: ArticleQueryOptions) {
 
 **Refresh Token**
 - Format: opaque string (random UUID, bukan JWT)
-- Expiry: 30 hari
+- Expiry: 30 hari inaktif
 - Disimpan di client: httpOnly, Secure, SameSite=Strict cookie
-- Disimpan di server: Redis dengan key `refresh:[userId]:[tokenId]`, value `{ userId, expiry, userAgent }`
+- Disimpan di server: Redis dengan key `refresh:[userId]:[publicationId]:[tokenId]`, value `{ userId, publicationId, expiry, userAgent }`
+- **Scope per publication:** Token yang di-issue saat login di publication A tidak bisa dipakai di publication B. Setiap sesi terisolasi per publication.
+- **Token rotation:** Setiap kali refresh token digunakan → langsung di-rotate, token lama invalid.
+- **Logout:** Hanya revoke token untuk publicationId yang sedang aktif, bukan semua session user.
 
 **Alasan tidak pakai localStorage untuk token:**
 localStorage bisa diakses oleh JavaScript sehingga rentan XSS. httpOnly cookie tidak bisa dibaca JS sama sekali, aman dari XSS. Access token di memory akan hilang saat tab ditutup — ini disengaja, dan silent refresh via cookie akan mendapatkan token baru secara otomatis.
@@ -333,7 +418,7 @@ Field ini disertakan agar frontend bisa langsung tahu status verifikasi tanpa re
    payload: { sub: userId, email, emailVerified: !!emailVerifiedAt }
    expiry: 15 menit
 4. Buat refresh token (UUID v4)
-   Simpan ke Redis: key "refresh:[userId]:[tokenId]", TTL 30 hari
+   Simpan ke Redis: key "refresh:[userId]:[publicationId]:[tokenId]", TTL 30 hari
 5. Return: access token di body, refresh token di httpOnly cookie
 ```
 
@@ -347,7 +432,7 @@ Field ini disertakan agar frontend bisa langsung tahu status verifikasi tanpa re
 1. Access token expired → API kembalikan 401
 2. Client otomatis kirim POST /auth/refresh (refresh token via cookie)
 3. Server baca refresh token dari cookie
-4. Lookup di Redis: key "refresh:[userId]:[tokenId]"
+4. Lookup di Redis: key "refresh:[userId]:[publicationId]:[tokenId]"
    → Jika tidak ada / expired: clear cookie, return 401 → client redirect ke login
 5. Jika valid:
    a. Hapus refresh token lama dari Redis (token rotation)
@@ -378,13 +463,18 @@ Field ini disertakan agar frontend bisa langsung tahu status verifikasi tanpa re
 1. User submit email di halaman forgot password
 2. POST /auth/forgot-password
    → Jika email tidak ditemukan: tetap return 200 (mencegah email enumeration)
-   → Jika ditemukan:
+   → Jika ditemukan tapi `passwordHash = null` (akun OAuth-only):
+     kirim email informasi: "Akun kamu terdaftar via Google. Login dengan tombol Google."
+     return 200 — tidak kirim link reset password
+   → Jika ditemukan dan punya password:
      a. Hapus token reset lama milik user ini jika ada
      b. Generate reset token (UUID v4)
      c. Simpan ke tabel password_reset_tokens
         (token, userId, expiresAt = NOW() + 1 jam)
 3. Enqueue job kirim email berisi link:
-   https://app.platform.com/reset-password?token=[token]
+   - Untuk member: `https://[slug].lentera.id/reset-password?token=[token]`
+   - Untuk platform admin: `https://app.lentera.id/admin/reset-password?token=[token]`
+   Backend harus tahu context (publication slug atau platform) saat generate link ini.
 4. User klik link → POST /auth/reset-password { token, newPassword }
 5. Server cari token di tabel password_reset_tokens
    → Jika tidak ada atau expired: return 400 TOKEN_INVALID
@@ -426,39 +516,177 @@ Rate limit: 3 request per user per jam
 
 ### 5.9 Role & Permission System
 
-Setiap user bisa memiliki role berbeda di publication berbeda:
+#### Tiga Kategori Identity
 
 ```
-Global roles:
-  - platform_admin: akses penuh ke semua publication (operator platform)
+1. Platform Staff    → field platform_role di tabel users
+                       'platform_owner' | 'platform_admin' | null
 
-Per-publication roles:
-  - owner: semua hak akses di publication tersebut
-  - author: bisa tulis & publish artikel, tidak bisa ubah billing/settings
-  - member: subscriber aktif, akses konten premium
+2. Publication Staff → baris di tabel publication_authors
+                       role: 'owner' | 'admin' | 'author'
+                       (satu user bisa punya role berbeda di publication berbeda)
 
-Reader state (bukan role, tapi state):
-  - anonymous: belum login, hanya akses konten free
-  - logged_in_non_member: login tapi tidak subscribe, tetap hanya akses free
+3. Reader State      → BUKAN DB role, ditentukan runtime
+                       subscriber | registered | anonymous
 ```
 
-**Authorization Check Flow untuk konten premium:**
-```
-Request ke konten premium
-  → Middleware: verifikasi JWT valid
-  → Service: cek user punya subscription aktif untuk publication ini
-  → Cek: subscription.expiresAt > now()
-  → Jika semua lolos: lanjutkan
-  → Jika gagal di mana saja: 403 Forbidden
+---
+
+#### Platform Permissions
+
+Login: email+password ONLY — Google OAuth dilarang untuk semua platform staff.
+
+| Fitur | PLATFORM_OWNER | PLATFORM_ADMIN |
+|---|---|---|
+| Login di `/admin/login` | ✅ | ✅ |
+| View semua publications | ✅ | ✅ |
+| View semua users | ✅ | ✅ |
+| View platform analytics & revenue | ✅ | ✅ |
+| Invite publication owner (kirim email) | ✅ | ✅ |
+| Suspend publication — soft (owner tidak bisa publish, reader masih bisa baca) | ✅ | ✅ |
+| Suspend publication — hard (semua akses ditutup, refund pro-rata) | ✅ | ✅ |
+| Unsuspend publication | ✅ | ✅ |
+| Konfigurasi platform fee per publication | ✅ | ✅ |
+| Impersonate user manapun | ✅ | ✅ |
+| Tambah platform_admin baru | ✅ | ❌ |
+| Hapus platform_admin | ✅ | ❌ |
+| Promosi platform_admin → platform_owner | ✅ | ❌ |
+| Ubah setting inti platform (domain, branding) | ✅ | ❌ |
+
+---
+
+#### Publication Staff Permissions
+
+Login: email+password ONLY — Google OAuth dilarang. Semua staff otomatis bisa baca konten premium di publication mereka sendiri tanpa berlangganan.
+
+**Konten — Artikel:**
+| Fitur | OWNER | ADMIN | AUTHOR |
+|---|---|---|---|
+| Buat artikel baru | ✅ | ✅ | ✅ |
+| Edit artikel milik sendiri | ✅ | ✅ | ✅ |
+| Hapus artikel milik sendiri | ✅ | ✅ | ✅ |
+| Publish / unpublish / schedule artikel sendiri | ✅ | ✅ | ✅ |
+| Edit artikel milik author lain | ✅ | ✅ | ❌ |
+| Hapus artikel milik author lain | ✅ | ✅ | ❌ |
+| Publish / unpublish artikel milik author lain | ✅ | ✅ | ❌ |
+
+**Konten — Series:**
+| Fitur | OWNER | ADMIN | AUTHOR |
+|---|---|---|---|
+| Buat series baru | ✅ | ✅ | ✅ |
+| Edit / hapus series milik sendiri | ✅ | ✅ | ✅ |
+| Edit / hapus series milik author lain | ✅ | ✅ | ❌ |
+| Tambahkan artikel ke series manapun | ✅ | ✅ | ❌ |
+| Tambahkan artikel sendiri ke series sendiri | ✅ | ✅ | ✅ |
+
+**Konten — Roadmap:**
+| Fitur | OWNER | ADMIN | AUTHOR |
+|---|---|---|---|
+| Buat / edit / hapus roadmap | ✅ | ✅ | ❌ |
+
+**Publication Settings:**
+| Fitur | OWNER | ADMIN | AUTHOR |
+|---|---|---|---|
+| Edit nama, deskripsi, logo publication | ✅ | ✅ | ❌ |
+| Kelola subscription plans (buat, ubah, nonaktifkan) | ✅ | ✅ | ❌ |
+| Konfigurasi custom domain | ✅ | ❌ | ❌ |
+
+**Subscribers & Revenue:**
+| Fitur | OWNER | ADMIN | AUTHOR |
+|---|---|---|---|
+| Lihat daftar subscriber | ✅ | ✅ | ❌ |
+| Export subscriber list (CSV) | ✅ | ✅ | ❌ |
+| Lihat analytics publication (semua artikel, aggregate) | ✅ | ✅ | ❌ |
+| Lihat analytics artikel milik sendiri (views, reads) | ✅ | ✅ | ✅ |
+| Lihat revenue / MRR | ✅ | ✅ | ❌ |
+
+**Team Management:**
+| Fitur | OWNER | ADMIN | AUTHOR |
+|---|---|---|---|
+| Invite member tim baru dengan role `author` | ✅ | ✅ | ❌ |
+| Invite member tim baru dengan role `admin` | ✅ | ❌ | ❌ |
+| Remove `author` dari publication | ✅ | ✅ | ❌ |
+| Remove `admin` dari publication | ✅ | ❌ | ❌ |
+| Ubah role member tim (author ↔ admin) | ✅ | ❌ | ❌ |
+
+**Publication Lifecycle:**
+| Fitur | OWNER | ADMIN | AUTHOR |
+|---|---|---|---|
+| Request delete publication (30-hari cooling period) | ✅ | ❌ | ❌ |
+| Cancel delete request | ✅ | ❌ | ❌ |
+| Transfer ownership ke user lain | ✅ | ❌ | ❌ |
+
+**Reader Access (sebagai reader di publication sendiri):**
+| Fitur | OWNER | ADMIN | AUTHOR |
+|---|---|---|---|
+| Baca konten premium (tanpa subscribe) | ✅ | ✅ | ✅ |
+| Post komentar | ✅ | ✅ | ✅ |
+| Post / upvote Q&A | ✅ | ✅ | ✅ |
+
+---
+
+#### Reader Permissions
+
+| Fitur | SUBSCRIBER | REGISTERED | ANONYMOUS |
+|---|---|---|---|
+| Baca artikel free | ✅ | ✅ | ✅ |
+| Baca artikel premium | ✅ | ❌ | ❌ |
+| Lihat komentar artikel | ✅ | ✅ | ✅ |
+| Like artikel free | ✅ | ✅ | ✅ |
+| Like artikel premium | ✅ | ❌ | ❌ |
+| Post komentar | ✅ | ❌ | ❌ |
+| Reply komentar | ✅ | ❌ | ❌ |
+| Post Q&A question | ✅ | ❌ | ❌ |
+| Upvote Q&A | ✅ | ❌ | ❌ |
+| Save artikel ke folder | ✅ | ❌ | ❌ |
+| Subscribe (beli subscription) | N/A | ✅ | ✅ *(harus login dulu)* |
+| Cancel subscription | ✅ | N/A | N/A |
+| Lihat subscription history | ✅ | N/A | N/A |
+| Update profil (nama, foto, bio) | ✅ | ✅ | ❌ |
+| Ubah password | ✅ | ✅ | ❌ |
+| Ubah email preferences | ✅ | ✅ | ❌ |
+
+**`subscriber` = user dengan `subscriptions.status = 'active'` AND `expiresAt > now()`**
+**`member` dalam UI/bisnis = `subscriber` secara teknis. Bukan DB role.**
+
+---
+
+#### Authorization Logic di Backend
+
+**Akses konten premium:**
+```typescript
+async function canAccessPremium(userId: string, publicationId: string): Promise<boolean> {
+  // 1. Cek apakah user adalah staff publication ini
+  const isStaff = await prisma.publicationAuthor.findUnique({
+    where: { publicationId_userId: { publicationId, userId } }
+  })
+  if (isStaff) return true
+
+  // 2. Cek apakah user punya subscription aktif
+  const subscription = await prisma.subscription.findFirst({
+    where: { userId, publicationId, status: 'active', expiresAt: { gt: new Date() } }
+  })
+  return !!subscription
+}
 ```
 
-**Authorization Check Flow untuk fitur kritis (subscription, komentar):**
+**Akses fitur subscriber-only (komentar, Q&A, save):**
+```typescript
+async function requireSubscriberOrStaff(userId: string, publicationId: string) {
+  const canAccess = await canAccessPremium(userId, publicationId) // reuse fungsi di atas
+  if (!canAccess) throw new AppError('SUBSCRIPTION_REQUIRED', 403, '...')
+
+  // Plus wajib email verified untuk komentar/checkout
+  await requireVerifiedEmail(user)
+}
 ```
-Request ke fitur kritis
-  → Middleware: verifikasi JWT valid
-  → Service: requireVerifiedEmail(req.user)
-  → Jika emailVerified false: 403 EMAIL_NOT_VERIFIED
-  → Jika true: lanjutkan ke logika bisnis
+
+**Guard publikasi staff endpoint:**
+```typescript
+// requireRole helper — cek publication_authors
+requireRole('owner')            // hanya owner
+requireRole('owner', 'admin')   // owner atau admin
+requireRole('owner', 'admin', 'author') // semua staff
 ```
 
 ---
@@ -485,31 +713,82 @@ Request ke fitur kritis
 
 ### 6.2 Endpoint Groups
 
-#### Auth
+#### Auth — Member (slug.lentera.id/login, /register, dll)
 ```
-POST   /auth/register
-POST   /auth/login
+POST   /auth/register                           ← member self-register (email+pass atau Google)
+POST   /auth/login                              ← member login ONLY
 POST   /auth/logout
 POST   /auth/refresh
-POST   /auth/forgot-password
+POST   /auth/forgot-password                    ← member forgot-password, deteksi OAuth-only
 POST   /auth/reset-password
 POST   /auth/resend-verification
-GET    /auth/verify-email?token=xxx
-GET    /auth/google
-GET    /auth/google/callback
+GET    /auth/verify-email?token=xxx             ← member email verification
+GET    /auth/google                             ← initiate Google OAuth (state berisi publicationId)
+GET    /auth/google/callback                    ← fixed URL, redirect ke publication subdomain
 GET    /auth/me
 ```
+
+#### Auth — Publication Staff (slug.lentera.id/admin/login, dll)
+```
+POST   /auth/staff/login                        ← staff login (owner/admin/author), no Google
+POST   /auth/staff/logout
+POST   /auth/staff/refresh
+POST   /auth/staff/forgot-password              ← no OAuth-only detection (staff tidak pakai Google)
+POST   /auth/staff/reset-password
+GET    /auth/staff/me
+
+# Owner onboarding (invite-only)
+GET    /auth/accept-owner-invite?token=xxx      ← return: email, ownerName, publicationId, publicationName
+POST   /auth/complete-owner-invite              ← buat user + update publication + set owner + issue tokens
+
+# Author invite acceptance
+GET    /auth/accept-author-invite?token=xxx     ← return: inviterName, publicationName, publicationSlug
+POST   /auth/complete-author-invite             ← user baru: buat akun; existing: langsung accept
+```
+
+#### Auth — Platform Staff (app.lentera.id/admin/login, dll)
+Melayani BOTH platform_owner dan platform_admin — keduanya login di URL yang sama.
+```
+POST   /auth/admin/login                        ← platform staff login (owner & admin), no Google
+POST   /auth/admin/logout
+POST   /auth/admin/refresh
+POST   /auth/admin/forgot-password
+POST   /auth/admin/reset-password
+GET    /auth/admin/me                           ← return: id, email, name, platformRole
+```
+Backend membedakan `platform_owner` vs `platform_admin` berdasarkan field `platform_role` di tabel users.
+Endpoint yang hanya boleh diakses `platform_owner` di-guard di service layer.
 
 #### Publications
 ```
 POST   /publications
 GET    /publications/:slug
 PATCH  /publications/:id
+DELETE /publications/:id                          — request deletion (cooling period 30 hari)
 GET    /publications/:id/authors
 POST   /publications/:id/authors/invite
 DELETE /publications/:id/authors/:userId
 GET    /publications/:id/subscription-plans
 PUT    /publications/:id/subscription-plans
+GET    /publications/check-slug?slug=xxx          — cek ketersediaan slug (real-time)
+POST   /publications/:id/transfer-ownership       — transfer ke user lain
+```
+
+#### Platform Admin Endpoints
+```
+# Tersedia untuk platform_owner DAN platform_admin:
+PATCH  /admin/publications/:id/fee               — konfigurasi platform fee per publication
+POST   /admin/impersonate/:userId                — masuk sebagai user (impersonate)
+PATCH  /admin/publications/:id/suspend           — suspend publication (soft/hard)
+POST   /admin/publications/:id/invite-owner      — kirim invite email ke calon owner
+GET    /admin/publications                       — list semua publication
+GET    /admin/users                             — list semua user
+
+# Hanya platform_owner:
+POST   /admin/staff                              — tambah platform_admin baru
+DELETE /admin/staff/:userId                      — hapus platform_admin
+PATCH  /admin/staff/:userId/role                 — ubah role (platform_admin ↔ platform_owner)
+GET    /admin/staff                              — list semua platform staff
 ```
 
 #### Articles
@@ -623,17 +902,24 @@ Response:
 
 -- Users (global, tidak per-publication)
 CREATE TABLE users (
-  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  email             VARCHAR(255) UNIQUE NOT NULL,
-  password_hash     VARCHAR(255),              -- null jika hanya OAuth
-  name              VARCHAR(255) NOT NULL,
-  avatar_url        TEXT,
-  bio               TEXT,
-  google_id         VARCHAR(255) UNIQUE,       -- untuk Google OAuth
-  email_verified_at TIMESTAMPTZ,               -- null = belum terverifikasi
-  created_at        TIMESTAMPTZ DEFAULT NOW(),
-  updated_at        TIMESTAMPTZ DEFAULT NOW()
+  id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email               VARCHAR(255) UNIQUE NOT NULL,
+  password_hash       VARCHAR(255),              -- null jika hanya OAuth
+  name                VARCHAR(255) NOT NULL,
+  avatar_url          TEXT,
+  bio                 TEXT,
+  google_id           VARCHAR(255) UNIQUE,       -- untuk Google OAuth
+  email_verified_at   TIMESTAMPTZ,               -- null = belum terverifikasi
+  platform_role       VARCHAR(20)                -- null = bukan platform staff
+                      CHECK (platform_role IN ('platform_owner', 'platform_admin')),
+  email_bounce_count  INTEGER DEFAULT 0,         -- jumlah bounce dari Resend webhook
+  email_bounced       BOOLEAN DEFAULT FALSE,     -- true = skip pengiriman email selanjutnya
+  created_at          TIMESTAMPTZ DEFAULT NOW(),
+  updated_at          TIMESTAMPTZ DEFAULT NOW()
 );
+-- platform_role = null     → user biasa (publication staff atau reader)
+-- platform_role = 'platform_owner' → pemilik/founder platform
+-- platform_role = 'platform_admin' → operator platform
 
 -- Token verifikasi email (single-use, TTL 24 jam)
 -- Disimpan di PostgreSQL (bukan Redis) agar tidak hilang jika Redis restart
@@ -660,24 +946,34 @@ CREATE TABLE password_reset_tokens (
 
 -- Publications (tenant root)
 CREATE TABLE publications (
-  id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  slug                 VARCHAR(100) UNIQUE NOT NULL,
-  name                 VARCHAR(255) NOT NULL,
-  description          TEXT,
-  logo_url             TEXT,
-  cover_url            TEXT,
-  custom_domain        VARCHAR(255) UNIQUE,
-  platform_fee_percent DECIMAL(5,2) DEFAULT 15.00,
-  fee_enabled          BOOLEAN DEFAULT TRUE,
-  created_at           TIMESTAMPTZ DEFAULT NOW(),
-  updated_at           TIMESTAMPTZ DEFAULT NOW()
+  id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  slug                  VARCHAR(100) UNIQUE NOT NULL,
+  name                  VARCHAR(255) NOT NULL,
+  description           TEXT,
+  logo_url              TEXT,
+  cover_url             TEXT,
+  custom_domain         VARCHAR(255) UNIQUE,
+  platform_fee_percent  DECIMAL(5,2) DEFAULT 15.00,
+  fee_enabled           BOOLEAN DEFAULT TRUE,
+  status                VARCHAR(20) NOT NULL DEFAULT 'active'
+                        CHECK (status IN ('active', 'suspended_soft', 'suspended_hard', 'pending_deletion')),
+  suspend_reason        TEXT,                    -- alasan suspend (diisi oleh platform_admin)
+  scheduled_deletion_at TIMESTAMPTZ,            -- diset saat status = pending_deletion (NOW() + 30 hari)
+  created_at            TIMESTAMPTZ DEFAULT NOW(),
+  updated_at            TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Status semantics:
+-- active           → normal, semua fitur tersedia
+-- suspended_soft   → owner tidak bisa publish, member masih bisa baca, subscriber baru tidak bisa join
+-- suspended_hard   → seluruh publication tidak bisa diakses, refund pro-rata ke semua member aktif
+-- pending_deletion → tidak bisa diakses publik, cooling period 30 hari, bisa dibatalkan
 
 -- Publication authors
 CREATE TABLE publication_authors (
   publication_id UUID REFERENCES publications(id) ON DELETE CASCADE,
   user_id        UUID REFERENCES users(id) ON DELETE CASCADE,
-  role           VARCHAR(20) NOT NULL CHECK (role IN ('owner', 'author')),
+  role           VARCHAR(20) NOT NULL CHECK (role IN ('owner', 'admin', 'author')),
   joined_at      TIMESTAMPTZ DEFAULT NOW(),
   PRIMARY KEY (publication_id, user_id)
 );
@@ -916,10 +1212,11 @@ Refresh token disimpan di Redis karena diakses sangat sering (setiap 15 menit pe
 
 | Data | Storage | Key / Identifier | TTL |
 |---|---|---|---|
-| Refresh token | Redis | `refresh:[userId]:[tokenId]` | 30 hari |
+| Refresh token | Redis | `refresh:[userId]:[publicationId]:[tokenId]` | 30 hari |
+| Login attempt counter | Redis | `login_attempts:[email]:[publicationId]` | 15 menit |
 | Email verification token | PostgreSQL | tabel `email_verification_tokens` | 24 jam (field `expires_at`) |
 | Password reset token | PostgreSQL | tabel `password_reset_tokens` | 1 jam (field `expires_at`) |
-| Subscription status cache | Redis | `sub:[userId]:[pubId}` | 5 menit |
+| Subscription status cache | Redis | `sub:[userId]:[pubId]` | 5 menit |
 | Publication cache | Redis | `pub:slug:[slug]` | 1 jam |
 
 ---
@@ -963,7 +1260,27 @@ Platform menggunakan **Midtrans Snap** untuk checkout UI dan **Midtrans Core API
 7. Return 200 OK ke Midtrans
 ```
 
-### 8.2 Access Control Check
+### 8.2 Subscription Auto-Expire Job
+
+Subscription tidak expire secara otomatis berdasarkan field `expires_at` saja — perlu background job untuk mengubah status di database dan invalidate cache.
+
+```
+BullMQ repeatable job: "expire-subscriptions"
+Jadwal: setiap 10 menit
+
+Logika:
+1. SELECT id, user_id, publication_id FROM subscriptions
+   WHERE status = 'active' AND expires_at < NOW()
+2. Batch UPDATE subscriptions SET status = 'expired'
+3. Invalidate Redis cache: DEL sub:[userId]:[pubId] untuk setiap baris
+4. (Opsional) Enqueue email "subscription expired" ke masing-masing user
+```
+
+**Tanpa job ini:** member yang sudah expired tetap bisa membaca konten premium selama cache masih valid (hingga 5 menit). Dengan job ini: status di DB diupdate, cache di-invalidate, akses langsung dicabut.
+
+---
+
+### 8.3 Access Control Check
 
 ```typescript
 async function checkPremiumAccess(userId: string, publicationId: string): Promise<boolean> {
@@ -1003,9 +1320,13 @@ async function checkPremiumAccess(userId: string, publicationId: string): Promis
 | Welcome | Subscription aktif | Subscriber baru |
 | Konfirmasi pembayaran | Webhook settlement | Subscriber |
 | Notifikasi artikel baru | Artikel published | Subscriber (yang opt-in) |
-| Reminder subscription | 7 hari sebelum expired | Subscriber aktif |
+| Reminder subscription (7 hari) | BullMQ scheduled job — 7 hari sebelum expired | Subscriber aktif |
+| Reminder subscription (1 hari) | BullMQ scheduled job — 1 hari sebelum expired | Subscriber aktif |
 | Subscription expired | Hari H expired | Ex-subscriber |
 | Reset password | Forgot password request | User |
+| Info akun OAuth-only | Forgot password — akun tanpa password | User OAuth |
+
+**Email bounce handling:** Resend mengirim webhook `POST /email/webhook/resend` saat email bounce. Server menaikkan `email_bounce_count` di tabel `users`. Setelah 3x bounce → set `email_bounced = true` → skip pengiriman email selanjutnya untuk user tersebut.
 
 ### 9.3 Email Queue
 
@@ -1049,61 +1370,72 @@ Klik link → update `email_preferences.new_article = false` untuk user + public
 
 ### 10.3 Routing di Next.js via `proxy.ts`
 
-Di Next.js 16, `middleware.ts` digantikan oleh `proxy.ts` yang berjalan di Node.js runtime (bukan Edge runtime). Perubahan ini membuat boundary jaringan lebih eksplisit.
+Di Next.js 16, `middleware.ts` digantikan oleh `proxy.ts` yang berjalan di Node.js runtime (bukan Edge runtime).
 
+**Tenant resolution logic:**
 ```typescript
-// proxy.ts — di root project (sejajar dengan src/)
-import { NextRequest, NextResponse } from 'next/server'
+// proxy.ts (implementasi aktual)
+const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN ?? 'app.lentera.id'
+const BASE_DOMAIN = process.env.NEXT_PUBLIC_BASE_DOMAIN ?? 'lentera.id'
+const LOCAL_DOMAIN = 'lvh.me'  // ← domain lokal untuk simulasi subdomain
 
-export default function proxy(request: NextRequest) {
-  const hostname = request.headers.get('host') ?? ''
-  const { pathname } = request.nextUrl
+// 1. Platform domain (app.lentera.id) → pass through tanpa header publication
+if (host === APP_DOMAIN) return NextResponse.next()
 
-  const isSubdomain = hostname.endsWith('.platform.com') && hostname !== 'platform.com'
-  const isCustomDomain = !hostname.includes('platform.com')
-
-  if (isSubdomain || isCustomDomain) {
-    const slug = isSubdomain
-      ? hostname.replace('.platform.com', '')
-      : hostname
-
-    const requestHeaders = new Headers(request.headers)
-    requestHeaders.set('x-publication-host', hostname)
-    requestHeaders.set('x-publication-slug', slug)
-
-    return NextResponse.next({ request: { headers: requestHeaders } })
-  }
-
-  // Auth redirect untuk dashboard routes
-  if (pathname.startsWith('/dashboard')) {
-    const hasSession = request.cookies.has('refresh_token')
-    if (!hasSession) {
-      return NextResponse.redirect(new URL('/login', request.url))
-    }
-  }
-
-  return NextResponse.next()
+// 2. Subdomain lokal (slug.lvh.me) atau production (slug.lentera.id)
+//    → set x-publication-slug header
+if (host.endsWith(`.${LOCAL_DOMAIN}`) || host.endsWith(`.${BASE_DOMAIN}`)) {
+  const slug = host.replace(`.${suffix}`, '')
+  requestHeaders.set('x-publication-slug', slug)
+  return NextResponse.next({ request: { headers: requestHeaders } })
 }
 
-export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
-}
+// 3. Custom domain → set x-publication-host untuk lookup di DB
+requestHeaders.set('x-publication-host', host)
+return NextResponse.next({ request: { headers: requestHeaders } })
 ```
 
-> **Catatan:** `proxy.ts` hanya untuk keputusan di request boundary — redirect, rewrite, set header. Business logic (validasi token penuh, cek subscription) tetap di Server Component atau Express backend.
+**Protected routes (PROTECTED_PREFIXES):**
+```
+/admin         ← berlaku di SEMUA domain:
+               - app.lentera.id/admin/* → platform admin area
+               - slug.lentera.id/admin/* → publication staff area
+               PERHATIAN: harus EXCLUDE auth pages (/admin/login, /admin/forgot-password, /admin/reset-password)
+```
 
-Di Server Component layout:
+Guard yang benar:
+- `/admin/login`, `/admin/forgot-password`, `/admin/reset-password` → PUBLIC di semua domain, tidak di-protect proxy
+- Proteksi platform admin dashboard → dilakukan di `admin/layout.tsx` (check `platform_admin` role)
+- Proteksi publication staff dashboard → dilakukan di `(publication)/admin/layout.tsx` (check `owner/admin/author` role)
+- `/login`, `/register`, `/forgot-password` (tanpa prefix `/admin`) → PUBLIC, hanya untuk member
 
+> **Catatan:** `proxy.ts` hanya untuk keputusan di request boundary — tenant resolution, coarse auth redirect. Business logic (validasi token penuh, cek subscription, cek role) tetap di layout atau Server Component.
+
+**`(publication)/layout.tsx` — WAJIB meaningful:**
 ```typescript
 // app/(publication)/layout.tsx
 import { headers } from 'next/headers'
 
 export default async function PublicationLayout({ children }) {
   const headersList = await headers()
-  const host = headersList.get('x-publication-host') ?? ''
-  const publication = await fetchPublicationByHost(host)
+  const slug = headersList.get('x-publication-slug')
+  const host = headersList.get('x-publication-host')
+
+  if (!slug && !host) notFound()  // Bukan publication request
+
+  const publication = slug
+    ? await fetchPublicationBySlug(slug)
+    : await fetchPublicationByDomain(host!)
+
   if (!publication) notFound()
-  return <>{children}</>
+  if (publication.status === 'suspended_hard') redirect('/suspended')
+  if (publication.status === 'pending_deletion') redirect('/suspended')
+
+  return (
+    <PublicationProvider publication={publication}>
+      {children}
+    </PublicationProvider>
+  )
 }
 ```
 
@@ -1179,7 +1511,7 @@ Saat volume artikel besar (>10.000 per publication), upgrade ke Meilisearch: typ
 | Publication by domain | `pub:domain:{domain}` | 1 jam | Update custom domain |
 | Subscription status | `sub:{userId}:{pubId}` | 5 menit | Subscription event |
 | Article metadata | `art:{articleId}` | 30 menit | Article update |
-| Refresh token | `refresh:{userId}:{tokenId}` | 30 hari | Logout / rotation |
+| Refresh token | `refresh:{userId}:{publicationId}:{tokenId}` | 30 hari | Logout / rotation |
 
 ### 13.2 Cache-Aside Pattern
 
@@ -1325,13 +1657,16 @@ Menggunakan `SameSite=Strict` pada refresh token cookie — browser tidak akan m
 ### 14.5 Rate Limiting
 
 ```
-POST /auth/login                 → 5 request per IP per menit
+POST /auth/login                 → 5 kegagalan per email+publicationId per 15 menit → lockout
+                                   (Redis key: login_attempts:[email]:[publicationId])
+                                   + 100 request per IP per menit (layer kedua, mencegah brute force IP)
 POST /auth/register              → 3 request per IP per 10 menit
 POST /auth/forgot-password       → 3 request per IP per jam
 POST /auth/resend-verification   → 3 request per user per jam
 GET  /*                          → 100 request per IP per menit
 POST /* (authenticated)          → 30 request per user per menit
 POST /subscriptions/webhook      → whitelist Midtrans IP saja
+POST /email/webhook/resend       → whitelist Resend IP saja
 ```
 
 ### 14.6 Sensitive Data
@@ -1488,11 +1823,57 @@ frontend/
 │
 └── src/
     ├── app/
-    │   ├── (auth)/                    — login, register, forgot-password, reset-password
-    │   │   └── verify-email/          — halaman konfirmasi verifikasi
-    │   ├── (publication)/             — halaman reader (SSR/SSG)
-    │   ├── dashboard/                 — owner & author dashboard (CSR)
-    │   └── me/                        — profil & library personal
+    │   │
+    │   ├── ── PLATFORM SPACE (app.lentera.id/*) ──────────────────────
+    │   ├── admin/
+    │   │   ├── login/page.tsx         — /admin/login (email+pass only, no Google)
+    │   │   ├── forgot-password/page.tsx
+    │   │   ├── reset-password/page.tsx
+    │   │   ├── dashboard/page.tsx     — platform admin dashboard (protected)
+    │   │   ├── publications/page.tsx
+    │   │   └── invite/page.tsx
+    │   │
+    │   ├── accept-invite/page.tsx     — owner onboarding wizard (pre-auth)
+    │   │
+    │   ├── ── CALLBACKS (fixed URL) ───────────────────────────────────
+    │   ├── auth/google/callback/page.tsx  — OAuth callback
+    │   ├── payment/success/page.tsx       — Midtrans callback
+    │   │
+    │   ├── ── PUBLICATION SPACE (slug.lentera.id/*) ───────────────────
+    │   └── (publication)/             — tenant dari x-publication-slug header
+    │       ├── layout.tsx             — WAJIB: resolve tenant, PublicationContext
+    │       │
+    │       ├── ── MEMBER SPACE (root) ────────────────────────────────────
+    │       ├── page.tsx               — publication homepage
+    │       ├── [articleSlug]/page.tsx
+    │       ├── series/[slug]/page.tsx
+    │       ├── suspended/page.tsx
+    │       ├── accept-author-invite/page.tsx  — pre-auth
+    │       │
+    │       ├── login/page.tsx         — /login — MEMBER ONLY + Google OAuth
+    │       ├── register/page.tsx
+    │       ├── verify-email/page.tsx
+    │       ├── forgot-password/page.tsx
+    │       ├── reset-password/page.tsx
+    │       │
+    │       ├── subscribe/page.tsx
+    │       ├── settings/page.tsx
+    │       ├── subscription/page.tsx
+    │       │
+    │       └── ── STAFF SPACE (/admin/*) ─────────────────────────────────
+    │           └── admin/
+    │               ├── layout.tsx     — guard: protect dashboard, pass-through auth
+    │               ├── login/page.tsx — /admin/login — STAFF ONLY, no Google
+    │               ├── forgot-password/page.tsx
+    │               ├── reset-password/page.tsx
+    │               └── dashboard/
+    │                   ├── layout.tsx — guard: verify owner/admin/author role
+    │                   ├── page.tsx   — /admin/dashboard
+    │                   ├── articles/
+    │                   ├── series/
+    │                   ├── subscribers/page.tsx
+    │                   ├── analytics/page.tsx
+    │                   └── settings/page.tsx
     │
     ├── components/
     │   ├── ui/                        — shadcn/ui components
@@ -1511,6 +1892,8 @@ frontend/
     ├── store/                         — Zustand stores (CC only)
     └── types/                         — TypeScript type definitions
 ```
+
+> **Catatan:** Struktur di atas adalah TARGET setelah EPIC 18 selesai. Kondisi aktual saat ini masih dalam transisi — lihat `docs/06_USER_STORIES.md` EPIC 18 untuk progress refactor.
 
 ---
 

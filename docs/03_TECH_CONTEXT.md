@@ -1,7 +1,7 @@
 # Tech Context — Platform Blog Subscription
 > Dokumen ini adalah referensi utama untuk AI agent (Claude Code).
 > Baca dokumen ini sebelum menulis satu baris kode pun.
-> Untuk context bisnis dan fitur, lihat PRD_Publication_Platform.md dan SAD_Publication_Platform.md.
+> Untuk context bisnis dan fitur, lihat 01_PRD.md dan 02_SAD.md.
 
 ---
 
@@ -52,7 +52,7 @@
 
 ## Struktur Folder
 
-Lihat SAD_Publication_Platform.md section 16 untuk struktur lengkap.
+Lihat 02_SAD.md section 16 untuk struktur lengkap.
 
 ### Backend: `backend/src/modules/<nama-modul>/`
 Setiap modul WAJIB terdiri dari 5 file:
@@ -137,7 +137,7 @@ Semua API response HARUS menggunakan format ini:
 - Hash password dengan `argon2.hash()` — BUKAN `bcrypt`
 - Access token: JWT, expiry 15 menit, simpan di memory (JS variable)
 - Refresh token: opaque string (UUID), expiry 30 hari, simpan di httpOnly cookie
-- Refresh token disimpan di Redis: key `refresh:{userId}:{tokenId}`
+- Refresh token disimpan di Redis: key `refresh:{userId}:{publicationId}:{tokenId}`
 
 ### 7. Prisma
 - Prisma client harus singleton — gunakan instance dari `src/config/database.config.ts`
@@ -206,9 +206,11 @@ async function checkSubscription(userId: string, pubId: string) {
 
 ### 4. `proxy.ts` (bukan `middleware.ts`)
 - File ini di root project (sejajar dengan `src/`)
-- HANYA untuk: redirect, rewrite, set header
-- TIDAK untuk: business logic, DB query, complex auth check
-- Tenant resolution (set `x-publication-host` header) ada di sini
+- HANYA untuk: tenant resolution, coarse auth redirect, set header
+- TIDAK untuk: business logic, DB query, complex auth check, role validation
+- Tenant resolution: set `x-publication-slug` header dari subdomain, atau `x-publication-host` dari custom domain
+- **Dev local:** gunakan `slug.lvh.me:3000` untuk simulasi publication subdomain (`lvh.me` selalu resolve ke 127.0.0.1)
+- **Platform domain:** `localhost:3000/admin` atau `app.lentera.id/admin` — tidak ada `x-publication-slug` header
 
 ### 5. `params` dan `searchParams` — Async
 Next.js 16: `params` dan `searchParams` HARUS di-await:
@@ -238,7 +240,7 @@ export default function Page({ params }) {
 
 ## Git Convention
 
-Lihat GIT_STRATEGY.md untuk detail lengkap.
+Lihat 04_GIT_STRATEGY.md untuk detail lengkap.
 
 ### Quick Reference
 ```bash
@@ -289,13 +291,13 @@ Variabel yang bersifat secret (API key, JWT secret, DB password) TIDAK PERNAH di
 ## Cara Pakai Dokumen Ini dengan Claude Code
 
 Saat memulai sesi baru di Claude Code, selalu sertakan:
-1. File ini (`TECH_CONTEXT.md`) sebagai konteks utama
-2. `SAD_Publication_Platform.md` untuk referensi arsitektur
-3. `PRD_Publication_Platform.md` jika membutuhkan referensi requirement bisnis
+1. File ini (`03_TECH_CONTEXT.md`) sebagai konteks utama
+2. `02_SAD.md` untuk referensi arsitektur
+3. `01_PRD.md` jika membutuhkan referensi requirement bisnis
 
 Contoh prompt pembuka yang efektif:
 ```
-Baca TECH_CONTEXT.md, SAD_Publication_Platform.md terlebih dahulu.
+Baca 03_TECH_CONTEXT.md dan 02_SAD.md terlebih dahulu.
 Kita akan mengimplementasikan [nama modul].
 Mulai dari [titik awal yang spesifik].
 ```
