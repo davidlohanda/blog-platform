@@ -1057,11 +1057,11 @@ Sebagai developer, saya ingin seed data yang realistis dan lengkap agar testing 
 **TASK-BE-17.1.4** `[x]` Buat subscription plans: 1 bulan (Rp 49.000), 3 bulan (Rp 129.000), 6 bulan (Rp 239.000), 12 bulan (Rp 449.000)
 **TASK-BE-17.1.5** `[x]` Buat subscriptions aktif untuk 3 member test dengan `expiresAt` berbeda (1 minggu lagi, 1 bulan lagi, 2 bulan lagi)
 **TASK-BE-17.1.6** `[x]` Tambah file `backend/prisma/SEED_ACCOUNTS.md` — dokumentasi semua akun test beserta password dan rolenya
-**TASK-BE-17.1.7** `[ ]` Commit: `chore(db): rewrite seed with realistic data and proper images`
+**TASK-BE-17.1.7** `[x]` Commit: `chore(db): rewrite seed with realistic data and proper images`
 
 **TASK-INT-17.1.1** `[x]` Jalankan `npx prisma db seed` — pastikan tidak ada error
-**TASK-INT-17.1.2** `[ ]` Verifikasi manual: login sebagai masing-masing role, pastikan semua halaman tampil dengan data yang benar dan gambar muncul
-**TASK-INT-17.1.3** `[ ]` Commit: `chore(db): verify seed data integrity`
+**TASK-INT-17.1.2** `[x]` Verifikasi manual: login sebagai masing-masing role, pastikan semua halaman tampil dengan data yang benar dan gambar muncul
+**TASK-INT-17.1.3** `[x]` Commit: `chore(db): verify seed data integrity`
 
 ---
 
