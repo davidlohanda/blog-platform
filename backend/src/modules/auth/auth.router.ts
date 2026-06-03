@@ -59,14 +59,32 @@ router.post('/complete-owner-invite', validate(completeOwnerInviteSchema), (req,
   authController.completeOwnerInvite(req, res, next),
 );
 
-// Platform admin login — platform_admin only
+// Platform admin login + forgot/reset password
 router.post('/admin/login', authRateLimiter, validate(loginSchema), (req, res, next) =>
   authController.adminLogin(req, res, next),
 );
+router.post(
+  '/admin/forgot-password',
+  forgotPasswordRateLimiter,
+  validate(forgotPasswordSchema),
+  (req, res, next) => authController.adminForgotPassword(req, res, next),
+);
+router.post('/admin/reset-password', validate(resetPasswordSchema), (req, res, next) =>
+  authController.adminResetPassword(req, res, next),
+);
 
-// Publication staff login — owner/admin/author only (requires x-publication-slug header)
+// Publication staff login + forgot/reset password
 router.post('/staff/login', authRateLimiter, validate(loginSchema), (req, res, next) =>
   authController.staffLogin(req, res, next),
+);
+router.post(
+  '/staff/forgot-password',
+  forgotPasswordRateLimiter,
+  validate(forgotPasswordSchema),
+  (req, res, next) => authController.staffForgotPassword(req, res, next),
+);
+router.post('/staff/reset-password', validate(resetPasswordSchema), (req, res, next) =>
+  authController.staffResetPassword(req, res, next),
 );
 
 // Author invite — get metadata (public) and complete invite

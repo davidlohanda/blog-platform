@@ -122,7 +122,7 @@ export default function AdminPublicationsPage() {
       setImpersonation(data.data.accessToken, {
         ...data.data.user,
       });
-      router.push('/dashboard');
+      router.push('/admin/dashboard');
     } catch {
       // ignore
     }

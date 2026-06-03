@@ -31,14 +31,7 @@ export function GoogleCallbackHandler() {
           router.replace('/admin/dashboard');
           return;
         }
-        try {
-          const pubRes = await apiClient.get<{ data: Array<unknown> }>('/publications/mine', {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          router.replace((pubRes.data.data as Array<unknown>).length > 0 ? '/dashboard' : '/');
-        } catch {
-          router.replace('/dashboard');
-        }
+        router.replace('/');
       })
       .catch(() => {
         router.replace('/login?error=oauth_failed');

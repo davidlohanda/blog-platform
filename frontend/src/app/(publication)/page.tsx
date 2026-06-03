@@ -298,7 +298,7 @@ function PlatformLanding({ role = '' }: { role?: string }) {
           </Link>
         ) : role ? (
           <Link
-            href="/dashboard"
+            href="/admin/dashboard"
             className="rounded-lg border border-border px-4 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
           >
             Dashboard
@@ -337,7 +337,7 @@ function PlatformLanding({ role = '' }: { role?: string }) {
               </Link>
             ) : role ? (
               <Link
-                href="/dashboard"
+                href="/admin/dashboard"
                 className="rounded-full bg-foreground px-6 py-2.5 text-sm font-semibold text-background transition-colors hover:bg-foreground/90"
               >
                 Ke Dashboard

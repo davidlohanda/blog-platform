@@ -392,7 +392,6 @@ function Step2({
 // ─── Step 3 — Sukses ─────────────────────────────────────────────────────────
 
 function Step3({ publicationSlug }: { publicationSlug: string }) {
-  const router = useRouter();
 
   return (
     <div className="text-center">
@@ -421,7 +420,17 @@ function Step3({ publicationSlug }: { publicationSlug: string }) {
         Dashboard kamu menampilkan checklist getting started — ikuti langkah-langkahnya untuk
         memaksimalkan publication pertamamu.
       </p>
-      <Button className="w-full" onClick={() => router.push('/dashboard')}>
+      <Button
+        className="w-full"
+        onClick={() => {
+          const isDev = process.env.NODE_ENV === 'development';
+          const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'lentera.id';
+          const baseUrl = isDev
+            ? `http://${publicationSlug}.lvh.me:3000`
+            : `https://${publicationSlug}.${rootDomain}`;
+          window.location.assign(`${baseUrl}/admin/dashboard`);
+        }}
+      >
         Mulai kelola publication →
       </Button>
     </div>

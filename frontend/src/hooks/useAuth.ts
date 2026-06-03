@@ -37,10 +37,10 @@ export function useAuth() {
   );
 
   const staffLogin = useCallback(
-    async (email: string, password: string) => {
+    async (email: string, password: string, publicationSlug?: string) => {
       const { data } = await apiClient.post<{
         data: { accessToken: string; user: AuthUser & { publicationRole: string } };
-      }>('/auth/staff/login', { email, password });
+      }>('/auth/staff/login', { email, password, publicationSlug });
       setAuth(data.data.accessToken, data.data.user);
       document.cookie = `user-role=${data.data.user.role}; path=/; SameSite=Lax; Max-Age=${30 * 24 * 3600}`;
       return data.data;

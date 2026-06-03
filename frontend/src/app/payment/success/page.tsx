@@ -135,7 +135,7 @@ function PaymentSuccessContent() {
             </Link>
           )}
           <Link
-            href="/me/subscription"
+            href="/subscription"
             className="text-center text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             Lihat detail subscription →

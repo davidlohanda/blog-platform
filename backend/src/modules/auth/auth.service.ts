@@ -223,6 +223,68 @@ export const authService = {
     return { message: 'Password berhasil diubah. Silakan login dengan password baru.' };
   },
 
+  async adminForgotPassword(email: string) {
+    const user = await authRepository.findByEmail(email);
+    const msg = 'Jika email terdaftar, link reset akan dikirim dalam beberapa menit.';
+    if (!user || user.role !== 'platform_admin') return { message: msg };
+    if (!user.passwordHash) return { message: msg };
+
+    const token = randomUUID();
+    await redis.setex(`admin-reset:${token}`, 60 * 60, user.id);
+
+    const resetUrl = `${config.platform.frontendUrl}/admin/reset-password?token=${token}`;
+    await emailService.sendResetPassword({ to: user.email, name: user.name, resetUrl });
+    return { message: msg };
+  },
+
+  async adminResetPassword(token: string, newPassword: string) {
+    const userId = await redis.get(`admin-reset:${token}`);
+    if (!userId) {
+      throw AppError.badRequest('Token tidak valid atau sudah kedaluwarsa', 'INVALID_TOKEN');
+    }
+    const passwordHash = await hash(newPassword);
+    await authRepository.updatePassword(userId, passwordHash);
+    await redis.del(`admin-reset:${token}`);
+    return { message: 'Password berhasil diubah. Silakan login dengan password baru.' };
+  },
+
+  async staffForgotPassword(email: string, publicationSlug: string) {
+    const user = await authRepository.findByEmail(email);
+    const msg = 'Jika email terdaftar, link reset akan dikirim dalam beberapa menit.';
+    if (!user || !user.passwordHash) return { message: msg };
+
+    // Verify user is a staff member of this publication
+    const pub = await publicationRepository.findBySlug(publicationSlug);
+    if (!pub) return { message: msg };
+
+    const authorEntry = await publicationRepository.findAuthor(pub.id, user.id);
+    if (!authorEntry) return { message: msg };
+
+    const token = randomUUID();
+    await redis.setex(`staff-reset:${token}`, 60 * 60, user.id);
+
+    const baseDomain = config.platform.baseDomain;
+    const isLocal = config.nodeEnv === 'development';
+    const subdomainBase = isLocal
+      ? `http://${publicationSlug}.lvh.me:3000`
+      : `https://${publicationSlug}.${baseDomain}`;
+    const resetUrl = `${subdomainBase}/admin/reset-password?token=${token}`;
+
+    await emailService.sendResetPassword({ to: user.email, name: user.name, resetUrl });
+    return { message: msg };
+  },
+
+  async staffResetPassword(token: string, newPassword: string) {
+    const userId = await redis.get(`staff-reset:${token}`);
+    if (!userId) {
+      throw AppError.badRequest('Token tidak valid atau sudah kedaluwarsa', 'INVALID_TOKEN');
+    }
+    const passwordHash = await hash(newPassword);
+    await authRepository.updatePassword(userId, passwordHash);
+    await redis.del(`staff-reset:${token}`);
+    return { message: 'Password berhasil diubah. Silakan login dengan password baru.' };
+  },
+
   async handleGoogleUser(
     profile: { googleId: string; email: string; name: string; avatarUrl?: string },
     publicationId: string,

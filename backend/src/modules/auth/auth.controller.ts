@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { authService } from './auth.service';
+import { publicationRepository } from '../publication/publication.repository';
 import { AppError } from '../../lib/AppError';
 import { config } from '../../config';
 import type {
@@ -118,6 +119,52 @@ export const authController = {
     }
   },
 
+  async adminForgotPassword(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { email } = req.body as ForgotPasswordInput;
+      const result = await authService.adminForgotPassword(email);
+      res.json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async adminResetPassword(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { token, password } = req.body as ResetPasswordInput;
+      const result = await authService.adminResetPassword(token, password);
+      res.json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async staffForgotPassword(req: Request, res: Response, next: NextFunction) {
+    try {
+      const body = req.body as ForgotPasswordInput;
+      // Resolve slug from tenant middleware (prod) or body fallback (dev/local)
+      const publicationSlug =
+        (req as TenantRequest).publication?.slug ?? body.publicationSlug ?? '';
+      if (!publicationSlug) {
+        return next(AppError.badRequest('Publication tidak ditemukan', 'NO_PUBLICATION'));
+      }
+      const result = await authService.staffForgotPassword(body.email, publicationSlug);
+      res.json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async staffResetPassword(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { token, password } = req.body as ResetPasswordInput;
+      const result = await authService.staffResetPassword(token, password);
+      res.json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  },
+
   async googleCallback(req: Request, res: Response, next: NextFunction) {
     try {
       const googleUser = req.user as GoogleProfile;
@@ -163,7 +210,12 @@ export const authController = {
   async staffLogin(req: Request, res: Response, next: NextFunction) {
     try {
       const data = req.body as LoginInput;
-      const publicationId = (req as TenantRequest).publication?.id;
+      // Resolve publication: from tenant middleware (prod) or lookup by slug from body (dev/local)
+      let publicationId = (req as TenantRequest).publication?.id;
+      if (!publicationId && data.publicationSlug) {
+        const pub = await publicationRepository.findBySlug(data.publicationSlug);
+        if (pub) publicationId = pub.id;
+      }
       if (!publicationId) {
         return next(AppError.badRequest('Publication tidak ditemukan', 'NO_PUBLICATION'));
       }
