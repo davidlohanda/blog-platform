@@ -83,7 +83,7 @@ export function DashboardShell({
   const isAuthor = myRole === 'author';
 
   function isActive(href: string) {
-    if (href === '/dashboard') return pathname === '/dashboard';
+    if (href === '/admin/dashboard') return pathname === '/admin/dashboard';
     return pathname.startsWith(href);
   }
 
@@ -131,17 +131,17 @@ export function DashboardShell({
             </p>
             {[
               {
-                href: '/dashboard',
+                href: '/admin/dashboard',
                 label: 'Overview',
                 icon: <NavIcon d="M1 1h5v5H1zM9 1h5v5H9zM1 9h5v5H1zM9 9h5v5H9z" />,
               },
               {
-                href: '/dashboard/articles',
+                href: '/admin/dashboard/articles',
                 label: 'Artikel',
                 icon: <NavIcon d="M3 4h9M3 7.5h9M3 11h6" />,
               },
               {
-                href: '/dashboard/series',
+                href: '/admin/dashboard/series',
                 label: 'Series',
                 icon: <NavIcon d="M3 3h9M3 7h9M3 11h5" />,
               },
@@ -169,14 +169,14 @@ export function DashboardShell({
               </p>
               {[
                 {
-                  href: '/dashboard/subscribers',
+                  href: '/admin/dashboard/subscribers',
                   label: 'Subscriber',
                   icon: (
                     <NavIcon d="M10 11c0-2-1.3-3-2.5-3S5 9 5 11M7.5 5.5a2 2 0 100-4 2 2 0 000 4z" />
                   ),
                 },
                 {
-                  href: '/dashboard/analytics',
+                  href: '/admin/dashboard/analytics',
                   label: 'Analytics',
                   icon: <NavIcon d="M1 11l3-4 3 2 3-5 3 3" />,
                 },
@@ -203,9 +203,9 @@ export function DashboardShell({
               Pengaturan
             </p>
             <Link
-              href="/dashboard/settings"
+              href="/admin/dashboard/settings"
               className={`flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm transition-colors ${
-                isActive('/dashboard/settings')
+                isActive('/admin/dashboard/settings')
                   ? 'bg-background font-medium text-foreground shadow-sm'
                   : 'text-muted-foreground hover:bg-background/60 hover:text-foreground'
               }`}

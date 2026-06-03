@@ -13,6 +13,7 @@ export const registerSchema = z.object({
 export const loginSchema = z.object({
   email: z.email('Format email tidak valid'),
   password: z.string().min(1, 'Password wajib diisi'),
+  publicationSlug: z.string().optional(),
 });
 
 export const verifyEmailQuerySchema = z.object({
@@ -21,6 +22,7 @@ export const verifyEmailQuerySchema = z.object({
 
 export const forgotPasswordSchema = z.object({
   email: z.email('Format email tidak valid'),
+  publicationSlug: z.string().optional(),
 });
 
 export const resetPasswordSchema = z.object({
@@ -47,7 +49,26 @@ export const completeOwnerInviteSchema = z.object({
   publicationDescription: z.string().max(160).optional(),
 });
 
+export const completeAuthorInviteSchema = z.object({
+  token: z.string().min(1, 'Token wajib diisi'),
+  name: z.string().min(2, 'Nama minimal 2 karakter').max(255).optional(),
+  password: z
+    .string()
+    .min(8, 'Password minimal 8 karakter')
+    .regex(/(?=.*[a-zA-Z])(?=.*\d)/, 'Password harus mengandung huruf dan angka')
+    .optional(),
+});
+
+export const authorInviteTokenQuerySchema = z.object({
+  token: z.string().min(1, 'Token wajib diisi'),
+});
+
 export type RegisterInput = z.infer<typeof registerSchema> & { ownerInviteToken?: string };
-export type LoginInput = z.infer<typeof loginSchema>;
-export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+export type LoginInput = z.infer<typeof loginSchema> & {
+  publicationSlug?: string;
+};
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema> & {
+  publicationSlug?: string;
+};
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+export type CompleteAuthorInviteInput = z.infer<typeof completeAuthorInviteSchema>;

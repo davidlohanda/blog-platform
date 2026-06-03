@@ -17,6 +17,8 @@ import {
   forgotPasswordSchema,
   resetPasswordSchema,
   completeOwnerInviteSchema,
+  completeAuthorInviteSchema,
+  authorInviteTokenQuerySchema,
 } from './auth.schema';
 import { config } from '../../config';
 
@@ -57,17 +59,56 @@ router.post('/complete-owner-invite', validate(completeOwnerInviteSchema), (req,
   authController.completeOwnerInvite(req, res, next),
 );
 
+// Platform admin login + forgot/reset password
+router.post('/admin/login', authRateLimiter, validate(loginSchema), (req, res, next) =>
+  authController.adminLogin(req, res, next),
+);
+router.post(
+  '/admin/forgot-password',
+  forgotPasswordRateLimiter,
+  validate(forgotPasswordSchema),
+  (req, res, next) => authController.adminForgotPassword(req, res, next),
+);
+router.post('/admin/reset-password', validate(resetPasswordSchema), (req, res, next) =>
+  authController.adminResetPassword(req, res, next),
+);
+
+// Publication staff login + forgot/reset password
+router.post('/staff/login', authRateLimiter, validate(loginSchema), (req, res, next) =>
+  authController.staffLogin(req, res, next),
+);
+router.post(
+  '/staff/forgot-password',
+  forgotPasswordRateLimiter,
+  validate(forgotPasswordSchema),
+  (req, res, next) => authController.staffForgotPassword(req, res, next),
+);
+router.post('/staff/reset-password', validate(resetPasswordSchema), (req, res, next) =>
+  authController.staffResetPassword(req, res, next),
+);
+
+// Author invite — get metadata (public) and complete invite
+router.get('/author-invite', validate(authorInviteTokenQuerySchema, 'query'), (req, res, next) =>
+  authController.getAuthorInviteMetadata(req, res, next),
+);
+router.post('/complete-author-invite', validate(completeAuthorInviteSchema), (req, res, next) =>
+  authController.completeAuthorInvite(req, res, next),
+);
+
 // Google OAuth — only mount if credentials are configured
 if (config.google.clientId && config.google.clientSecret) {
   const oauthFailureUrl = `${config.platform.frontendUrl}/login?error=oauth_failed`;
 
-  router.get(
-    '/google',
-    passport.authenticate('google', {
-      session: false,
-      scope: ['profile', 'email'],
-    }) as RequestHandler,
-  );
+  router.get('/google', (req, res, next) => {
+    const pubId = (req.query.pub_id as string) ?? '';
+    (
+      passport.authenticate('google', {
+        session: false,
+        scope: ['profile', 'email'],
+        ...(pubId && { state: pubId }),
+      }) as RequestHandler
+    )(req, res, next);
+  });
 
   router.get(
     '/google/callback',

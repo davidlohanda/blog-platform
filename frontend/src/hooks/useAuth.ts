@@ -23,6 +23,31 @@ export function useAuth() {
     [setAuth],
   );
 
+  const adminLogin = useCallback(
+    async (email: string, password: string) => {
+      const { data } = await apiClient.post<{ data: { accessToken: string; user: AuthUser } }>(
+        '/auth/admin/login',
+        { email, password },
+      );
+      setAuth(data.data.accessToken, data.data.user);
+      document.cookie = `user-role=${data.data.user.role}; path=/; SameSite=Lax; Max-Age=${30 * 24 * 3600}`;
+      return data.data;
+    },
+    [setAuth],
+  );
+
+  const staffLogin = useCallback(
+    async (email: string, password: string, publicationSlug?: string) => {
+      const { data } = await apiClient.post<{
+        data: { accessToken: string; user: AuthUser & { publicationRole: string } };
+      }>('/auth/staff/login', { email, password, publicationSlug });
+      setAuth(data.data.accessToken, data.data.user);
+      document.cookie = `user-role=${data.data.user.role}; path=/; SameSite=Lax; Max-Age=${30 * 24 * 3600}`;
+      return data.data;
+    },
+    [setAuth],
+  );
+
   const logout = useCallback(async () => {
     try {
       await apiClient.post('/auth/logout');
@@ -49,6 +74,8 @@ export function useAuth() {
     accessToken,
     isAuthenticated: !!accessToken,
     login,
+    adminLogin,
+    staffLogin,
     logout,
     register,
   };

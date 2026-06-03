@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { authService } from './auth.service';
+import { publicationRepository } from '../publication/publication.repository';
 import { AppError } from '../../lib/AppError';
 import { config } from '../../config';
 import type {
@@ -7,6 +8,7 @@ import type {
   LoginInput,
   ForgotPasswordInput,
   ResetPasswordInput,
+  CompleteAuthorInviteInput,
 } from './auth.schema';
 import type { GoogleProfile } from '../../config/passport.config';
 import type { TenantRequest } from '../../middleware/tenant.middleware';
@@ -117,10 +119,59 @@ export const authController = {
     }
   },
 
+  async adminForgotPassword(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { email } = req.body as ForgotPasswordInput;
+      const result = await authService.adminForgotPassword(email);
+      res.json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async adminResetPassword(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { token, password } = req.body as ResetPasswordInput;
+      const result = await authService.adminResetPassword(token, password);
+      res.json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async staffForgotPassword(req: Request, res: Response, next: NextFunction) {
+    try {
+      const body = req.body as ForgotPasswordInput;
+      // Resolve slug from tenant middleware (prod) or body fallback (dev/local)
+      const publicationSlug =
+        (req as TenantRequest).publication?.slug ?? body.publicationSlug ?? '';
+      if (!publicationSlug) {
+        return next(AppError.badRequest('Publication tidak ditemukan', 'NO_PUBLICATION'));
+      }
+      const result = await authService.staffForgotPassword(body.email, publicationSlug);
+      res.json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async staffResetPassword(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { token, password } = req.body as ResetPasswordInput;
+      const result = await authService.staffResetPassword(token, password);
+      res.json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  },
+
   async googleCallback(req: Request, res: Response, next: NextFunction) {
     try {
       const googleUser = req.user as GoogleProfile;
-      const publicationId = (req as TenantRequest).publication?.id ?? PLATFORM_SCOPE;
+      // pub_id passed via OAuth state param from the login page (member OAuth from publication subdomain)
+      const statePublicationId = (req.query.state as string) || '';
+      const publicationId =
+        statePublicationId || (req as TenantRequest).publication?.id || PLATFORM_SCOPE;
       const { accessToken, refreshToken } = await authService.handleGoogleUser(
         googleUser,
         publicationId,
@@ -143,6 +194,59 @@ export const authController = {
       const userId = (req as Request & { user?: { userId: string } }).user!.userId;
       const user = await authService.getMe(userId);
       res.json({ success: true, data: user });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async adminLogin(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = req.body as LoginInput;
+      const { accessToken, refreshToken, user } = await authService.adminLogin(data);
+      res.cookie('refreshToken', refreshToken, REFRESH_COOKIE_OPTIONS);
+      res.json({ success: true, data: { accessToken, user } });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async staffLogin(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = req.body as LoginInput;
+      // Resolve publication: from tenant middleware (prod) or lookup by slug from body (dev/local)
+      let publicationId = (req as TenantRequest).publication?.id;
+      if (!publicationId && data.publicationSlug) {
+        const pub = await publicationRepository.findBySlug(data.publicationSlug);
+        if (pub) publicationId = pub.id;
+      }
+      if (!publicationId) {
+        return next(AppError.badRequest('Publication tidak ditemukan', 'NO_PUBLICATION'));
+      }
+      const { accessToken, refreshToken, user } = await authService.staffLogin(data, publicationId);
+      res.cookie('refreshToken', refreshToken, REFRESH_COOKIE_OPTIONS);
+      res.json({ success: true, data: { accessToken, user } });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async getAuthorInviteMetadata(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { token } = req.query as { token: string };
+      const data = await authService.getAuthorInviteMetadata(token);
+      res.json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async completeAuthorInvite(req: Request, res: Response, next: NextFunction) {
+    try {
+      const body = req.body as CompleteAuthorInviteInput;
+      const { accessToken, refreshToken, user, publicationSlug } =
+        await authService.completeAuthorInvite(body);
+      res.cookie('refreshToken', refreshToken, REFRESH_COOKIE_OPTIONS);
+      res.json({ success: true, data: { accessToken, user, publicationSlug } });
     } catch (error) {
       next(error);
     }

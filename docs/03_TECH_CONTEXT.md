@@ -210,7 +210,7 @@ async function checkSubscription(userId: string, pubId: string) {
 - TIDAK untuk: business logic, DB query, complex auth check, role validation
 - Tenant resolution: set `x-publication-slug` header dari subdomain, atau `x-publication-host` dari custom domain
 - **Dev local:** gunakan `slug.lvh.me:3000` untuk simulasi publication subdomain (`lvh.me` selalu resolve ke 127.0.0.1)
-- **Platform domain:** `localhost:3000/admin` atau `app.lentera.id/admin` — tidak ada `x-publication-slug` header
+- **Platform domain:** `localhost:3000/admin` atau `lentera.id/admin` — tidak ada `x-publication-slug` header
 
 ### 5. `params` dan `searchParams` — Async
 Next.js 16: `params` dan `searchParams` HARUS di-await:

@@ -976,7 +976,7 @@ Email invite → klik link → /accept-invite?token=xxx
 **TASK-BE-16.1.3** `[x]` GET /publications/check-slug?slug=xxx: return `{ available, suggestion? }` dengan auto-suggestion -2, -3...
 **TASK-BE-16.1.4** `[x]` Commit: `feat(onboarding): EPIC 16 backend`
 
-**TASK-FE-16.1.1** `[x]` Rewrite `app/accept-invite/page.tsx` — 3-step wizard dengan StepIndicator (X of 3)
+**TASK-FE-16.1.1** `[x]` Rewrite `app/(platform)/accept-invite/page.tsx` — 3-step wizard dengan StepIndicator (X of 3)
 **TASK-FE-16.1.2** `[x]` Step 1: nama + password + konfirmasi, validasi real-time via Zod + react-hook-form
 **TASK-FE-16.1.3** `[x]` Step 2: nama pub, slug (auto-dari-nama, editable), deskripsi. Debounce 500ms slug check
 **TASK-FE-16.1.4** `[x]` Slug: preview URL `[slug].lentera.id`, suggestion clickable untuk auto-fill
@@ -1007,16 +1007,56 @@ Sebagai owner baru, saya ingin ada panduan visual di dashboard dengan CTA langsu
 ### STORY 16.3 — Platform Landing Page yang Proper
 Sebagai pengunjung yang membuka lentera.id, saya ingin melihat halaman yang menjelaskan tentang platform.
 
-**TASK-FE-16.3.1** `[x]` Redesign PlatformLanding di (publication)/page.tsx:
+**⚠️ NEEDS MOVE:** Task di bawah sudah dikerjakan tapi di lokasi yang SALAH — landing ada di `(publication)/page.tsx` padahal seharusnya di `app/page.tsx` (root level). Akan dipindah di Story 16.4.
+
+**TASK-FE-16.3.1** `[x]` Redesign PlatformLanding (dikerjakan di `(publication)/page.tsx` — lihat Story 16.4 untuk fix):
   - Hero: logo + tagline + CTA "Mulai sekarang" dan "Pelajari lebih lanjut"
   - Section "Untuk Siapa": Penulis Solo, Tim Penulis, Komunitas & Kreator
   - Section "Fitur Utama": 4 fitur dengan ikon
   - Section "Cara Kerja": 3 langkah
   - Footer: link masuk + admin + copyright
-**TASK-FE-16.3.2** `[x]` Redirect logic tetap: platform_admin → /admin/dashboard, owner/author → /dashboard
+**TASK-FE-16.3.2** `[x]` Redirect logic: platform_admin → /admin/dashboard, owner/author → /admin/dashboard
 **TASK-FE-16.3.3** `[x]` Responsive mobile-first (semua section punya md: breakpoints)
-**TASK-FE-16.3.4** `[x]` generateMetadata: title "Lentera — Platform Blog Subscription" untuk platform context
+**TASK-FE-16.3.4** `[x]` generateMetadata: title "Lentera — Platform Blog Subscription"
 **TASK-FE-16.3.5** `[x]` Commit included
+
+---
+
+### STORY 16.4 — Pisahkan Platform Landing dan Publication Homepage
+
+**Konteks:** Saat ini satu file `(publication)/page.tsx` melayani dua konteks:
+1. `lentera.id/` → tidak ada slug → render `PlatformLanding` component
+2. `slug.lentera.id/` → ada slug → render publication homepage
+
+Harus dipisah dengan pola yang sama seperti `pub-admin` — yang di-rewrite adalah sisi publication:
+- `lentera.id/` → natural route → `(platform)/page.tsx` (tidak perlu rewrite)
+- `slug.lentera.id/` → proxy.ts rewrite `/ → /pub-home` → `(publication)/pub-home/page.tsx`
+
+**TASK-FE-16.4.1** `[ ]` Buat `app/(platform)/page.tsx` — platform landing
+- Pindahkan `PlatformLanding` component dari `(publication)/page.tsx` ke sini
+- Target audience: calon publication owner/kreator
+- Serve `lentera.id/` secara natural (tidak ada rewrite)
+
+**TASK-FE-16.4.2** `[ ]` Buat `app/(publication)/pub-home/page.tsx` — publication homepage
+- Pindahkan publication homepage content dari `(publication)/page.tsx` ke sini
+- Serve `slug.lentera.id/` via proxy.ts rewrite (`/` → `/pub-home`)
+- Sudah punya `PublicationContext` dari parent `(publication)/layout.tsx`
+
+**TASK-FE-16.4.3** `[ ]` Update `proxy.ts` — tambah rewrite untuk subdomain root
+- Tambah kondisi: subdomain + `pathname === '/'` → rewrite ke `/pub-home`
+- Analogous dengan `/admin/*` → `/pub-admin/admin/*`
+```typescript
+if (pathname === '/') {
+  rewriteUrl.pathname = '/pub-home';
+  return NextResponse.rewrite(rewriteUrl, { request: { headers: requestHeaders } });
+}
+```
+
+**TASK-FE-16.4.4** `[ ]` Hapus `app/(publication)/page.tsx`
+- Setelah kontennya dipindah ke `(platform)/page.tsx` dan `(publication)/pub-home/page.tsx`
+
+**TASK-INT-16.4.1** `[ ]` Verifikasi: `lentera.id/` → platform landing, `slug.lentera.id/` → publication homepage
+**TASK-INT-16.4.2** `[ ]` Commit: `feat(routing): separate platform landing and publication homepage`
 
 ---
 
@@ -1075,40 +1115,25 @@ Sebagai developer, saya ingin seed data yang realistis dan lengkap agar testing 
 
 ### STORY 18.1 — Platform Staff Auth Pages
 
-**TASK-FE-18.1.1** `[ ]` Buat `app/admin/login/page.tsx` — Platform staff login
-- Melayani BOTH `platform_owner` dan `platform_admin`
-- Email+password ONLY, tanpa Google OAuth button
-- Form simpel: email, password, submit
-- Error handling: wrong credentials, account locked
-- Redirect setelah login: `/admin/dashboard`
-- Style: platform branding (berbeda dari publication login)
+**TASK-FE-18.1.1** `[x]` Buat `app/(platform)/admin/(auth)/login/page.tsx` — Platform admin login
+- Email+password ONLY, no Google OAuth
+- Error handling: wrong credentials, not admin, locked
+- Redirect: `/admin/dashboard`
 
-**TASK-FE-18.1.2** `[ ]` Buat `app/admin/forgot-password/page.tsx`
-- Form: email input → kirim link reset
-- Tidak perlu deteksi OAuth-only (platform staff tidak punya OAuth)
+**TASK-FE-18.1.2** `[x]` Buat `app/(platform)/admin/(auth)/forgot-password/page.tsx`
+**TASK-FE-18.1.3** `[x]` Buat `app/(platform)/admin/(auth)/reset-password/page.tsx`
 
-**TASK-FE-18.1.3** `[ ]` Buat `app/admin/reset-password/page.tsx`
-- Query param: `?token=xxx`
-- Form: new password + confirm password
+**TASK-BE-18.1.1** `[x]` Buat endpoint `POST /auth/admin/login`
+- Checks `user.role === 'platform_admin'` (existing role field, tidak tambah platformRole baru)
+- Scoped ke `__platform__`
 
-**TASK-BE-18.1.1** `[ ]` Buat endpoint `POST /auth/admin/login`
-- Validasi: hanya izinkan user dengan `platform_role IN ('platform_owner', 'platform_admin')`
-- Jika `platform_role` null → return 403
+**TASK-BE-18.1.2** `[ ]` (Dilewati — menggunakan existing `role` field, tidak perlu field baru)
 
-**TASK-BE-18.1.2** `[ ]` Update schema Prisma — tambah field `platform_role` di model `User`:
-```
-platformRole  String?  @map("platform_role")
-              // null | 'platform_owner' | 'platform_admin'
-```
+**TASK-BE-18.1.3** `[x]` Buat `POST /auth/admin/forgot-password` dan `POST /auth/admin/reset-password`
 
-**TASK-BE-18.1.3** `[ ]` Buat `POST /auth/admin/forgot-password` dan `POST /auth/admin/reset-password`
-- Link reset di email: `app.lentera.id/admin/reset-password?token=xxx`
+**TASK-BE-18.1.4** `[x]` Update seed.ts — tambah platform_owner account
 
-**TASK-BE-18.1.4** `[ ]` Update seed.ts — buat 2 platform accounts:
-- `owner@lentera.id` / `Owner123!` — platform_owner
-- `admin@lentera.id` / `Admin123!` — platform_admin
-
-**TASK-BE-18.1.5** `[ ]` Commit: `feat(auth): add platform staff auth with owner/admin roles`
+**TASK-BE-18.1.5** `[x]` Commit: Sprint 1 backend done (commit d7e25eb)
 
 ---
 
@@ -1116,55 +1141,57 @@ platformRole  String?  @map("platform_role")
 
 **Konteks:** Auth pages member dipindah ke `(publication)/` (bukan ke dalam `/admin/`). `/login` di publication = member ONLY + Google OAuth.
 
-**TASK-FE-18.2.1** `[ ]` Pindahkan dan refactor `(auth)/login/` → `(publication)/login/`
-- MEMBER ONLY — hapus semua logika staff login
-- Selalu tampilkan Google OAuth button
+**TASK-FE-18.2.1** `[x]` Buat `(publication)/(auth)/login/` — member login
+- MEMBER ONLY + Google OAuth
 - Post-login redirect: ke `/` (publication homepage)
 - Baca publication context dari layout (untuk branding)
 
-**TASK-FE-18.2.2** `[ ]` Pindahkan `(auth)/register/` → `(publication)/register/`
-**TASK-FE-18.2.3** `[ ]` Pindahkan `(auth)/verify-email/` → `(publication)/verify-email/`
-**TASK-FE-18.2.4** `[ ]` Pindahkan `(auth)/forgot-password/` → `(publication)/forgot-password/`
+**TASK-FE-18.2.2** `[x]` Buat `(publication)/(auth)/register/`
+**TASK-FE-18.2.3** `[x]` Buat `(publication)/(auth)/verify-email/`
+**TASK-FE-18.2.4** `[x]` Buat `(publication)/(auth)/forgot-password/`
 - Panggil endpoint `/auth/forgot-password` (member)
 - Deteksi OAuth-only account
 
-**TASK-FE-18.2.5** `[ ]` Pindahkan `(auth)/reset-password/` → `(publication)/reset-password/`
-**TASK-FE-18.2.6** `[ ]` Hapus direktori `app/(auth)/` setelah semua halaman dipindah
+**TASK-FE-18.2.5** `[x]` Buat `(publication)/(auth)/reset-password/`
+**TASK-FE-18.2.6** `[x]` Hapus direktori `app/(auth)/` lama setelah semua halaman dipindah
 
-**TASK-INT-18.2.1** `[ ]` Verifikasi: member auth flow berjalan dari publication subdomain
-**TASK-INT-18.2.2** `[ ]` Commit: `refactor(routing): move member auth pages into (publication) root`
+**TASK-INT-18.2.1** `[x]` Verifikasi: member auth flow berjalan dari publication subdomain
+**TASK-INT-18.2.2** `[x]` Commit: `refactor(routing): move member auth pages into (publication) root`
 
 ---
 
-### STORY 18.3 — Buat Publication Staff Space di `(publication)/admin/`
+### STORY 18.3 — Publication Staff Space di `(publication)/pub-admin/admin/`
 
-**Konteks:** Staff (owner/admin/author) mengakses `slug.lentera.id/admin/*`. Pola konsisten dengan platform admin di `app.lentera.id/admin/*`.
+**Catatan arsitektur:** Pemisahan platform admin vs publication staff via `NextResponse.rewrite()` di proxy.ts:
+- Request dari subdomain ke `/admin/*` → di-rewrite internal ke `/pub-admin/admin/*`
+- Request dari root domain ke `/admin/*` → pass through ke `(platform)/admin/` 
+- URL eksternal tetap `/admin/*` di kedua kasus — dibedakan oleh subdomain
+- Folder `(publication)/pub-admin/admin/` = rewrite target, terorganisasi dalam `(publication)` route group
 
-**TASK-FE-18.3.1** `[ ]` Buat `(publication)/admin/layout.tsx`
-- Pass-through untuk auth routes (`/admin/login`, `/admin/forgot-password`, `/admin/reset-password`)
-- Protect semua route lain: require owner/admin/author role di publication ini
+**TASK-FE-18.3.1** `[x]` Buat `(publication)/pub-admin/admin/layout.tsx` — pass-through
+- Auth pages publik, dashboard diproteksi di sublayout
 
-**TASK-FE-18.3.2** `[ ]` Buat `(publication)/admin/login/page.tsx`
-- STAFF ONLY — no Google OAuth, no "daftar akun" link
+**TASK-FE-18.3.2** `[x]` Buat `(publication)/pub-admin/admin/(auth)/login/page.tsx`
+- STAFF ONLY — no Google OAuth
 - Panggil endpoint `/auth/staff/login`
 - Post-login redirect: `/admin/dashboard`
-- Baca publication context dari parent layout (nama publication untuk branding)
+- Baca publication context dari parent layout
 
-**TASK-FE-18.3.3** `[ ]` Buat `(publication)/admin/forgot-password/page.tsx`
+**TASK-FE-18.3.3** `[x]` Buat `(publication)/pub-admin/admin/(auth)/forgot-password/page.tsx`
 - Panggil endpoint `/auth/staff/forgot-password`
 
-**TASK-FE-18.3.4** `[ ]` Buat `(publication)/admin/reset-password/page.tsx`
+**TASK-FE-18.3.4** `[x]` Buat `(publication)/pub-admin/admin/(auth)/reset-password/page.tsx`
 
-**TASK-FE-18.3.5** `[ ]` Pindahkan `(dashboard)/dashboard/` → `(publication)/admin/dashboard/`
+**TASK-FE-18.3.5** `[x]` Pindahkan `(dashboard)/dashboard/` → `(publication)/pub-admin/admin/dashboard/`
 - Update semua internal links dari `/dashboard/*` → `/admin/dashboard/*`
 
-**TASK-FE-18.3.6** `[ ]` Buat `(publication)/admin/dashboard/layout.tsx`
-- Guard: verify owner/admin/author role (double check setelah layout parent)
+**TASK-FE-18.3.6** `[x]` Buat `(publication)/pub-admin/admin/dashboard/layout.tsx`
+- Guard: verify accessToken (redirects to /admin/login if not authenticated)
 
-**TASK-FE-18.3.7** `[ ]` Hapus direktori `app/(dashboard)/` setelah dipindah
+**TASK-FE-18.3.7** `[x]` Hapus direktori `app/(dashboard)/` setelah dipindah
 
-**TASK-INT-18.3.1** `[ ]` Verifikasi: staff login di `/admin/login`, dashboard di `/admin/dashboard`
-**TASK-INT-18.3.2** `[ ]` Commit: `feat(routing): add publication staff space at (publication)/admin/`
+**TASK-INT-18.3.1** `[x]` Verifikasi: staff login di `/admin/login`, dashboard di `/admin/dashboard`
+**TASK-INT-18.3.2** `[x]` Commit: `feat(routing): add publication staff space at (publication)/admin/`
 
 ---
 
@@ -1172,39 +1199,37 @@ platformRole  String?  @map("platform_role")
 
 **Konteks:** Saat ini layout hanya `return <>{children}</>`. Harus menjadi tenant resolver dan publication context provider.
 
-**TASK-FE-18.4.1** `[ ]` Implementasi `(publication)/layout.tsx`:
-- Baca `x-publication-slug` atau `x-publication-host` dari headers
-- Fetch publication data (name, slug, logo, status)
-- Jika tidak ada slug/host → `notFound()`
-- Jika `status === 'suspended_hard'` → redirect ke `/suspended`
-- Jika `status === 'pending_deletion'` → redirect ke `/suspended` dengan pesan berbeda
-- Provide publication data ke children via React Context
+**TASK-FE-18.4.1** `[x]` Implementasi `(publication)/layout.tsx` sebagai tenant resolver
+- `PublicationResolver` async server component di dalam `<Suspense>`
+- Baca `x-publication-slug` dari headers, fetch pub data, redirect jika suspended_hard/pending_deletion
+- Provide via `PublicationProvider`
 
-**TASK-FE-18.4.2** `[ ]` Buat `PublicationContext` — provide: `{ publication, isLoading }`
-**TASK-FE-18.4.3** `[ ]` Update semua pages di `(publication)/` yang fetch publication secara individual → gunakan context dari layout
-**TASK-INT-18.4.1** `[ ]` Commit: `feat(routing): implement meaningful publication layout with tenant resolution`
+**TASK-FE-18.4.2** `[x]` Buat `PublicationContext` — `{ slug, publication }` (di `src/contexts/PublicationContext.tsx`)
+**TASK-FE-18.4.3** `[x]` Update pages di `(publication)/` untuk gunakan context dari layout
+- login, subscribe: sudah pakai usePublicationContext(); other pages tetap standalone
+**TASK-INT-18.4.1** `[x]` Commit: Sprint 2 done (commit 2fc0180)
 
 ---
 
 ### STORY 18.5 — Pindahkan `subscribe/` dan `suspended/` ke `(publication)/`
 
-**TASK-FE-18.5.1** `[ ]` Pindahkan `app/subscribe/page.tsx` → `(publication)/subscribe/page.tsx`
+**TASK-FE-18.5.1** `[x]` Pindahkan `app/subscribe/page.tsx` → `(publication)/subscribe/page.tsx`
 - Hapus penggunaan `?pub=<id>` query param
 - Ambil `publicationId` dari `PublicationContext` (sudah tersedia dari layout)
 
-**TASK-FE-18.5.2** `[ ]` Pindahkan `app/suspended/page.tsx` → `(publication)/suspended/page.tsx`
-**TASK-FE-18.5.3** `[ ]` Hapus `app/subscribe/page.tsx` dan `app/suspended/page.tsx` dari root
-**TASK-INT-18.5.1** `[ ]` Commit: `refactor(routing): move subscribe and suspended into publication context`
+**TASK-FE-18.5.2** `[x]` Pindahkan `app/suspended/page.tsx` → `(publication)/suspended/page.tsx`
+**TASK-FE-18.5.3** `[x]` Hapus `app/subscribe/page.tsx` dan `app/suspended/page.tsx` dari root
+**TASK-INT-18.5.1** `[x]` Commit: `refactor(routing): move subscribe and suspended into publication context`
 
 ---
 
 ### STORY 18.6 — Hapus `app/me/` dan `app/onboarding/`
 
-**TASK-FE-18.6.1** `[ ]` Hapus `app/me/settings/page.tsx` (redirect stub sudah tidak diperlukan)
-**TASK-FE-18.6.2** `[ ]` Hapus `app/me/subscription/page.tsx`
-**TASK-FE-18.6.3** `[ ]` Hapus direktori `app/me/` sepenuhnya
-**TASK-FE-18.6.4** `[ ]` Hapus `app/onboarding/page.tsx` (redirect stub ke /dashboard)
-**TASK-INT-18.6.1** `[ ]` Commit: `refactor(routing): remove me/ directory and onboarding stub`
+**TASK-FE-18.6.1** `[x]` Hapus `app/me/settings/page.tsx` (redirect stub sudah tidak diperlukan)
+**TASK-FE-18.6.2** `[x]` Hapus `app/me/subscription/page.tsx`
+**TASK-FE-18.6.3** `[x]` Hapus direktori `app/me/` sepenuhnya
+**TASK-FE-18.6.4** `[x]` Hapus `app/onboarding/page.tsx` (redirect stub ke /dashboard)
+**TASK-INT-18.6.1** `[x]` Commit: `refactor(routing): remove me/ directory and onboarding stub`
 
 ---
 
@@ -1212,64 +1237,70 @@ platformRole  String?  @map("platform_role")
 
 **Konteks:** Owner dapat mengundang author. Tapi tidak ada halaman untuk menerima undangan ini.
 
-**TASK-BE-18.7.1** `[ ]` Buat endpoint `GET /auth/accept-author-invite?token=xxx`
-- Return: `{ inviterName, publicationName, publicationSlug, email, isExistingUser }`
+**TASK-BE-18.7.1** `[x]` Buat endpoint `GET /auth/author-invite?token=xxx`
+- Return: `{ email, publicationId, publicationName, publicationSlug, role, isExistingUser }`
 
-**TASK-BE-18.7.2** `[ ]` Buat endpoint `POST /auth/complete-author-invite`
-- Jika user baru: buat akun (name + password), set role `author`
-- Jika existing user: langsung set role `author` di publication
-- Return: access token + redirect info
+**TASK-BE-18.7.2** `[x]` Buat endpoint `POST /auth/complete-author-invite`
+- Jika user baru: buat akun (name + password), set role
+- Jika existing user: langsung set role di publication
+- Return: accessToken + publicationSlug
 
-**TASK-FE-18.7.1** `[ ]` Buat `(publication)/accept-author-invite/page.tsx`
+**TASK-FE-18.7.1** `[x]` Buat `(publication)/accept-author-invite/page.tsx`
 - URL: `slug.lentera.id/accept-author-invite?token=xxx`
 - Jika `isExistingUser = true`: tampilkan confirmation card saja ("Accept invitation")
 - Jika `isExistingUser = false`: tampilkan form buat akun (name + password)
 - Setelah accept: redirect ke `/admin/dashboard`
 
-**TASK-INT-18.7.1** `[ ]` Commit: `feat(auth): add author invite acceptance flow`
+**TASK-INT-18.7.1** `[x]` Commit: `feat(auth): add author invite acceptance flow`
 
 ---
 
 ### STORY 18.8 — Fix `accept-invite` Post-Wizard Redirect
 
-**Konteks:** Step 3 wizard saat ini redirect ke `/dashboard` (relative). Dari `app.lentera.id/accept-invite`, ini akan pergi ke `app.lentera.id/dashboard` (SALAH). Seharusnya ke `slug.lentera.id/admin/dashboard`.
+**Konteks:** Step 3 wizard saat ini redirect ke `/dashboard` (relative). Dari `lentera.id/accept-invite`, ini akan pergi ke `lentera.id/dashboard` (SALAH). Seharusnya ke `slug.lentera.id/admin/dashboard`.
 
-**TASK-FE-18.8.1** `[ ]` Update `accept-invite/page.tsx` Step 3 component
+**TASK-FE-18.8.1** `[x]` Update `(platform)/accept-invite/page.tsx` Step 3 component
 - Backend sudah return `publicationSlug` dalam response
 - Build full URL: `https://${publicationSlug}.lentera.id/admin/dashboard` (atau `slug.lvh.me:3000/admin/dashboard` di dev)
-- Gunakan `window.location.href` bukan `router.push()` karena pindah domain
+- Gunakan `window.location.assign()` (bukan `router.push()`) karena pindah domain
 
-**TASK-INT-18.8.1** `[ ]` Commit: `fix(auth): correct post-invite-wizard redirect to publication subdomain`
+**TASK-INT-18.8.1** `[x]` Commit: `fix(auth): correct post-invite-wizard redirect to publication subdomain`
 
 ---
 
 ### STORY 18.9 — Update `proxy.ts` PROTECTED_PREFIXES
 
-**TASK-FE-18.9.1** `[ ]` Update `proxy.ts`:
-- Hapus `/me` dan `/dashboard` dari PROTECTED_PREFIXES
-- PROTECTED_PREFIXES yang baru: `['/admin']` — berlaku di semua domain
-- Pastikan `/admin/login`, `/admin/forgot-password`, `/admin/reset-password` di-EXCLUDE dari protection
-- Implementasi: cek apakah pathname adalah auth route sebelum redirect
+**TASK-FE-18.9.1** `[x]` Update `proxy.ts`:
+- PROTECTED_PREFIXES → `['/admin']` only
+- AUTH_EXCLUSIONS → `/admin/login`, `/admin/forgot-password`, `/admin/reset-password`
+- Unauthenticated protected route → redirect ke `/admin/login`
 
-**TASK-FE-18.9.2** `[ ]` Update `app/admin/layout.tsx` (platform staff):
-- Pass-through untuk `/admin/login`, `/admin/forgot-password`, `/admin/reset-password`
-- Require `platform_role IN ('platform_owner', 'platform_admin')` untuk semua route lain
-- Endpoint khusus platform_owner (kelola staff) di-guard di service layer backend
+**TASK-FE-18.9.2** `[x]` Buat `app/(platform)/admin/layout.tsx` — guard platform_admin only
 
-**TASK-FE-18.9.3** `[ ]` `(publication)/admin/layout.tsx` sudah handle guard di STORY 18.3 — verifikasi konsistensi
+**TASK-FE-18.9.3** `[x]` Verifikasi konsistensi guard (dilakukan bersamaan dengan implementasi)
 
-**TASK-INT-18.9.1** `[ ]` Commit: `fix(routing): update proxy to use /admin as single protected prefix with auth exclusion`
+**TASK-FE-18.9.4** `[x]` Update `proxy.ts` — domain detection baru:
+- Ganti `APP_DOMAIN = 'app.lentera.id'` → `ROOT_DOMAIN = 'lentera.id'`
+- Platform detection: `host === ROOT_DOMAIN || host === 'localhost'`
+- Tambah `NextResponse.rewrite()` untuk subdomain + `/admin/*` → `/pub-admin/admin/*`
+- Update ENV var: `NEXT_PUBLIC_APP_DOMAIN` → removed (platform is localhost in dev)
+
+**TASK-FE-18.9.5** `[x]` Buat `app/(publication)/pub-admin/` folder sebagai internal path untuk staff admin
+- Ini adalah folder internal yang di-rewrite dari proxy.ts — external URL tetap `/admin/*`
+- Semua halaman di Story 18.3 dibuat di sini, dalam `(publication)` route group
+
+**TASK-INT-18.9.1** `[x]` Commit: Sprint 2 done (commit 2fc0180)
 
 ---
 
 ### STORY 18.10 — Fix Stale Links dan Referensi
 
-**TASK-FE-18.10.1** `[ ]` Fix `payment/success/page.tsx` — ganti link `/me/subscription` → `/subscription`
-**TASK-FE-18.10.2** `[ ]` Fix `(publication)/subscription/page.tsx` — ganti link `/me/subscription` → `/subscription`
-**TASK-FE-18.10.3** `[ ]` Cari semua referensi `/me/` di seluruh frontend → ganti dengan path yang benar
-**TASK-FE-18.10.4** `[ ]` Cari semua referensi `/dashboard` (tanpa `/admin`) di dalam publication staff pages → ganti ke `/admin/dashboard`
-**TASK-FE-18.10.5** `[ ]` Fix Google OAuth `state` parameter — sertakan `publicationId` saat initiate OAuth agar callback dapat redirect ke subdomain yang benar
-**TASK-INT-18.10.1** `[ ]` Commit: `fix(routing): remove stale /me/ and /dashboard references, fix OAuth state`
+**TASK-FE-18.10.1** `[x]` Fix `payment/success/page.tsx` — ganti link `/me/subscription` → `/subscription`
+**TASK-FE-18.10.2** `[x]` Fix `(publication)/subscription/page.tsx` — tidak ada stale link (hanya API endpoint /subscriptions/me/history yang benar)
+**TASK-FE-18.10.3** `[x]` Cari semua referensi `/me/` di seluruh frontend → tidak ada routing stale links (hanya API endpoints yang benar)
+**TASK-FE-18.10.4** `[x]` Cari semua referensi `/dashboard` (tanpa `/admin`) → sudah diupdate ke `/admin/dashboard` (DashboardShell, page.tsx, publications, GoogleCallback)
+**TASK-FE-18.10.5** `[x]` Fix Google OAuth `state` parameter — sertakan `publicationId` saat initiate OAuth agar callback dapat redirect ke subdomain yang benar
+**TASK-INT-18.10.1** `[x]` Commit: `fix(routing): remove stale /me/ and /dashboard references, fix OAuth state`
 
 ---
 

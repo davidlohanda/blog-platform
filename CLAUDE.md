@@ -1,7 +1,7 @@
 # CLAUDE.md
 ## Blog Platform — Lentera
 > File ini dibaca otomatis oleh Claude Code setiap sesi dimulai.
-> Versi 3.0 — Routing architecture refactor (platform vs publication separation), docs sync.
+> Versi 3.1 — Domain platform: app.lentera.id → lentera.id. Folder separation via proxy.ts rewrite. Landing page lentera.id/ untuk calon owner.
 > File ini adalah index navigasi — untuk detail, selalu rujuk docs/ sesuai panduan di bawah.
 
 ---
@@ -84,7 +84,7 @@ blog-platform/
 
 | | Platform | Publication Staff | Publication Member |
 |---|---|---|---|
-| Domain (prod) | `app.lentera.id` | `[slug].lentera.id` | `[slug].lentera.id` |
+| Domain (prod) | `lentera.id` | `[slug].lentera.id` | `[slug].lentera.id` |
 | Domain (dev) | `localhost:3000` | `slug.lvh.me:3000` | `slug.lvh.me:3000` |
 | Login URL | `/admin/login` | `/admin/login` | `/login` |
 | Dashboard URL | `/admin/dashboard` | `/admin/dashboard` | `/` (homepage) |
@@ -106,9 +106,10 @@ investasi-cerdas.lvh.me:3000/admin/dashboard → Publication staff dashboard
 
 ### Di Production (Subdomain-based)
 ```
-app.lentera.id/admin/login              → Platform admin login
-app.lentera.id/admin/dashboard          → Platform admin dashboard
-[slug].lentera.id/                      → Publication homepage
+lentera.id/                             → Platform landing page (marketing, calon owner)
+lentera.id/admin/login                  → Platform admin login
+lentera.id/admin/dashboard              → Platform admin dashboard
+[slug].lentera.id/                      → Publication homepage (member view)
 [slug].lentera.id/login                 → Publication member login (+ Google OAuth)
 [slug].lentera.id/admin/login           → Publication staff login (no Google)
 [slug].lentera.id/admin/dashboard       → Publication staff dashboard
@@ -119,62 +120,80 @@ app.lentera.id/admin/dashboard          → Platform admin dashboard
 ### Frontend `app/` Folder Structure (Target)
 ```
 app/
-├── ── PLATFORM (app.lentera.id/admin/*) ──────────────────────────────
-├── admin/
-│   ├── layout.tsx                 ← Guard: protect dashboard, pass-through auth pages
-│   ├── login/page.tsx             ← /admin/login — email+pass ONLY, no Google
-│   ├── forgot-password/page.tsx
-│   ├── reset-password/page.tsx
-│   ├── dashboard/page.tsx         ← protected: platform_admin only
-│   ├── publications/page.tsx
-│   └── invite/page.tsx
+├── layout.tsx                     ← Root layout
 │
-├── accept-invite/page.tsx         ← Owner onboarding wizard (pre-auth, platform URL)
-├── auth/google/callback/page.tsx  ← OAuth callback (fixed URL, state bawa publicationId)
-├── payment/success/page.tsx       ← Midtrans callback (fixed URL)
+├── ── PLATFORM (lentera.id/*) ─────────────────────────────────────────
+└── (platform)/                    ← Route group platform (tidak mempengaruhi URL)
+    ├── accept-invite/page.tsx     ← Owner onboarding wizard (pre-auth)
+    ├── admin/
+    │   ├── layout.tsx             ← Guard: platform_admin only
+    │   ├── page.tsx
+    │   ├── (auth)/                ← Route group auth platform
+    │   │   ├── login/page.tsx     ← /admin/login — PLATFORM ONLY, no Google
+    │   │   ├── forgot-password/page.tsx
+    │   │   └── reset-password/page.tsx
+    │   ├── dashboard/page.tsx     ← protected: platform_admin only
+    │   ├── publications/page.tsx
+    │   └── invite/page.tsx
+    ├── auth/google/callback/page.tsx  ← OAuth callback (fixed URL)
+    └── payment/success/page.tsx       ← Midtrans callback (fixed URL)
 │
 ├── ── PUBLICATION (slug.lentera.id/*) ─────────────────────────────────
-└── (publication)/
+└── (publication)/                 ← Route group publication
     ├── layout.tsx                 ← Resolve tenant, provide PublicationContext
     │
     ├── ── MEMBER SPACE (root) ──────────────────────────────────────────
-    ├── page.tsx                   ← Publication homepage
+    ├── pub-home/page.tsx          ← Publication homepage (via proxy.ts rewrite: / → /pub-home)
     ├── [articleSlug]/page.tsx
     ├── series/[slug]/page.tsx
     ├── suspended/page.tsx
-    ├── accept-author-invite/page.tsx  ← Pre-auth, anyone can access
-    │
-    ├── login/page.tsx             ← /login — MEMBER ONLY + Google OAuth
-    ├── register/page.tsx          ← Member self-register
-    ├── verify-email/page.tsx      ← Member email verification
-    ├── forgot-password/page.tsx   ← Member forgot-password
-    ├── reset-password/page.tsx
-    │
-    ├── subscribe/page.tsx         ← Ambil publicationId dari layout context
+    ├── accept-author-invite/page.tsx
+    ├── subscribe/page.tsx
     ├── settings/page.tsx
     ├── subscription/page.tsx
     │
+    ├── (auth)/                    ← Route group auth member
+    │   ├── login/page.tsx         ← /login — MEMBER ONLY + Google OAuth
+    │   ├── register/page.tsx
+    │   ├── verify-email/page.tsx
+    │   ├── forgot-password/page.tsx
+    │   └── reset-password/page.tsx
+    │
     └── ── STAFF SPACE (/admin/*) ───────────────────────────────────────
-        └── admin/
-            ├── layout.tsx         ← Guard: protect dashboard, pass-through auth pages
-            ├── login/page.tsx     ← /admin/login — STAFF ONLY, no Google
-            ├── forgot-password/page.tsx
-            ├── reset-password/page.tsx
-            └── dashboard/
-                ├── layout.tsx     ← Guard: verify owner/admin/author role
-                ├── page.tsx       ← /admin/dashboard
-                ├── articles/{...}
-                ├── series/{...}
-                ├── subscribers/page.tsx
-                ├── analytics/page.tsx
-                └── settings/page.tsx
+        └── pub-admin/             ← Internal rewrite target (lihat catatan)
+            └── admin/
+                ├── layout.tsx     ← Pass-through
+                ├── (auth)/        ← Route group auth staff
+                │   ├── login/page.tsx     ← /admin/login — STAFF ONLY, no Google
+                │   ├── forgot-password/page.tsx
+                │   └── reset-password/page.tsx
+                └── dashboard/
+                    ├── layout.tsx ← Guard: require accessToken
+                    ├── page.tsx   ← /admin/dashboard
+                    ├── articles/
+                    ├── series/
+                    ├── subscribers/page.tsx
+                    └── settings/page.tsx
 ```
+
+**Catatan routing penting — proxy.ts rewrite:**
+Pola: platform selalu natural (tidak di-rewrite), publication di-rewrite oleh proxy.ts.
+
+| URL di browser | Domain | Internal path | File |
+|---|---|---|---|
+| `/` | lentera.id | `/` (no rewrite) | `(platform)/page.tsx` |
+| `/` | slug.lentera.id | `/pub-home` (rewrite) | `(publication)/pub-home/page.tsx` |
+| `/admin/*` | lentera.id | `/admin/*` (no rewrite) | `(platform)/admin/` |
+| `/admin/*` | slug.lentera.id | `/pub-admin/admin/*` (rewrite) | `(publication)/pub-admin/admin/` |
+
+- Route groups `(platform)`, `(publication)`, `(auth)` tidak mempengaruhi URL sama sekali.
+- Semua rewrite transparent — user/browser hanya melihat URL asli.
 
 ---
 
 ## Role & Permission System
 
-### Platform Roles (app.lentera.id)
+### Platform Roles (lentera.id)
 Disimpan di field `platformRole` di tabel `users` (nullable — hanya terisi untuk platform staff).
 
 | Role | Akses |
@@ -293,13 +312,13 @@ KOMENTAR / Q&A / SAVE (subscriber-only features):
 | Flow | Platform Staff (owner/admin) | Publication Staff (owner/admin/author) | Member |
 |---|---|---|---|
 | Register | ❌ ditambahkan manual oleh platform_owner | ❌ invite only | ✅ `/register` |
-| Login URL | `app.lentera.id/admin/login` | `slug.lentera.id/admin/login` | `slug.lentera.id/login` |
+| Login URL | `lentera.id/admin/login` | `slug.lentera.id/admin/login` | `slug.lentera.id/login` |
 | Google OAuth | ❌ | ❌ | ✅ |
 | Verify email | ❌ | ❌ | ✅ `/verify-email` |
-| Forgot password | `app.lentera.id/admin/forgot-password` | `slug.lentera.id/admin/forgot-password` | `slug.lentera.id/forgot-password` |
-| Reset password link | `app.lentera.id/admin/reset-password?token=...` | `slug.lentera.id/admin/reset-password?token=...` | `slug.lentera.id/reset-password?token=...` |
+| Forgot password | `lentera.id/admin/forgot-password` | `slug.lentera.id/admin/forgot-password` | `slug.lentera.id/forgot-password` |
+| Reset password link | `lentera.id/admin/reset-password?token=...` | `slug.lentera.id/admin/reset-password?token=...` | `slug.lentera.id/reset-password?token=...` |
 | Post-login redirect | `/admin/dashboard` | `/admin/dashboard` | `/` (pub homepage) |
-| Onboarding | Ditambahkan langsung oleh platform_owner | pub owner: `/accept-invite`; author: `slug.lentera.id/accept-author-invite` | `/register` |
+| Onboarding | Ditambahkan langsung oleh platform_owner | pub owner: `lentera.id/accept-invite`; author: `slug.lentera.id/accept-author-invite` | `/register` |
 
 **Penting:**
 - `/admin/login` di publication subdomain = staff login (owner/admin/author) — pola konsisten dengan platform
@@ -628,10 +647,13 @@ cd frontend && npm run dev
 
 **URL akses lokal:**
 ```
-localhost:3000/admin/login          → Platform admin login
-investasi-cerdas.lvh.me:3000       → Publication site (simulasi subdomain)
-investasi-cerdas.lvh.me:3000/login → Publication login
-investasi-cerdas.lvh.me:3000/dashboard → Publication dashboard
+localhost:3000/                          → Platform landing page
+localhost:3000/admin/login               → Platform admin login
+localhost:3000/admin/dashboard           → Platform admin dashboard
+investasi-cerdas.lvh.me:3000/           → Publication homepage (member view)
+investasi-cerdas.lvh.me:3000/login      → Publication member login
+investasi-cerdas.lvh.me:3000/admin/login     → Publication staff login
+investasi-cerdas.lvh.me:3000/admin/dashboard → Publication staff dashboard
 ```
 
 > `lvh.me` selalu resolve ke `127.0.0.1` — tidak perlu edit hosts file.

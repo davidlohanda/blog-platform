@@ -82,7 +82,7 @@ export const publicationRepository = {
     });
   },
 
-  addAuthor(publicationId: string, userId: string, role: 'owner' | 'author') {
+  addAuthor(publicationId: string, userId: string, role: 'owner' | 'admin' | 'author') {
     return prisma.publicationAuthor.create({ data: { publicationId, userId, role } });
   },
 

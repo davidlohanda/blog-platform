@@ -9,6 +9,7 @@ export interface Publication {
   logoUrl: string | null;
   coverUrl: string | null;
   customDomain: string | null;
+  status: 'active' | 'suspended_soft' | 'suspended_hard' | 'pending_deletion';
   createdAt: string;
 }
 
