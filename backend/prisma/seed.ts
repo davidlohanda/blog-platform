@@ -778,7 +778,7 @@ async function main() {
       emailVerifiedAt: new Date(),
     },
   });
-  console.log(`✓ Pub admin (author role, EPIC 14 pending): ${pubAdmin.email}`);
+  console.log(`✓ Pub admin (admin role): ${pubAdmin.email}`);
 
   const author1 = await prisma.user.upsert({
     where: { email: 'author1@investasicerdas.id' },
@@ -888,7 +888,7 @@ async function main() {
   // ── 5. Publication Author Records ───────────────────────────────────────────
   const authorAssignments = [
     { userId: pubOwner.id, role: AuthorRole.owner },
-    { userId: pubAdmin.id, role: AuthorRole.author }, // akan jadi admin setelah EPIC 14
+    { userId: pubAdmin.id, role: AuthorRole.admin },
     { userId: author1.id,  role: AuthorRole.author },
     { userId: author2.id,  role: AuthorRole.author },
   ];
@@ -1269,7 +1269,7 @@ async function main() {
   console.log('');
   console.log('  PUBLICATION: investasi-cerdas');
   console.log('  owner@investasicerdas.id      / Owner123! [owner]');
-  console.log('  admin-pub@investasicerdas.id  / Admin123! [author → akan jadi admin di EPIC 14]');
+  console.log('  admin-pub@investasicerdas.id  / Admin123! [admin]');
   console.log('  author1@investasicerdas.id    / Author123! [author]');
   console.log('  author2@investasicerdas.id    / Author123! [author]');
   console.log('');

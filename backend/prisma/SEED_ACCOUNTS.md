@@ -26,7 +26,7 @@ URL: `http://investasi-cerdas.localhost:3000` (dev) / `investasi-cerdas.lentera.
 | Email | Password | Role Saat Ini | Catatan |
 |-------|----------|---------------|---------|
 | `owner@investasicerdas.id` | `Owner123!` | `owner` | Budi Santoso — full akses dashboard |
-| `admin-pub@investasicerdas.id` | `Admin123!` | `author` | Sari Dewi — akan menjadi `admin` setelah EPIC 14 diimplementasi |
+| `admin-pub@investasicerdas.id` | `Admin123!` | `admin` | Sari Dewi — kelola semua konten + settings (bukan owner) |
 | `author1@investasicerdas.id` | `Author123!` | `author` | Eko Prasetyo — hanya bisa kelola artikel sendiri |
 | `author2@investasicerdas.id` | `Author123!` | `author` | Dewi Kusuma — hanya bisa kelola artikel sendiri |
 
@@ -80,6 +80,6 @@ URL Dashboard: `http://investasi-cerdas.localhost:3000/dashboard`
 
 ## Catatan Implementasi
 
-- `admin-pub@investasicerdas.id` saat ini diberi role `author` karena enum `AuthorRole` belum memiliki nilai `admin`. Role ini akan diupdate ke `admin` setelah **EPIC 14** (Tiga Role Publication) diimplementasi.
+- `admin-pub@investasicerdas.id` memiliki role `admin` — EPIC 14 sudah diimplementasi.
 - Password di-hash menggunakan **Argon2** (bukan bcrypt) sesuai ketentuan platform.
 - Semua subscription menggunakan `paymentId` dengan prefix `LNT-SEED-*` untuk membedakan dari transaksi produksi.

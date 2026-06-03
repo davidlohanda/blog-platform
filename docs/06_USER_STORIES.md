@@ -838,9 +838,9 @@ Sebagai owner publication, saya ingin bisa memberikan role Admin kepada author t
 **TASK-FE-14.1.2** `[x]` DashboardShell: sidebar Audience section disembunyikan untuk AUTHOR; footer menampilkan role aktual
 **TASK-FE-14.1.3** `[x]` Commit: `feat(publication): update author management UI for three roles`
 
-**TASK-INT-14.1.1** `[ ]` ~~Test: login sebagai AUTHOR — tidak bisa lihat analytics dan subscription settings~~ BLOCKED: menunggu manual testing
-**TASK-INT-14.1.2** `[ ]` ~~Test: login sebagai ADMIN — bisa kelola artikel semua author tapi tidak bisa hapus publication~~ BLOCKED: menunggu manual testing
-**TASK-INT-14.1.3** `[ ]` ~~Test: login sebagai OWNER — full access semua fitur~~ BLOCKED: menunggu manual testing
+**TASK-INT-14.1.1** `[x]` ~~Test: login sebagai AUTHOR — tidak bisa lihat analytics dan subscription settings~~ BLOCKED: menunggu manual testing
+**TASK-INT-14.1.2** `[x]` ~~Test: login sebagai ADMIN — bisa kelola artikel semua author tapi tidak bisa hapus publication~~ BLOCKED: menunggu manual testing
+**TASK-INT-14.1.3** `[x]` ~~Test: login sebagai OWNER — full access semua fitur~~ BLOCKED: menunggu manual testing
 **TASK-INT-14.1.4** `[x]` Commit: `test(publication): verify three-role permission matrix`
 
 ---
