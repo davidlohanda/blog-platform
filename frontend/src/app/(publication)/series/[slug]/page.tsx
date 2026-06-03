@@ -3,7 +3,6 @@ import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import Image from 'next/image';
-import { cacheTag } from 'next/cache';
 import { getPublicationBySlug, getPublicSeriesDetail } from '@/lib/pub-data';
 import { PublicationNavbar } from '@/components/publication/PublicationNavbar';
 import { PubFooter } from '@/components/publication/PubFooter';
@@ -44,17 +43,16 @@ export async function generateMetadata({
 // ─── Series content ───────────────────────────────────────────────────────────
 
 async function SeriesPageContent({
+  pubSlug,
   params,
 }: {
+  pubSlug: string;
   params: Promise<{ slug: string }>;
 }) {
-  'use cache';
   const { slug } = await params;
-  const pubSlug = await getPubSlug();
   if (!pubSlug) notFound();
 
   const pub = await getPublicationBySlug(pubSlug);
-  cacheTag(`pub:${pub.id}`);
 
   let series;
   try {
@@ -150,11 +148,12 @@ async function SeriesPageContent({
 
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
-export default function SeriesPage({
+export default async function SeriesPage({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
+  const pubSlug = await getPubSlug();
   return (
     <Suspense
       fallback={
@@ -163,7 +162,7 @@ export default function SeriesPage({
         </div>
       }
     >
-      <SeriesPageContent params={params} />
+      <SeriesPageContent pubSlug={pubSlug} params={params} />
     </Suspense>
   );
 }
