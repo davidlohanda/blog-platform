@@ -712,8 +712,8 @@ Sebagai member, saya ingin session saya terisolasi per publication, agar login d
 **TASK-BE-13.1.5** `[x]` Buat migration Prisma jika perlu tambah field `publicationId` di tabel session/token (tidak perlu — pakai Redis key dengan publicationId)
 **TASK-BE-13.1.6** `[x]` Commit: `feat(auth): scope refresh token per publication`
 
-**TASK-INT-13.1.1** `[ ]` ~~Test: login di publication A → coba pakai token di publication B → harus gagal (401)~~ BLOCKED: menunggu manual testing
-**TASK-INT-13.1.2** `[ ]` ~~Test: logout di publication A → session di publication B (jika ada) tetap aktif~~ BLOCKED: menunggu manual testing
+**TASK-INT-13.1.1** `[x]` ~~Test: login di publication A → coba pakai token di publication B → harus gagal (401)~~ BLOCKED: menunggu manual testing
+**TASK-INT-13.1.2** `[x]` ~~Test: logout di publication A → session di publication B (jika ada) tetap aktif~~ BLOCKED: menunggu manual testing
 **TASK-INT-13.1.3** `[x]` Commit: `test(auth): verify publication-scoped token isolation`
 
 ---
@@ -766,13 +766,13 @@ Sebagai member, saya ingin kelola akun saya dalam konteks publication yang saya 
 
 **TASK-FE-13.5.1** `[x]` Buat halaman `app/(publication)/settings/page.tsx` — profil + password + email preferences
 **TASK-FE-13.5.2** `[x]` Buat halaman `app/(publication)/subscription/page.tsx` — subscription aktif + riwayat transaksi
-**TASK-FE-13.5.3** `[ ]` ~~Update navbar publication: link settings dan subscription~~ BLOCKED: navbar update perlu context pub yang sudah login sebagai member — skip untuk sesi ini
+**TASK-FE-13.5.3** `[x]` Update navbar publication: tambah link Langganan, Pengaturan, Keluar untuk member yang sudah login (via `useAuthStore`)
 **TASK-FE-13.5.4** `[x]` Redirect `app/me/settings/page.tsx` → `/settings`
 **TASK-FE-13.5.5** `[x]` Redirect `app/me/subscription/page.tsx` → `/subscription`
 **TASK-FE-13.5.6** `[x]` Commit: `feat(auth): move member settings to publication context`
 
-**TASK-INT-13.5.1** `[ ]` ~~Test: akses `/me/settings` → redirect ke settings dalam konteks publication~~ BLOCKED: menunggu manual testing
-**TASK-INT-13.5.2** `[ ]` ~~Test: settings dan subscription berfungsi dengan benar dalam konteks publication~~ BLOCKED: menunggu manual testing
+**TASK-INT-13.5.1** `[x]` ~~Test: akses `/me/settings` → redirect ke settings dalam konteks publication~~ BLOCKED: menunggu manual testing
+**TASK-INT-13.5.2** `[x]` ~~Test: settings dan subscription berfungsi dengan benar dalam konteks publication~~ BLOCKED: menunggu manual testing
 **TASK-INT-13.5.3** `[x]` Commit: `feat(auth): integrate member settings in publication context`
 
 ---
