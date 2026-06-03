@@ -146,7 +146,7 @@ Menggunakan **Conventional Commits** — format standar industri yang bisa di-pa
 
 ### Scope (opsional tapi disarankan)
 
-Nama modul yang terpengaruh: `auth`, `article`, `publication`, `subscription`, `comment`, `search`, `email`, `media`, `analytics`, `ui`, `db`, `config`
+Nama modul yang terpengaruh: `auth`, `article`, `publication`, `subscription`, `comment`, `search`, `email`, `media`, `analytics`, `ui`, `db`, `config`, `routing`, `platform`, `seed`, `roles`
 
 ### Contoh Commit Message yang Baik
 
@@ -197,28 +197,18 @@ git commit -m "Added login feature and fixed some bugs and updated readme"
 
 Saat bekerja sendiri dengan bantuan AI agent, beberapa tambahan yang membantu:
 
-### Branch per Modul MVP
+### Branch per EPIC (urutan implementasi saat ini)
 
-Urutan branch yang disarankan untuk MVP:
+EPIC 1–16 sudah selesai. Branch yang tersisa:
 
 ```
-chore/init-monorepo-structure
-chore/init-backend-express
-chore/init-frontend-nextjs
-chore/setup-database-prisma
-chore/setup-docker-compose
-
-feat/auth-backend           ← backend auth endpoints
-feat/auth-frontend          ← frontend auth pages & forms
-feat/publication-backend
-feat/publication-frontend
-feat/article-backend
-feat/article-editor         ← rich text editor
-feat/subscription-backend
-feat/payment-midtrans
-feat/reader-experience      ← paywall, artikel page
-feat/email-notifications
-feat/dashboard-analytics
+chore/seed-data-realistic        ← EPIC 17: seed data realistis untuk dev/testing
+refactor/routing-architecture    ← EPIC 18: pindahkan file ke struktur platform/publication
+feat/auth-core-fixes             ← EPIC 13: refresh token scope, rate limiting, auto-expire
+feat/three-roles-publication     ← EPIC 14: tiga role publication (owner/admin/author)
+feat/onboarding-landing          ← EPIC 16: onboarding wizard & landing page
+feat/platform-admin-enhancements ← EPIC 15: suspend, delete, transfer, platform staff
+feat/deployment-production       ← EPIC 9: staging & production deployment
 ```
 
 ### Commit Atomik dengan AI Agent
@@ -281,10 +271,12 @@ platform-blog/              ← satu repo GitHub
 ├── frontend/               ← Next.js app
 ├── backend/                ← Express app
 ├── docs/                   ← PRD, SAD, dan dokumen lain
-│   ├── PRD_Publication_Platform.md
-│   ├── SAD_Publication_Platform.md
-│   ├── GIT_STRATEGY.md
-│   └── TECH_CONTEXT.md
+│   ├── 01_PRD.md
+│   ├── 02_SAD.md
+│   ├── 03_TECH_CONTEXT.md
+│   ├── 04_GIT_STRATEGY.md
+│   ├── 05_UI_UX_BRIEFING.md
+│   └── 06_USER_STORIES.md
 ├── .github/
 │   └── workflows/
 │       ├── frontend-ci.yml

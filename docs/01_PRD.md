@@ -643,7 +643,7 @@ Member buka halaman Roadmap
 
 ### Backend
 - **Runtime:** Node.js dengan TypeScript
-- **Framework:** NestJS (structured, scalable) atau Express.js (lebih fleksibel)
+- **Framework:** Express.js
 - **ORM:** Prisma (developer-friendly, type-safe)
 
 ### Database

@@ -91,8 +91,9 @@ blog-platform/
 
 ## Dokumentasi
 
-- `docs/PRD_Publication_Platform.md` — product requirements
-- `docs/SAD_Publication_Platform.md` — system architecture
-- `docs/TECH_CONTEXT.md` — coding rules & conventions
-- `docs/GIT_STRATEGY.md` — branching & commit convention
-- `docs/USER_STORIES_MVP.md` — task breakdown & progress tracker
+- `docs/01_PRD.md` — product requirements
+- `docs/02_SAD.md` — system architecture
+- `docs/03_TECH_CONTEXT.md` — coding rules & conventions
+- `docs/04_GIT_STRATEGY.md` — branching & commit convention
+- `docs/05_UI_UX_BRIEFING.md` — design guide
+- `docs/06_USER_STORIES.md` — task breakdown & progress tracker
