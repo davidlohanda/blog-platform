@@ -1,6 +1,10 @@
+'use client';
+
 import Link from 'next/link';
 import Image from 'next/image';
 import type { Publication } from '@/lib/pub-data';
+import { useAuthStore } from '@/store/authStore';
+import { useAuth } from '@/hooks/useAuth';
 
 interface Props {
   pub: Publication;
@@ -9,6 +13,9 @@ interface Props {
 
 export function PublicationNavbar({ pub, activePage = 'home' }: Props) {
   const initial = pub.name.slice(0, 1).toUpperCase();
+  const { accessToken } = useAuthStore();
+  const { logout } = useAuth();
+  const isLoggedIn = !!accessToken;
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
@@ -54,19 +61,45 @@ export function PublicationNavbar({ pub, activePage = 'home' }: Props) {
         </nav>
 
         {/* CTA */}
-        <div className="ml-auto flex items-center gap-2">
-          <Link
-            href="/login"
-            className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground md:block"
-          >
-            Masuk
-          </Link>
-          <Link
-            href="/subscribe"
-            className="rounded-full bg-foreground px-4 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-foreground/90"
-          >
-            Berlangganan
-          </Link>
+        <div className="ml-auto flex items-center gap-3">
+          {isLoggedIn ? (
+            <>
+              <Link
+                href="/subscription"
+                className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground md:block"
+              >
+                Langganan
+              </Link>
+              <Link
+                href="/settings"
+                className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground md:block"
+              >
+                Pengaturan
+              </Link>
+              <button
+                type="button"
+                onClick={() => void logout()}
+                className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground md:block"
+              >
+                Keluar
+              </button>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground md:block"
+              >
+                Masuk
+              </Link>
+              <Link
+                href="/subscribe"
+                className="rounded-full bg-foreground px-4 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-foreground/90"
+              >
+                Berlangganan
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </header>
