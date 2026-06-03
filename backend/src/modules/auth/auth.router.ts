@@ -99,13 +99,16 @@ router.post('/complete-author-invite', validate(completeAuthorInviteSchema), (re
 if (config.google.clientId && config.google.clientSecret) {
   const oauthFailureUrl = `${config.platform.frontendUrl}/login?error=oauth_failed`;
 
-  router.get(
-    '/google',
-    passport.authenticate('google', {
-      session: false,
-      scope: ['profile', 'email'],
-    }) as RequestHandler,
-  );
+  router.get('/google', (req, res, next) => {
+    const pubId = (req.query.pub_id as string) ?? '';
+    (
+      passport.authenticate('google', {
+        session: false,
+        scope: ['profile', 'email'],
+        ...(pubId && { state: pubId }),
+      }) as RequestHandler
+    )(req, res, next);
+  });
 
   router.get(
     '/google/callback',

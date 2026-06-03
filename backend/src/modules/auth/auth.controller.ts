@@ -168,7 +168,10 @@ export const authController = {
   async googleCallback(req: Request, res: Response, next: NextFunction) {
     try {
       const googleUser = req.user as GoogleProfile;
-      const publicationId = (req as TenantRequest).publication?.id ?? PLATFORM_SCOPE;
+      // pub_id passed via OAuth state param from the login page (member OAuth from publication subdomain)
+      const statePublicationId = (req.query.state as string) || '';
+      const publicationId =
+        statePublicationId || (req as TenantRequest).publication?.id || PLATFORM_SCOPE;
       const { accessToken, refreshToken } = await authService.handleGoogleUser(
         googleUser,
         publicationId,

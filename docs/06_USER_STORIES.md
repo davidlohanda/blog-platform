@@ -1131,7 +1131,7 @@ Sebagai developer, saya ingin seed data yang realistis dan lengkap agar testing 
 
 **TASK-BE-18.1.3** `[x]` Buat `POST /auth/admin/forgot-password` dan `POST /auth/admin/reset-password`
 
-**TASK-BE-18.1.4** `[ ]` Update seed.ts — tambah platform_owner account
+**TASK-BE-18.1.4** `[x]` Update seed.ts — tambah platform_owner account
 
 **TASK-BE-18.1.5** `[x]` Commit: Sprint 1 backend done (commit d7e25eb)
 
@@ -1155,8 +1155,8 @@ Sebagai developer, saya ingin seed data yang realistis dan lengkap agar testing 
 **TASK-FE-18.2.5** `[x]` Buat `(publication)/(auth)/reset-password/`
 **TASK-FE-18.2.6** `[x]` Hapus direktori `app/(auth)/` lama setelah semua halaman dipindah
 
-**TASK-INT-18.2.1** `[ ]` Verifikasi: member auth flow berjalan dari publication subdomain
-**TASK-INT-18.2.2** `[ ]` Commit: `refactor(routing): move member auth pages into (publication) root`
+**TASK-INT-18.2.1** `[x]` Verifikasi: member auth flow berjalan dari publication subdomain
+**TASK-INT-18.2.2** `[x]` Commit: `refactor(routing): move member auth pages into (publication) root`
 
 ---
 
@@ -1190,8 +1190,8 @@ Sebagai developer, saya ingin seed data yang realistis dan lengkap agar testing 
 
 **TASK-FE-18.3.7** `[x]` Hapus direktori `app/(dashboard)/` setelah dipindah
 
-**TASK-INT-18.3.1** `[ ]` Verifikasi: staff login di `/admin/login`, dashboard di `/admin/dashboard`
-**TASK-INT-18.3.2** `[ ]` Commit: `feat(routing): add publication staff space at (publication)/admin/`
+**TASK-INT-18.3.1** `[x]` Verifikasi: staff login di `/admin/login`, dashboard di `/admin/dashboard`
+**TASK-INT-18.3.2** `[x]` Commit: `feat(routing): add publication staff space at (publication)/admin/`
 
 ---
 
@@ -1219,7 +1219,7 @@ Sebagai developer, saya ingin seed data yang realistis dan lengkap agar testing 
 
 **TASK-FE-18.5.2** `[x]` Pindahkan `app/suspended/page.tsx` → `(publication)/suspended/page.tsx`
 **TASK-FE-18.5.3** `[x]` Hapus `app/subscribe/page.tsx` dan `app/suspended/page.tsx` dari root
-**TASK-INT-18.5.1** `[ ]` Commit: `refactor(routing): move subscribe and suspended into publication context`
+**TASK-INT-18.5.1** `[x]` Commit: `refactor(routing): move subscribe and suspended into publication context`
 
 ---
 
@@ -1229,7 +1229,7 @@ Sebagai developer, saya ingin seed data yang realistis dan lengkap agar testing 
 **TASK-FE-18.6.2** `[x]` Hapus `app/me/subscription/page.tsx`
 **TASK-FE-18.6.3** `[x]` Hapus direktori `app/me/` sepenuhnya
 **TASK-FE-18.6.4** `[x]` Hapus `app/onboarding/page.tsx` (redirect stub ke /dashboard)
-**TASK-INT-18.6.1** `[ ]` Commit: `refactor(routing): remove me/ directory and onboarding stub`
+**TASK-INT-18.6.1** `[x]` Commit: `refactor(routing): remove me/ directory and onboarding stub`
 
 ---
 
@@ -1251,7 +1251,7 @@ Sebagai developer, saya ingin seed data yang realistis dan lengkap agar testing 
 - Jika `isExistingUser = false`: tampilkan form buat akun (name + password)
 - Setelah accept: redirect ke `/admin/dashboard`
 
-**TASK-INT-18.7.1** `[ ]` Commit: `feat(auth): add author invite acceptance flow`
+**TASK-INT-18.7.1** `[x]` Commit: `feat(auth): add author invite acceptance flow`
 
 ---
 
@@ -1264,7 +1264,7 @@ Sebagai developer, saya ingin seed data yang realistis dan lengkap agar testing 
 - Build full URL: `https://${publicationSlug}.lentera.id/admin/dashboard` (atau `slug.lvh.me:3000/admin/dashboard` di dev)
 - Gunakan `window.location.assign()` (bukan `router.push()`) karena pindah domain
 
-**TASK-INT-18.8.1** `[ ]` Commit: `fix(auth): correct post-invite-wizard redirect to publication subdomain`
+**TASK-INT-18.8.1** `[x]` Commit: `fix(auth): correct post-invite-wizard redirect to publication subdomain`
 
 ---
 
@@ -1299,8 +1299,8 @@ Sebagai developer, saya ingin seed data yang realistis dan lengkap agar testing 
 **TASK-FE-18.10.2** `[x]` Fix `(publication)/subscription/page.tsx` — tidak ada stale link (hanya API endpoint /subscriptions/me/history yang benar)
 **TASK-FE-18.10.3** `[x]` Cari semua referensi `/me/` di seluruh frontend → tidak ada routing stale links (hanya API endpoints yang benar)
 **TASK-FE-18.10.4** `[x]` Cari semua referensi `/dashboard` (tanpa `/admin`) → sudah diupdate ke `/admin/dashboard` (DashboardShell, page.tsx, publications, GoogleCallback)
-**TASK-FE-18.10.5** `[ ]` Fix Google OAuth `state` parameter — sertakan `publicationId` saat initiate OAuth agar callback dapat redirect ke subdomain yang benar
-**TASK-INT-18.10.1** `[ ]` Commit: `fix(routing): remove stale /me/ and /dashboard references, fix OAuth state`
+**TASK-FE-18.10.5** `[x]` Fix Google OAuth `state` parameter — sertakan `publicationId` saat initiate OAuth agar callback dapat redirect ke subdomain yang benar
+**TASK-INT-18.10.1** `[x]` Commit: `fix(routing): remove stale /me/ and /dashboard references, fix OAuth state`
 
 ---
 

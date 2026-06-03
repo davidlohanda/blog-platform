@@ -57,6 +57,7 @@ const ID = {
   pub: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa',
 
   // Users
+  platformOwner: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb00',
   adminUser:     'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb01',
   pubOwner:      'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb02',
   pubAdmin:      'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb03',
@@ -650,11 +651,13 @@ async function main() {
 
   // ── 0. Hash passwords in parallel ──────────────────────────────────────────
   const [
+    platformOwnerHash,
     adminHash,
     ownerHash,
     authorHash,
     memberHash,
   ] = await Promise.all([
+    argon2.hash('PlatformOwner123!'),
     argon2.hash('Admin123!'),
     argon2.hash('Owner123!'),
     argon2.hash('Author123!'),
@@ -671,7 +674,28 @@ async function main() {
     console.log('✓ Old "lentera" publication removed');
   }
 
-  // ── 1. Platform Admin ───────────────────────────────────────────────────────
+  // ── 1. Platform Owner + Admin ──────────────────────────────────────────────
+  const platformOwnerUser = await prisma.user.upsert({
+    where: { email: 'owner@lentera.id' },
+    update: {
+      id: ID.platformOwner,
+      passwordHash: platformOwnerHash,
+      name: 'Bima Wicaksana',
+      emailVerifiedAt: new Date(),
+      role: UserRole.platform_admin,
+    },
+    create: {
+      id: ID.platformOwner,
+      email: 'owner@lentera.id',
+      name: 'Bima Wicaksana',
+      passwordHash: platformOwnerHash,
+      bio: 'Pendiri dan pemilik platform Lentera. Membangun ekosistem penulisan digital Indonesia.',
+      emailVerifiedAt: new Date(),
+      role: UserRole.platform_admin,
+    },
+  });
+  console.log(`✓ Platform owner  : ${platformOwnerUser.email}`);
+
   const adminUser = await prisma.user.upsert({
     where: { email: 'admin@lentera.id' },
     update: {
@@ -1240,6 +1264,7 @@ async function main() {
   console.log(`\n✅ Seed selesai dalam ${elapsed}s!\n`);
   console.log('─'.repeat(60));
   console.log('  PLATFORM');
+  console.log('  owner@lentera.id              / PlatformOwner123! [platform_owner]');
   console.log('  admin@lentera.id              / Admin123! [platform_admin]');
   console.log('');
   console.log('  PUBLICATION: investasi-cerdas');

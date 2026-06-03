@@ -93,7 +93,10 @@ export function LoginForm() {
         className="w-full"
         type="button"
         onClick={() => {
-          window.location.href = `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000'}/auth/google`;
+          const api = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+          const pubId = publication?.id ?? '';
+          const url = pubId ? `${api}/auth/google?pub_id=${encodeURIComponent(pubId)}` : `${api}/auth/google`;
+          window.location.href = url;
         }}
       >
         <GoogleIcon />
