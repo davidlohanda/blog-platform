@@ -976,7 +976,7 @@ Email invite → klik link → /accept-invite?token=xxx
 **TASK-BE-16.1.3** `[x]` GET /publications/check-slug?slug=xxx: return `{ available, suggestion? }` dengan auto-suggestion -2, -3...
 **TASK-BE-16.1.4** `[x]` Commit: `feat(onboarding): EPIC 16 backend`
 
-**TASK-FE-16.1.1** `[x]` Rewrite `app/accept-invite/page.tsx` — 3-step wizard dengan StepIndicator (X of 3)
+**TASK-FE-16.1.1** `[x]` Rewrite `app/(platform)/accept-invite/page.tsx` — 3-step wizard dengan StepIndicator (X of 3)
 **TASK-FE-16.1.2** `[x]` Step 1: nama + password + konfirmasi, validasi real-time via Zod + react-hook-form
 **TASK-FE-16.1.3** `[x]` Step 2: nama pub, slug (auto-dari-nama, editable), deskripsi. Debounce 500ms slug check
 **TASK-FE-16.1.4** `[x]` Slug: preview URL `[slug].lentera.id`, suggestion clickable untuk auto-fill
@@ -1095,14 +1095,13 @@ Sebagai developer, saya ingin seed data yang realistis dan lengkap agar testing 
 
 ### STORY 18.1 — Platform Staff Auth Pages
 
-**TASK-FE-18.1.1** `[x]` Buat `app/admin/login/page.tsx` — Context-aware login page
-- Implementasi: 1 page, baca `x-publication-slug` header → render `PlatformAdminLoginForm` atau `PublicationStaffLoginForm`
+**TASK-FE-18.1.1** `[x]` Buat `app/(platform)/admin/(auth)/login/page.tsx` — Platform admin login
 - Email+password ONLY, no Google OAuth
 - Error handling: wrong credentials, not admin, locked
 - Redirect: `/admin/dashboard`
 
-**TASK-FE-18.1.2** `[x]` Buat `app/admin/forgot-password/page.tsx`
-**TASK-FE-18.1.3** `[x]` Buat `app/admin/reset-password/page.tsx`
+**TASK-FE-18.1.2** `[x]` Buat `app/(platform)/admin/(auth)/forgot-password/page.tsx`
+**TASK-FE-18.1.3** `[x]` Buat `app/(platform)/admin/(auth)/reset-password/page.tsx`
 
 **TASK-BE-18.1.1** `[x]` Buat endpoint `POST /auth/admin/login`
 - Checks `user.role === 'platform_admin'` (existing role field, tidak tambah platformRole baru)
@@ -1122,53 +1121,51 @@ Sebagai developer, saya ingin seed data yang realistis dan lengkap agar testing 
 
 **Konteks:** Auth pages member dipindah ke `(publication)/` (bukan ke dalam `/admin/`). `/login` di publication = member ONLY + Google OAuth.
 
-**TASK-FE-18.2.1** `[x]` Pindahkan dan refactor `(auth)/login/` → `(publication)/login/`
-- MEMBER ONLY — hapus semua logika staff login
-- Selalu tampilkan Google OAuth button
+**TASK-FE-18.2.1** `[x]` Buat `(publication)/(auth)/login/` — member login
+- MEMBER ONLY + Google OAuth
 - Post-login redirect: ke `/` (publication homepage)
 - Baca publication context dari layout (untuk branding)
 
-**TASK-FE-18.2.2** `[x]` Pindahkan `(auth)/register/` → `(publication)/register/`
-**TASK-FE-18.2.3** `[x]` Pindahkan `(auth)/verify-email/` → `(publication)/verify-email/`
-**TASK-FE-18.2.4** `[x]` Pindahkan `(auth)/forgot-password/` → `(publication)/forgot-password/`
+**TASK-FE-18.2.2** `[x]` Buat `(publication)/(auth)/register/`
+**TASK-FE-18.2.3** `[x]` Buat `(publication)/(auth)/verify-email/`
+**TASK-FE-18.2.4** `[x]` Buat `(publication)/(auth)/forgot-password/`
 - Panggil endpoint `/auth/forgot-password` (member)
 - Deteksi OAuth-only account
 
-**TASK-FE-18.2.5** `[x]` Pindahkan `(auth)/reset-password/` → `(publication)/reset-password/`
-**TASK-FE-18.2.6** `[x]` Hapus direktori `app/(auth)/` setelah semua halaman dipindah
+**TASK-FE-18.2.5** `[x]` Buat `(publication)/(auth)/reset-password/`
+**TASK-FE-18.2.6** `[x]` Hapus direktori `app/(auth)/` lama setelah semua halaman dipindah
 
 **TASK-INT-18.2.1** `[ ]` Verifikasi: member auth flow berjalan dari publication subdomain
 **TASK-INT-18.2.2** `[ ]` Commit: `refactor(routing): move member auth pages into (publication) root`
 
 ---
 
-### STORY 18.3 — Publication Staff Space di `(publication)/admin/`
+### STORY 18.3 — Publication Staff Space di `(publication)/pub-admin/admin/`
 
-**Catatan arsitektur (DIPERBARUI):** Folder `(publication)/admin/` dibuat benar-benar terpisah dari top-level `admin/` (platform only). Pemisahan dicapai via `NextResponse.rewrite()` di proxy.ts:
+**Catatan arsitektur:** Pemisahan platform admin vs publication staff via `NextResponse.rewrite()` di proxy.ts:
 - Request dari subdomain ke `/admin/*` → di-rewrite internal ke `/pub-admin/admin/*`
-- Request dari root domain ke `/admin/*` → pass through ke `app/admin/` (platform)
-- URL eksternal tetap `/admin/*` di kedua kasus — user/browser tidak tahu perbedaannya
-- Sprint 2 mengimplementasi single context-aware page (pendekatan lama) — **akan di-replace oleh Story ini**
+- Request dari root domain ke `/admin/*` → pass through ke `(platform)/admin/` 
+- URL eksternal tetap `/admin/*` di kedua kasus — dibedakan oleh subdomain
+- Folder `(publication)/pub-admin/admin/` = rewrite target, terorganisasi dalam `(publication)` route group
 
-**TASK-FE-18.3.1** `[x]` Buat `pub-admin/admin/layout.tsx` — guard (pass-through, dashboard guard di sublayout)
-- Pass-through untuk auth routes (`/admin/login`, `/admin/forgot-password`, `/admin/reset-password`)
-- Dashboard diproteksi di `pub-admin/admin/dashboard/layout.tsx`
+**TASK-FE-18.3.1** `[x]` Buat `(publication)/pub-admin/admin/layout.tsx` — pass-through
+- Auth pages publik, dashboard diproteksi di sublayout
 
-**TASK-FE-18.3.2** `[x]` Buat `pub-admin/admin/login/page.tsx`
-- STAFF ONLY — no Google OAuth, no "daftar akun" link
+**TASK-FE-18.3.2** `[x]` Buat `(publication)/pub-admin/admin/(auth)/login/page.tsx`
+- STAFF ONLY — no Google OAuth
 - Panggil endpoint `/auth/staff/login`
 - Post-login redirect: `/admin/dashboard`
-- Baca publication context dari parent layout (nama publication untuk branding)
+- Baca publication context dari parent layout
 
-**TASK-FE-18.3.3** `[x]` Buat `pub-admin/admin/forgot-password/page.tsx`
+**TASK-FE-18.3.3** `[x]` Buat `(publication)/pub-admin/admin/(auth)/forgot-password/page.tsx`
 - Panggil endpoint `/auth/staff/forgot-password`
 
-**TASK-FE-18.3.4** `[x]` Buat `pub-admin/admin/reset-password/page.tsx`
+**TASK-FE-18.3.4** `[x]` Buat `(publication)/pub-admin/admin/(auth)/reset-password/page.tsx`
 
-**TASK-FE-18.3.5** `[x]` Pindahkan `(dashboard)/dashboard/` → `pub-admin/admin/dashboard/`
+**TASK-FE-18.3.5** `[x]` Pindahkan `(dashboard)/dashboard/` → `(publication)/pub-admin/admin/dashboard/`
 - Update semua internal links dari `/dashboard/*` → `/admin/dashboard/*`
 
-**TASK-FE-18.3.6** `[x]` Buat `pub-admin/admin/dashboard/layout.tsx`
+**TASK-FE-18.3.6** `[x]` Buat `(publication)/pub-admin/admin/dashboard/layout.tsx`
 - Guard: verify accessToken (redirects to /admin/login if not authenticated)
 
 **TASK-FE-18.3.7** `[x]` Hapus direktori `app/(dashboard)/` setelah dipindah
@@ -1242,7 +1239,7 @@ Sebagai developer, saya ingin seed data yang realistis dan lengkap agar testing 
 
 **Konteks:** Step 3 wizard saat ini redirect ke `/dashboard` (relative). Dari `lentera.id/accept-invite`, ini akan pergi ke `lentera.id/dashboard` (SALAH). Seharusnya ke `slug.lentera.id/admin/dashboard`.
 
-**TASK-FE-18.8.1** `[x]` Update `accept-invite/page.tsx` Step 3 component
+**TASK-FE-18.8.1** `[x]` Update `(platform)/accept-invite/page.tsx` Step 3 component
 - Backend sudah return `publicationSlug` dalam response
 - Build full URL: `https://${publicationSlug}.lentera.id/admin/dashboard` (atau `slug.lvh.me:3000/admin/dashboard` di dev)
 - Gunakan `window.location.assign()` (bukan `router.push()`) karena pindah domain
@@ -1258,7 +1255,7 @@ Sebagai developer, saya ingin seed data yang realistis dan lengkap agar testing 
 - AUTH_EXCLUSIONS → `/admin/login`, `/admin/forgot-password`, `/admin/reset-password`
 - Unauthenticated protected route → redirect ke `/admin/login`
 
-**TASK-FE-18.9.2** `[x]` Buat `app/admin/layout.tsx` — guard platform_admin only (bukan context-aware lagi)
+**TASK-FE-18.9.2** `[x]` Buat `app/(platform)/admin/layout.tsx` — guard platform_admin only
 
 **TASK-FE-18.9.3** `[x]` Verifikasi konsistensi guard (dilakukan bersamaan dengan implementasi)
 
@@ -1268,9 +1265,9 @@ Sebagai developer, saya ingin seed data yang realistis dan lengkap agar testing 
 - Tambah `NextResponse.rewrite()` untuk subdomain + `/admin/*` → `/pub-admin/admin/*`
 - Update ENV var: `NEXT_PUBLIC_APP_DOMAIN` → removed (platform is localhost in dev)
 
-**TASK-FE-18.9.5** `[x]` Buat `app/pub-admin/` folder sebagai internal path untuk (publication)/admin/
+**TASK-FE-18.9.5** `[x]` Buat `app/(publication)/pub-admin/` folder sebagai internal path untuk staff admin
 - Ini adalah folder internal yang di-rewrite dari proxy.ts — external URL tetap `/admin/*`
-- Semua halaman di Story 18.3 dibuat di sini
+- Semua halaman di Story 18.3 dibuat di sini, dalam `(publication)` route group
 
 **TASK-INT-18.9.1** `[x]` Commit: Sprint 2 done (commit 2fc0180)
 
