@@ -226,7 +226,8 @@ export const authService = {
   async adminForgotPassword(email: string) {
     const user = await authRepository.findByEmail(email);
     const msg = 'Jika email terdaftar, link reset akan dikirim dalam beberapa menit.';
-    if (!user || user.role !== 'platform_admin') return { message: msg };
+    if (!user || (user.role !== 'platform_admin' && user.role !== 'platform_owner'))
+      return { message: msg };
     if (!user.passwordHash) return { message: msg };
 
     const token = randomUUID();
@@ -305,7 +306,7 @@ export const authService = {
     }
 
     // Google OAuth hanya untuk member/visitor — tolak owner dan platform_admin
-    if (user.role === 'platform_admin') {
+    if (user.role === 'platform_admin' || user.role === 'platform_owner') {
       throw AppError.forbidden(
         'Akun admin platform tidak bisa login via Google. Gunakan email dan password.',
         'USE_PASSWORD',
@@ -476,7 +477,7 @@ export const authService = {
     }
     await redis.del(lockKey);
 
-    if (user.role !== 'platform_admin') {
+    if (user.role !== 'platform_admin' && user.role !== 'platform_owner') {
       throw AppError.forbidden(
         'Akses ditolak. Halaman ini khusus untuk admin platform.',
         'NOT_PLATFORM_ADMIN',
@@ -528,7 +529,7 @@ export const authService = {
     }
     await redis.del(lockKey);
 
-    if (user.role === 'platform_admin') {
+    if (user.role === 'platform_admin' || user.role === 'platform_owner') {
       throw AppError.forbidden(
         'Gunakan halaman login admin platform untuk akun ini.',
         'USE_PLATFORM_LOGIN',

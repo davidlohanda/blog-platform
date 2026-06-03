@@ -14,7 +14,8 @@ export type EmailJobName =
   | 'send-publication-deletion-requested'
   | 'send-publication-deletion-cancelled'
   | 'send-ownership-transfer-request'
-  | 'send-ownership-transfer-confirmed';
+  | 'send-ownership-transfer-confirmed'
+  | 'send-admin-welcome';
 
 export interface VerificationEmailData {
   to: string;
@@ -118,6 +119,13 @@ export interface OwnershipTransferConfirmedEmailData {
   isNewOwner: boolean;
 }
 
+export interface AdminWelcomeEmailData {
+  to: string;
+  name: string;
+  tempPassword: string;
+  loginUrl: string;
+}
+
 export type EmailJobData =
   | { name: 'send-verification'; data: VerificationEmailData }
   | { name: 'send-reset-password'; data: ResetPasswordEmailData }
@@ -134,4 +142,5 @@ export type EmailJobData =
   | { name: 'send-publication-deletion-requested'; data: PublicationDeletionRequestedEmailData }
   | { name: 'send-publication-deletion-cancelled'; data: PublicationUnsuspendedEmailData }
   | { name: 'send-ownership-transfer-request'; data: OwnershipTransferRequestEmailData }
-  | { name: 'send-ownership-transfer-confirmed'; data: OwnershipTransferConfirmedEmailData };
+  | { name: 'send-ownership-transfer-confirmed'; data: OwnershipTransferConfirmedEmailData }
+  | { name: 'send-admin-welcome'; data: AdminWelcomeEmailData };

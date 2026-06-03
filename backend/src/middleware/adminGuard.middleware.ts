@@ -9,8 +9,24 @@ export async function adminGuard(req: Request, _res: Response, next: NextFunctio
     if (!userId) return next(AppError.unauthorized());
 
     const user = await authRepository.findById(userId);
-    if (!user || user.role !== 'platform_admin') {
+    if (!user || (user.role !== 'platform_admin' && user.role !== 'platform_owner')) {
       return next(AppError.forbidden('Akses ditolak — hanya platform admin'));
+    }
+
+    next();
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function ownerGuard(req: Request, _res: Response, next: NextFunction): Promise<void> {
+  try {
+    const userId = (req as AuthRequest).user?.userId;
+    if (!userId) return next(AppError.unauthorized());
+
+    const user = await authRepository.findById(userId);
+    if (!user || user.role !== 'platform_owner') {
+      return next(AppError.forbidden('Akses ditolak — hanya platform owner'));
     }
 
     next();

@@ -8,10 +8,10 @@ Semua akun development setelah `npx prisma db seed`.
 
 | Email | Password | Role | Catatan |
 |-------|----------|------|---------|
-| `owner@lentera.id` | `PlatformOwner123!` | `platform_admin` | Bima Wicaksana — Platform Owner (pemilik platform) |
-| `admin@lentera.id` | `Admin123!` | `platform_admin` | Anya Permata — Platform Admin (operasional) |
+| `owner@lentera.id` | `PlatformOwner123!` | `platform_owner` | Bima Wicaksana — bisa kelola staff & setting inti |
+| `admin@lentera.id` | `Admin123!` | `platform_admin` | Anya Permata — operasional (invite owner, suspend, dll) |
 
-> Kedua akun menggunakan DB role yang sama (`platform_admin`) karena EPIC 18 memutuskan tidak menambah enum `platform_owner`. Perbedaan owner vs admin dikelola di aplikasi layer jika diperlukan (EPIC 15).
+URL: `http://localhost:3000/admin/dashboard`
 
 URL: `http://localhost:3000/admin/dashboard`
 

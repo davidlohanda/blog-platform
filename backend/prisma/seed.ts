@@ -682,7 +682,7 @@ async function main() {
       passwordHash: platformOwnerHash,
       name: 'Bima Wicaksana',
       emailVerifiedAt: new Date(),
-      role: UserRole.platform_admin,
+      role: UserRole.platform_owner,
     },
     create: {
       id: ID.platformOwner,
@@ -691,7 +691,7 @@ async function main() {
       passwordHash: platformOwnerHash,
       bio: 'Pendiri dan pemilik platform Lentera. Membangun ekosistem penulisan digital Indonesia.',
       emailVerifiedAt: new Date(),
-      role: UserRole.platform_admin,
+      role: UserRole.platform_owner,
     },
   });
   console.log(`✓ Platform owner  : ${platformOwnerUser.email}`);
@@ -1264,7 +1264,7 @@ async function main() {
   console.log(`\n✅ Seed selesai dalam ${elapsed}s!\n`);
   console.log('─'.repeat(60));
   console.log('  PLATFORM');
-  console.log('  owner@lentera.id              / PlatformOwner123! [platform_owner]');
+  console.log('  owner@lentera.id              / PlatformOwner123! [platform_owner] ← can manage staff');
   console.log('  admin@lentera.id              / Admin123! [platform_admin]');
   console.log('');
   console.log('  PUBLICATION: investasi-cerdas');
