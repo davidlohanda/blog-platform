@@ -113,7 +113,7 @@ export const publicationController = {
       );
 
       const frontendUrl = config.platform.frontendUrl;
-      const inviteUrl = `${frontendUrl}/accept-invite?token=${token}`;
+      const inviteUrl = `${frontendUrl}/accept-author-invite?token=${token}`;
 
       await emailService.sendAuthorInvite({
         to: email,

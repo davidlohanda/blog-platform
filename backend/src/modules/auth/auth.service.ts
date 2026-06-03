@@ -7,7 +7,7 @@ import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../../lib
 import { redis } from '../../config/redis.config';
 import { emailService } from '../email/email.service';
 import { config } from '../../config';
-import type { RegisterInput, LoginInput } from './auth.schema';
+import type { RegisterInput, LoginInput, CompleteAuthorInviteInput } from './auth.schema';
 
 const REFRESH_TOKEN_TTL = 30 * 24 * 60 * 60; // 30 days in seconds
 
@@ -385,6 +385,200 @@ export const authService = {
         role: user.role,
       },
       publicationSlug: input.publicationSlug,
+    };
+  },
+
+  async adminLogin(input: LoginInput) {
+    const user = await authRepository.findByEmail(input.email);
+    if (!user || !user.passwordHash) {
+      throw AppError.unauthorized('Email atau password salah', 'INVALID_CREDENTIALS');
+    }
+
+    const lockKey = `login_attempts:${input.email}:__platform__`;
+    const attempts = await redis.get(lockKey);
+    if (attempts && parseInt(attempts) >= 5) {
+      throw AppError.tooManyRequests(
+        'Terlalu banyak percobaan login. Coba lagi dalam 15 menit.',
+        'LOGIN_LOCKED',
+      );
+    }
+
+    const valid = await verify(user.passwordHash, input.password);
+    if (!valid) {
+      await redis
+        .multi()
+        .incr(lockKey)
+        .expire(lockKey, 15 * 60)
+        .exec();
+      throw AppError.unauthorized('Email atau password salah', 'INVALID_CREDENTIALS');
+    }
+    await redis.del(lockKey);
+
+    if (user.role !== 'platform_admin') {
+      throw AppError.forbidden(
+        'Akses ditolak. Halaman ini khusus untuk admin platform.',
+        'NOT_PLATFORM_ADMIN',
+      );
+    }
+
+    const tokenId = randomUUID();
+    const accessToken = signAccessToken({ userId: user.id, email: user.email, role: user.role });
+    const refreshToken = signRefreshToken(user.id, tokenId, '__platform__');
+    await redis.setex(`refresh:${user.id}:__platform__:${tokenId}`, REFRESH_TOKEN_TTL, tokenId);
+
+    return {
+      accessToken,
+      refreshToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        avatarUrl: user.avatarUrl,
+        role: user.role,
+        emailVerifiedAt: user.emailVerifiedAt,
+      },
+    };
+  },
+
+  async staffLogin(input: LoginInput, publicationId: string) {
+    const user = await authRepository.findByEmail(input.email);
+    if (!user || !user.passwordHash) {
+      throw AppError.unauthorized('Email atau password salah', 'INVALID_CREDENTIALS');
+    }
+
+    const lockKey = `login_attempts:${input.email}:${publicationId}`;
+    const attempts = await redis.get(lockKey);
+    if (attempts && parseInt(attempts) >= 5) {
+      throw AppError.tooManyRequests(
+        'Terlalu banyak percobaan login. Coba lagi dalam 15 menit.',
+        'LOGIN_LOCKED',
+      );
+    }
+
+    const valid = await verify(user.passwordHash, input.password);
+    if (!valid) {
+      await redis
+        .multi()
+        .incr(lockKey)
+        .expire(lockKey, 15 * 60)
+        .exec();
+      throw AppError.unauthorized('Email atau password salah', 'INVALID_CREDENTIALS');
+    }
+    await redis.del(lockKey);
+
+    if (user.role === 'platform_admin') {
+      throw AppError.forbidden(
+        'Gunakan halaman login admin platform untuk akun ini.',
+        'USE_PLATFORM_LOGIN',
+      );
+    }
+
+    const pubAuthor = await publicationRepository.findAuthor(publicationId, user.id);
+    if (!pubAuthor || !['owner', 'admin', 'author'].includes(pubAuthor.role)) {
+      throw AppError.forbidden(
+        'Kamu bukan bagian dari tim publikasi ini.',
+        'NOT_PUBLICATION_STAFF',
+      );
+    }
+
+    const tokenId = randomUUID();
+    const accessToken = signAccessToken({ userId: user.id, email: user.email, role: user.role });
+    const refreshToken = signRefreshToken(user.id, tokenId, publicationId);
+    await redis.setex(`refresh:${user.id}:${publicationId}:${tokenId}`, REFRESH_TOKEN_TTL, tokenId);
+
+    return {
+      accessToken,
+      refreshToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        avatarUrl: user.avatarUrl,
+        role: user.role,
+        publicationRole: pubAuthor.role,
+        emailVerifiedAt: user.emailVerifiedAt,
+      },
+    };
+  },
+
+  async getAuthorInviteMetadata(token: string) {
+    const raw = await redis.get(`invite:${token}`);
+    if (!raw)
+      throw AppError.badRequest('Undangan tidak valid atau sudah kedaluwarsa', 'INVALID_INVITE');
+
+    const invite = JSON.parse(raw) as {
+      email: string;
+      publicationId: string;
+      role: string;
+    };
+
+    const [publication, existingUser] = await Promise.all([
+      publicationRepository.findById(invite.publicationId),
+      authRepository.findByEmail(invite.email),
+    ]);
+
+    if (!publication) throw AppError.notFound('Publikasi tidak ditemukan');
+
+    return {
+      email: invite.email,
+      publicationId: invite.publicationId,
+      publicationName: publication.name,
+      publicationSlug: publication.slug,
+      role: invite.role,
+      isExistingUser: !!existingUser,
+    };
+  },
+
+  async completeAuthorInvite(input: CompleteAuthorInviteInput) {
+    const raw = await redis.get(`invite:${input.token}`);
+    if (!raw)
+      throw AppError.badRequest('Undangan tidak valid atau sudah kedaluwarsa', 'INVALID_INVITE');
+
+    const invite = JSON.parse(raw) as {
+      email: string;
+      publicationId: string;
+      role: 'owner' | 'admin' | 'author';
+    };
+
+    let user = await authRepository.findByEmail(invite.email);
+
+    if (user) {
+      // Existing user — just add to publication
+      const existing = await publicationRepository.findAuthor(invite.publicationId, user.id);
+      if (existing)
+        throw AppError.conflict('Kamu sudah menjadi tim publikasi ini', 'ALREADY_MEMBER');
+    } else {
+      // New user — requires name + password
+      if (!input.name || !input.password) {
+        throw AppError.badRequest(
+          'Nama dan password wajib diisi untuk akun baru',
+          'MISSING_CREDENTIALS',
+        );
+      }
+      const passwordHash = await hash(input.password);
+      user = await authRepository.create({ email: invite.email, name: input.name, passwordHash });
+      await authRepository.markEmailVerified(user.id);
+    }
+
+    await publicationRepository.addAuthor(invite.publicationId, user.id, invite.role);
+    await redis.del(`invite:${input.token}`);
+
+    const tokenId = randomUUID();
+    const accessToken = signAccessToken({ userId: user.id, email: user.email, role: user.role });
+    const refreshToken = signRefreshToken(user.id, tokenId, invite.publicationId);
+    await redis.setex(
+      `refresh:${user.id}:${invite.publicationId}:${tokenId}`,
+      REFRESH_TOKEN_TTL,
+      tokenId,
+    );
+
+    const publication = await publicationRepository.findById(invite.publicationId);
+
+    return {
+      accessToken,
+      refreshToken,
+      user: { id: user.id, email: user.email, name: user.name, role: user.role },
+      publicationSlug: publication?.slug ?? '',
     };
   },
 

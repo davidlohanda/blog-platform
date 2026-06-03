@@ -47,7 +47,22 @@ export const completeOwnerInviteSchema = z.object({
   publicationDescription: z.string().max(160).optional(),
 });
 
+export const completeAuthorInviteSchema = z.object({
+  token: z.string().min(1, 'Token wajib diisi'),
+  name: z.string().min(2, 'Nama minimal 2 karakter').max(255).optional(),
+  password: z
+    .string()
+    .min(8, 'Password minimal 8 karakter')
+    .regex(/(?=.*[a-zA-Z])(?=.*\d)/, 'Password harus mengandung huruf dan angka')
+    .optional(),
+});
+
+export const authorInviteTokenQuerySchema = z.object({
+  token: z.string().min(1, 'Token wajib diisi'),
+});
+
 export type RegisterInput = z.infer<typeof registerSchema> & { ownerInviteToken?: string };
 export type LoginInput = z.infer<typeof loginSchema>;
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+export type CompleteAuthorInviteInput = z.infer<typeof completeAuthorInviteSchema>;

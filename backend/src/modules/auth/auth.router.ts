@@ -17,6 +17,8 @@ import {
   forgotPasswordSchema,
   resetPasswordSchema,
   completeOwnerInviteSchema,
+  completeAuthorInviteSchema,
+  authorInviteTokenQuerySchema,
 } from './auth.schema';
 import { config } from '../../config';
 
@@ -55,6 +57,24 @@ router.get('/accept-owner-invite', (req, res, next) =>
 );
 router.post('/complete-owner-invite', validate(completeOwnerInviteSchema), (req, res, next) =>
   authController.completeOwnerInvite(req, res, next),
+);
+
+// Platform admin login — platform_admin only
+router.post('/admin/login', authRateLimiter, validate(loginSchema), (req, res, next) =>
+  authController.adminLogin(req, res, next),
+);
+
+// Publication staff login — owner/admin/author only (requires x-publication-slug header)
+router.post('/staff/login', authRateLimiter, validate(loginSchema), (req, res, next) =>
+  authController.staffLogin(req, res, next),
+);
+
+// Author invite — get metadata (public) and complete invite
+router.get('/author-invite', validate(authorInviteTokenQuerySchema, 'query'), (req, res, next) =>
+  authController.getAuthorInviteMetadata(req, res, next),
+);
+router.post('/complete-author-invite', validate(completeAuthorInviteSchema), (req, res, next) =>
+  authController.completeAuthorInvite(req, res, next),
 );
 
 // Google OAuth — only mount if credentials are configured
